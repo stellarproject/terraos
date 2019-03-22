@@ -38,6 +38,4 @@ caps = [
 	"CAP_LEASE",
 
 	"CAP_AUDIT_CONTROL",
-
-
 ]
