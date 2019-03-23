@@ -87,30 +87,21 @@ RUN mkdir /install && \
 	make DESTDIR=/install install
 
 # -------------------- production image ------------------------
-FROM ubuntu:18.10
-
-RUN apt update && \
-	apt upgrade -y
-
-RUN	apt install -y \
-	openssh-server \
-	iproute2 \
-	kmod
+FROM scratch
 
 # systemd install
 COPY --from=systemd /install /
 
 # containerd binaries
 COPY --from=containerd /go/src/github.com/containerd/containerd/containerd.service /lib/systemd/system/
-COPY --from=containerd /go/src/github.com/containerd/containerd/bin/* /bin/
-COPY --from=containerd /usr/local/sbin/runc /sbin/
+COPY --from=containerd /go/src/github.com/containerd/containerd/bin/* /usr/local/bin/
+COPY --from=containerd /usr/local/sbin/runc /usr/local/sbin/
 
 # orbit binaries
-RUN mkdir -p /var/lib/containerd/plugins
 COPY --from=orbit /go/src/github.com/stellarproject/orbit/bin/* /usr/local/bin/
 COPY --from=orbit /go/src/github.com/stellarproject/orbit/plugins/* /var/lib/containerd/plugins/
 
-RUN systemctl enable ssh containerd
-RUN systemctl disable systemd-resolved
+ONBUILD systemctl enable containerd
+ONBUILD systemctl disable systemd-resolved
 
-CMD ["/sbin/init"]
+ONBUILD rm /etc/resolv.conf && echo 'nameserver 8.8.8.8' > /etc/resolv.conf
