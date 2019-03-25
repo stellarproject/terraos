@@ -87,7 +87,29 @@ RUN mkdir /install && \
 	make DESTDIR=/install install
 
 # -------------------- production image ------------------------
-FROM scratch
+FROM ubuntu:18.10
+
+RUN apt update && \
+	apt install -y --no-install-recommends \
+	libcap-dev \
+	libssl-dev \
+	libmount-dev \
+	libapparmor-dev \
+	libpam-dev \
+	libaudit-dev \
+	libcryptsetup-dev \
+	libgcrypt-dev \
+	libkmod-dev \
+	libacl1-dev \
+	libseccomp-dev \
+	liblz-dev \
+	libidn2-dev \
+	libcurl4-openssl-dev && \
+	rm -rf /var/lib/apt && \
+	rm -rf /var/lib/dpkg && \
+	rm -rf /var/lib/cache && \
+	rm -rf /var/log && \
+	rm -rf /var/lib/log
 
 # systemd install
 COPY --from=systemd /install /
@@ -101,7 +123,11 @@ COPY --from=containerd /usr/local/sbin/runc /usr/local/sbin/
 COPY --from=orbit /go/src/github.com/stellarproject/orbit/bin/* /usr/local/bin/
 COPY --from=orbit /go/src/github.com/stellarproject/orbit/plugins/* /var/lib/containerd/plugins/
 
-ONBUILD systemctl enable containerd
-ONBUILD systemctl disable systemd-resolved
+RUN systemctl enable containerd
+RUN systemctl disable systemd-resolved
 
-ONBUILD rm /etc/resolv.conf && echo 'nameserver 8.8.8.8' > /etc/resolv.conf
+ONBUILD rm /etc/resolv.conf && echo 'nameserver 127.0.0.1' > /etc/resolv.conf
+# reload ld lib cache
+ONBUILD rm /etc/ld.so.cache && ldconfig -v
+
+CMD ["/sbin/init"]

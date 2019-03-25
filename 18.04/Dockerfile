@@ -44,7 +44,7 @@ WORKDIR /go/src/github.com/stellarproject/orbit
 RUN make && make plugin
 
 # -------------------- production image ------------------------
-FROM scratch
+FROM ubuntu:18.04
 
 # containerd binaries
 COPY --from=containerd /go/src/github.com/containerd/containerd/containerd.service /lib/systemd/system/
@@ -58,4 +58,5 @@ COPY --from=orbit /go/src/github.com/stellarproject/orbit/plugins/* /var/lib/con
 ONBUILD systemctl enable containerd
 ONBUILD systemctl disable systemd-resolved
 
-ONBUILD rm /etc/resolv.conf && echo 'nameserver 8.8.8.8' > /etc/resolv.conf
+ONBUILD rm /etc/ld.so.cache && ldconfig -v
+ONBUILD rm /etc/resolv.conf && echo 'nameserver 127.0.0.1' > /etc/resolv.conf
