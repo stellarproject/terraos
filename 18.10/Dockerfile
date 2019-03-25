@@ -1,4 +1,4 @@
-# ---------------------- continerd build -------------------
+# ---------------------- containerd build -------------------
 FROM golang:1.12 as containerd
 
 RUN apt update && \
@@ -33,6 +33,7 @@ RUN make
 # ------------------ orbit build -------------------------
 FROM containerd as orbit
 
+ENV ORBIT_COMMIT 60d39a139e1cb0795dc3db1d2de283e83c1e995f
 RUN git clone https://github.com/stellarproject/orbit /go/src/github.com/stellarproject/orbit
 
 RUN	rm -rf /go/src/github.com/stellarproject/orbit/vendor/github.com/containerd/ && \
@@ -46,20 +47,26 @@ RUN make && make plugin
 # -------------------- production image ------------------------
 FROM ubuntu:18.10
 
+ADD config.toml /etc/containerd/
+
 # containerd binaries
 COPY --from=containerd /go/src/github.com/containerd/containerd/containerd.service /lib/systemd/system/
 COPY --from=containerd /go/src/github.com/containerd/containerd/bin/* /usr/local/bin/
-COPY --from=containerd /usr/local/sbin/runc /usr/local/sbin/
+COPY --from=containerd /usr/local/sbin/runc /usr/local/bin/
 
 # orbit binaries
 COPY --from=orbit /go/src/github.com/stellarproject/orbit/bin/* /usr/local/bin/
 COPY --from=orbit /go/src/github.com/stellarproject/orbit/plugins/* /var/lib/containerd/plugins/
+RUN mkdir -p /opt/containerd/bin && \
+	ln -s /usr/local/bin/orbit-network /opt/containerd/bin/macvlan && \
+	ln -s /usr/local/bin/orbit-network /opt/containerd/bin/dhcp && \
+	ln -s /usr/local/bin/orbit-network /opt/containerd/bin/loopback
 
-ADD . /
+ADD *.deb /
 
 ONBUILD dpkg -i /linux-headers.deb /linux-libc.deb /linux-image.deb
 ONBUILD apt update && apt upgrade -y
-ONBUILD rm /etc/resolv.conf && echo 'nameserver 127.0.0.1' > /etc/resolv.conf
+ONBUILD rm /etc/resolv.conf
 # reload ld lib cache
 ONBUILD rm /etc/ld.so.cache && ldconfig -v
 
