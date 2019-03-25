@@ -43,76 +43,8 @@ WORKDIR /go/src/github.com/stellarproject/orbit
 
 RUN make && make plugin
 
-# ------------------- systemd build -------------------------
-FROM ubuntu:18.10 as systemd
-
-RUN apt update && \
-        apt upgrade -y
-
-RUN apt install -y \
-	build-essential \
-	ca-certificates \
-	bison \
-	git \
-	meson \
-	gperf \
-	make \
-	libssl-dev \
-	libcap-dev \
-	pkg-config \
-	mount \
-	libmount-dev \
-	gettext \
-	libapparmor-dev \
-	libpam-dev \
-	libaudit-dev \
-	libcryptsetup-dev \
-	libgcrypt-dev \
-	libkmod-dev \
-	libacl1-dev \
-	libseccomp-dev \
-	liblz-dev \
-	libidn2-dev \
-	libcurl4-openssl-dev
-
-ENV SYSTEMD_VERSION v240
-RUN git clone https://github.com/systemd/systemd /systemd
-
-WORKDIR /systemd
-RUN git checkout ${SYSTEMD_VERSION}
-
-RUN mkdir /install && \
-	./configure && \
-	make && \
-	make DESTDIR=/install install
-
 # -------------------- production image ------------------------
 FROM ubuntu:18.10
-
-RUN apt update && \
-	apt install -y --no-install-recommends \
-	libcap-dev \
-	libssl-dev \
-	libmount-dev \
-	libapparmor-dev \
-	libpam-dev \
-	libaudit-dev \
-	libcryptsetup-dev \
-	libgcrypt-dev \
-	libkmod-dev \
-	libacl1-dev \
-	libseccomp-dev \
-	liblz-dev \
-	libidn2-dev \
-	libcurl4-openssl-dev && \
-	rm -rf /var/lib/apt && \
-	rm -rf /var/lib/dpkg && \
-	rm -rf /var/lib/cache && \
-	rm -rf /var/log && \
-	rm -rf /var/lib/log
-
-# systemd install
-COPY --from=systemd /install /
 
 # containerd binaries
 COPY --from=containerd /go/src/github.com/containerd/containerd/containerd.service /lib/systemd/system/
@@ -123,11 +55,13 @@ COPY --from=containerd /usr/local/sbin/runc /usr/local/sbin/
 COPY --from=orbit /go/src/github.com/stellarproject/orbit/bin/* /usr/local/bin/
 COPY --from=orbit /go/src/github.com/stellarproject/orbit/plugins/* /var/lib/containerd/plugins/
 
-RUN systemctl enable containerd
-RUN systemctl disable systemd-resolved
+ADD . /
 
+ONBUILD dpkg -i /linux-headers.deb /linux-libc.deb /linux-image.deb
+ONBUILD apt update && apt upgrade -y
 ONBUILD rm /etc/resolv.conf && echo 'nameserver 127.0.0.1' > /etc/resolv.conf
 # reload ld lib cache
 ONBUILD rm /etc/ld.so.cache && ldconfig -v
 
-CMD ["/sbin/init"]
+ONBUILD systemctl disable systemd-resolved
+ONBUILD systemctl enable containerd
