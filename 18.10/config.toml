@@ -42,5 +42,5 @@ disabled_plugins = [
   [plugins.task]
     platforms = ["linux/amd64"]
   [plugins."stellarproject.io/orbit"]
-    master = true
+    master = ""
     interval = "10s"
