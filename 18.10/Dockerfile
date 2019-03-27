@@ -54,6 +54,10 @@ RUN make && make plugin
 # -------------------- production image ------------------------
 FROM ubuntu:18.10
 
+RUN apt update && \
+	apt install -y \
+	pigz
+
 ADD config.toml /etc/containerd/
 
 # containerd binaries
