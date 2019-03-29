@@ -16,7 +16,7 @@ RUN apt update && \
 	make \
 	xfsprogs
 
-ENV CONTAINERD_VERSION 3d577f172af7798e85a51d8706a6b043414aeaf6
+ENV CONTAINERD_VERSION 7f9eb54626ccf0fbccc96a22ff42677054cc1534
 RUN git clone https://github.com/crosbymichael/containerd /go/src/github.com/containerd/containerd
 RUN git clone https://github.com/opencontainers/runc /go/src/github.com/opencontainers/runc
 
@@ -41,7 +41,7 @@ RUN	rm -rf /go/src/github.com/stellarproject/orbit/vendor/github.com/containerd/
 
 WORKDIR /go/src/github.com/stellarproject/orbit
 
-RUN make && make plugin
+RUN make
 
 # -------------------- production image ------------------------
 FROM ubuntu:18.04
@@ -52,8 +52,8 @@ COPY --from=containerd /go/src/github.com/containerd/containerd/bin/* /usr/local
 COPY --from=containerd /usr/local/sbin/runc /usr/local/sbin/
 
 # orbit binaries
-COPY --from=orbit /go/src/github.com/stellarproject/orbit/bin/* /usr/local/bin/
-COPY --from=orbit /go/src/github.com/stellarproject/orbit/plugins/* /var/lib/containerd/plugins/
+COPY --from=orbit /go/src/github.com/stellarproject/orbit/bin/o* /usr/local/bin/
+COPY --from=orbit /go/src/github.com/stellarproject/orbit/bin/plugins/* /var/lib/containerd/plugins/
 
 ONBUILD systemctl enable containerd
 ONBUILD systemctl disable systemd-resolved

@@ -1,34 +1,4 @@
-# ---------------------- containerd build -------------------
-FROM golang:1.12 as containerd
-
-RUN apt update && \
-	apt install -y \
-	rsync \
-	autoconf \
-	automake \
-	g++ \
-	libtool \
-	unzip \
-	btrfs-tools \
-	gcc \
-	git \
-	libseccomp-dev \
-	make \
-	xfsprogs
-
-ENV CONTAINERD_VERSION 7f9eb54626ccf0fbccc96a22ff42677054cc1534
-RUN git clone https://github.com/crosbymichael/containerd /go/src/github.com/containerd/containerd
-RUN git clone https://github.com/opencontainers/runc /go/src/github.com/opencontainers/runc
-
-WORKDIR /go/src/github.com/containerd/containerd
-RUN git checkout ${CONTAINERD_VERSION}
-
-RUN rsync -au /go/src/github.com/containerd/containerd/vendor/ /go/src/ && \
-	rm -rf /go/src/github.com/containerd/containerd/vendor/
-
-RUN ./script/setup/install-protobuf
-RUN ./script/setup/install-runc
-RUN make
+FROM crosbymichael/containerd:latest as containerd
 
 # ---------------------- cni build -------------------
 FROM golang:1.12 as cni
@@ -49,7 +19,7 @@ RUN	rm -rf /go/src/github.com/stellarproject/orbit/vendor/github.com/containerd/
 
 WORKDIR /go/src/github.com/stellarproject/orbit
 
-RUN make && make plugin
+RUN make
 
 # -------------------- production image ------------------------
 FROM ubuntu:18.10
@@ -73,8 +43,8 @@ COPY --from=cni /go/src/github.com/containernetworking/plugins/bin/bridge /opt/c
 COPY --from=cni /go/src/github.com/containernetworking/plugins/bin/host-local /opt/containerd/bin/
 
 # orbit binaries
-COPY --from=orbit /go/src/github.com/stellarproject/orbit/bin/* /usr/local/bin/
-COPY --from=orbit /go/src/github.com/stellarproject/orbit/plugins/* /var/lib/containerd/plugins/
+COPY --from=orbit /go/src/github.com/stellarproject/orbit/bin/o* /usr/local/bin/
+COPY --from=orbit /go/src/github.com/stellarproject/orbit/bin/plugins/* /var/lib/containerd/plugins/
 RUN ln -s /usr/local/bin/orbit-network /opt/containerd/bin/orbit-network
 
 ADD *.deb /
