@@ -15,7 +15,7 @@ RUN apt update && \
 	make \
 	xfsprogs
 
-ENV CONTAINERD_VERSION 7f9eb54626ccf0fbccc96a22ff42677054cc1534
+ENV CONTAINERD_VERSION 6f50b1f8e44f2229933d3e4ceb28c5e88a5d0cc9
 RUN git clone https://github.com/crosbymichael/containerd /go/src/github.com/containerd/containerd
 RUN git clone https://github.com/opencontainers/runc /go/src/github.com/opencontainers/runc
 

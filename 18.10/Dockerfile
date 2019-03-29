@@ -1,27 +1,9 @@
-FROM crosbymichael/containerd:latest as containerd
+FROM stellarproject/containerd:latest as containerd
+FROM stellarproject/cni:latest as cni
+FROM stellarproject/buildkit:latest as buildkit
+FROM stellarproject/orbit:latest as orbit
+FROM stellarproject/kernel:5.0.5 as kernel
 
-# ---------------------- cni build -------------------
-FROM golang:1.12 as cni
-
-RUN go get -d github.com/containernetworking/plugins || true
-WORKDIR /go/src/github.com/containernetworking/plugins
-
-RUN ./build_linux.sh
-
-# ------------------ orbit build -------------------------
-FROM containerd as orbit
-
-ADD orbit/ /go/src/github.com/stellarproject/orbit
-
-RUN	rm -rf /go/src/github.com/stellarproject/orbit/vendor/github.com/containerd/ && \
-	rsync -au --ignore-existing /go/src/github.com/stellarproject/orbit/vendor/ /go/src/ && \
-	rm -rf /go/src/github.com/stellarproject/orbit/vendor/
-
-WORKDIR /go/src/github.com/stellarproject/orbit
-
-RUN make
-
-# -------------------- production image ------------------------
 FROM ubuntu:18.10
 
 RUN apt update && \
@@ -37,21 +19,19 @@ COPY --from=containerd /usr/local/sbin/runc /usr/local/sbin/
 
 # cni binaries
 RUN mkdir -p /opt/containerd/bin
-COPY --from=cni /go/src/github.com/containernetworking/plugins/bin/macvlan /opt/containerd/bin/
-COPY --from=cni /go/src/github.com/containernetworking/plugins/bin/loopback /opt/containerd/bin/
-COPY --from=cni /go/src/github.com/containernetworking/plugins/bin/bridge /opt/containerd/bin/
-COPY --from=cni /go/src/github.com/containernetworking/plugins/bin/host-local /opt/containerd/bin/
+COPY --from=cni /bin/* /opt/containerd/bin/
 
 # orbit binaries
-COPY --from=orbit /go/src/github.com/stellarproject/orbit/bin/o* /usr/local/bin/
-COPY --from=orbit /go/src/github.com/stellarproject/orbit/bin/plugins/* /var/lib/containerd/plugins/
+COPY --from=orbit /bin/* /usr/local/bin/
+COPY --from=orbit /plugins/* /var/lib/containerd/plugins/
 RUN ln -s /usr/local/bin/orbit-network /opt/containerd/bin/orbit-network
 
-ADD *.deb /
+# kernel
+COPY --from=kernel /* /tmp/kinstall
 
-ONBUILD dpkg -i /linux-headers.deb /linux-libc.deb /linux-image.deb
+ONBUILD dpkg -i /tmp/kinstall/linux-headers.deb /linux-libc.deb /linux-image.deb
 # ONBUILD apt update && apt upgrade -y
-ONBUILD rm /etc/resolv.conf
+ONBUILD rm /etc/resolv.conf && echo "nameserver 8.8.8.8" > /etc/resolv.conf
 # reload ld lib cache
 ONBUILD rm /etc/ld.so.cache && ldconfig -v
 
