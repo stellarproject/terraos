@@ -1,9 +1,7 @@
 FROM ubuntu:18.10
 
 RUN apt update && \
-        apt upgrade -y
-
-RUN apt install -y \
+	apt install -y \
 	build-essential \
 	ca-certificates \
 	bison \
@@ -38,4 +36,6 @@ RUN git checkout ${SYSTEMD_VERSION}
 RUN mkdir /install && \
 	./configure && \
 	make && \
-	make DESTDIR=/install install
+	make install
+
+CMD ["/sbin/init"]

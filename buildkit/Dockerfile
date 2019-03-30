@@ -7,4 +7,4 @@ RUN go build
 
 FROM scratch
 
-COPY --from=buildkit /go/src/github.com/moby/buildkit/cmd/buildkitd/buildkitd /
+COPY --from=buildkit /go/src/github.com/moby/buildkit/cmd/buildkitd/buildkitd /bin/
