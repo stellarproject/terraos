@@ -33,9 +33,5 @@ RUN git clone https://github.com/systemd/systemd /systemd
 WORKDIR /systemd
 RUN git checkout ${SYSTEMD_VERSION}
 
-RUN mkdir /install && \
-	./configure && \
-	make && \
-	make install
-
-CMD ["/sbin/init"]
+RUN ./configure && \
+	make

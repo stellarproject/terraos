@@ -1,3 +1,8 @@
+all:
+	cd 18.10 && vab build --arg KERNEL_VERSION=5.0.5 -p --ref docker.io/stellarproject/terra:18.10
+
+FORCE:
+
 containerd:
 	cd containerd && vab build -p --ref docker.io/stellarproject/containerd:latest
 
@@ -9,5 +14,5 @@ extras:
 kernel:
 	cd kernel && vab build -p --ref docker.io/stellarproject/kernel:5.0.5
 
-18.10: containerd extras kernel
-	cd 18.10 && vab build --arg KERNEL_VERSION=5.0.5 -p --ref docker.io/stellarproject/vhost:18.10
+base: FORCE
+	cd base && vab build -c /tmp/terra -p --ref docker.io/stellarproject/ubuntu:18.10
