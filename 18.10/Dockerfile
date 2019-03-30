@@ -18,6 +18,8 @@ RUN --mount=type=bind,from=kernel,target=/tmp dpkg -i \
 
 RUN apt update && \
 	apt install -y \
+	openssh-server \
+	apparmor \
 	pigz
 
 ADD config.toml /etc/containerd/
@@ -41,6 +43,7 @@ COPY --from=buildkit /bin/* /usr/local/bin/
 
 RUN \
 	systemctl disable systemd-resolved && \
+	systemctl enable ssh && \
 	systemctl enable containerd
 
 ONBUILD rm /etc/ld.so.cache && ldconfig -v
