@@ -34,8 +34,8 @@ RUN mkdir -p /opt/containerd/bin
 COPY --from=cni /bin/* /opt/containerd/bin/
 
 # orbit binaries
-COPY --from=orbit /bin/* /usr/local/bin/
-COPY --from=orbit /plugins/* /var/lib/containerd/plugins/
+COPY --from=orbit /bin/o* /usr/local/bin/
+COPY --from=orbit /bin/plugins/* /var/lib/containerd/plugins/
 RUN ln -s /usr/local/bin/orbit-network /opt/containerd/bin/orbit-network
 
 COPY --from=node /bin/* /usr/local/bin/
