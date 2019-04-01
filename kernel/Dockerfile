@@ -27,8 +27,6 @@ RUN mkdir /linux && \
 	tar --strip-components=1 -xpf linux.tar.xz -C /linux
 
 ADD config /linux/.config
-ADD overlay /etc/initramfs-tools/scripts/overlay
-ADD modules /etc/initramfs-tools/modules
 
 # WireGuard
 RUN curl -SsL "${WIREGUARD_URL}" -o /wireguard.tar.xz
@@ -47,6 +45,8 @@ RUN /wireguard/contrib/kernel-tree/create-patch.sh | patch -p1
 RUN make olddefconfig
 RUN make -j "$(getconf _NPROCESSORS_ONLN)" KDEB_PKGVERSION=$PKGVERSION INSTALL_MOD_STRIP=1 bindeb-pkg
 
+ADD terra /etc/initramfs-tools/scripts/terra
+ADD modules /etc/initramfs-tools/modules
 RUN update-initramfs -u
 
 FROM scratch

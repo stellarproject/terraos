@@ -47,7 +47,7 @@ local_mount_root()
 
 	# Mount the final overlay-root in $rootmnt
 	mount -t overlay \
-	    -olowerdir=/lower/terra/${vhost},upperdir=/upper/data,workdir=/upper/work \
+	    -olowerdir=/lower/terra,upperdir=/upper/data,workdir=/upper/work \
 	    overlay ${rootmnt}
 	# mount rw locations
 	mount --bind /lower/terra/var ${rootmnt}/var

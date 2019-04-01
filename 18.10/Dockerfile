@@ -20,6 +20,7 @@ RUN apt update && \
 	apt install -y \
 	openssh-server \
 	apparmor \
+	initramfs-tools \
 	pigz
 
 ADD config.toml /etc/containerd/
@@ -50,6 +51,10 @@ RUN \
 	systemctl enable ssh && \
 	systemctl enable buildkit && \
 	systemctl enable node_exporter
+
+ADD terra /etc/initramfs-tools/scripts/terra
+ADD modules /etc/initramfs-tools/modules
+RUN update-initramfs -u
 
 # setup initrd and boot
 ONBUILD update-grub
