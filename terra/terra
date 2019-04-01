@@ -49,6 +49,10 @@ local_mount_root()
 	mount -t overlay \
 	    -olowerdir=/lower/terra,upperdir=/upper/data,workdir=/upper/work \
 	    overlay ${rootmnt}
+
 	# mount rw locations
 	mount --bind /lower/terra/var ${rootmnt}/var
+	mount --bind /lower/terra/home ${rootmnt}/home
+	# boot is needed to update the boot order and kernel updates
+	mount --bind /lower/boot ${rootmnt}/boot
 }

@@ -60,6 +60,8 @@ ADD grub /etc/default/grub
 RUN rm /etc/update-motd.d/*
 ADD motd/* /etc/update-motd.d/
 
+ADD sshd_config /etc/ssh/
+
 RUN update-initramfs -u
 
 # setup initrd and boot

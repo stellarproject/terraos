@@ -1,3 +1,25 @@
+FROM ubuntu:18.10 as debootstrap
+
+RUN apt update && \
+	apt install -y \
+	debootstrap
+
+RUN debootstrap --arch amd64 cosmic /terra/ http://archive.ubuntu.com/ubuntu
+
 FROM scratch
 
-ADD system.tar.gz /
+COPY --from=debootstrap /terra/ /
+
+# add full apt sources
+ADD sources.list /etc/apt/
+
+# add the default terra user
+RUN addgroup --system terra && \
+	useradd --password terra -s /bin/bash -g terra --groups adm -m -k /dev/null terra
+
+ADD sudoers /etc/
+ADD hosts /etc/
+ADD hostname /etc/
+ADD resolv.conf /etc/
+
+CMD ["bash"]
