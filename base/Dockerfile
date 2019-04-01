@@ -15,7 +15,8 @@ ADD sources.list /etc/apt/
 
 # add the default terra user
 RUN addgroup --system terra && \
-	useradd --password terra -s /bin/bash -g terra --groups adm -m -k /dev/null terra
+	useradd -s /bin/bash -g terra --groups adm -m -k /dev/null terra && \
+	echo 'terra:terra' | chpasswd
 
 ADD sudoers /etc/
 ADD hosts /etc/
