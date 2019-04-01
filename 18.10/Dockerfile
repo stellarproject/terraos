@@ -25,7 +25,7 @@ RUN apt update && \
 ADD config.toml /etc/containerd/
 
 # containerd binaries
-COPY --from=containerd /go/src/github.com/containerd/containerd/containerd.service /lib/systemd/system/
+COPY --from=containerd /go/src/github.com/containerd/containerd/containerd.service /etc/systemd/system/
 COPY --from=containerd /go/src/github.com/containerd/containerd/bin/* /usr/local/bin/
 COPY --from=containerd /usr/local/sbin/runc /usr/local/sbin/
 
@@ -41,12 +41,17 @@ RUN ln -s /usr/local/bin/orbit-network /opt/containerd/bin/orbit-network
 COPY --from=node /bin/* /usr/local/bin/
 COPY --from=buildkit /bin/* /usr/local/bin/
 
+ADD buildkit.service /etc/systemd/system/
+ADD node_exporter.service /etc/systemd/system/
+
 RUN \
 	systemctl disable systemd-resolved && \
+	systemctl enable containerd && \
 	systemctl enable ssh && \
-	systemctl enable containerd
+	systemctl enable buildkit && \
+	systemctl enable node_exporter
 
-ONBUILD rm /etc/ld.so.cache && ldconfig -v
+# setup initrd and boot
 ONBUILD update-grub
 
 CMD ["/sbin/init"]

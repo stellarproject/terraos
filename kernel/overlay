@@ -32,11 +32,11 @@ local_mount_root()
 	# Create directories for root and the overlay
 	mkdir /lower /upper
 
-	# Mount read-only root to /lower
+	# mount the disk to lower
 	if [ "${FSTYPE}" != "unknown" ]; then
-		mount -r -t ${FSTYPE} ${ROOTFLAGS} ${ROOT} /lower
+		mount -t ${FSTYPE} ${ROOTFLAGS} ${ROOT} /lower
 	else
-		mount -r ${ROOTFLAGS} ${ROOT} /lower
+		mount ${ROOTFLAGS} ${ROOT} /lower
 	fi
 
 	modprobe overlay
@@ -47,6 +47,8 @@ local_mount_root()
 
 	# Mount the final overlay-root in $rootmnt
 	mount -t overlay \
-	    -olowerdir=/lower,upperdir=/upper/data,workdir=/upper/work \
+	    -olowerdir=/lower/terra/${vhost},upperdir=/upper/data,workdir=/upper/work \
 	    overlay ${rootmnt}
+	# mount rw locations
+	mount --bind /lower/terra/var ${rootmnt}/var
 }
