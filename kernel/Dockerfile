@@ -15,7 +15,6 @@ RUN apt-get update && apt-get install -y \
 	kmod \
 	libssl-dev \
 	git \
-	initramfs-tools \
 	make
 
 ENV WIREGUARD_VERSION=0.0.20190227
@@ -44,10 +43,6 @@ WORKDIR /linux
 RUN /wireguard/contrib/kernel-tree/create-patch.sh | patch -p1
 RUN make olddefconfig
 RUN make -j "$(getconf _NPROCESSORS_ONLN)" KDEB_PKGVERSION=$PKGVERSION INSTALL_MOD_STRIP=1 bindeb-pkg
-
-ADD terra /etc/initramfs-tools/scripts/terra
-ADD modules /etc/initramfs-tools/modules
-RUN update-initramfs -u
 
 FROM scratch
 
