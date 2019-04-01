@@ -54,6 +54,12 @@ RUN \
 
 ADD terra /etc/initramfs-tools/scripts/terra
 ADD modules /etc/initramfs-tools/modules
+ADD grub /etc/default/grub
+
+# motd
+RUN rm /etc/update-motd.d/*
+ADD motd/* /etc/update-motd.d/
+
 RUN update-initramfs -u
 
 # setup initrd and boot

@@ -2,7 +2,7 @@
 Description=Prometheus node exporter
 
 [Service]
-ExecStart=/usr/local/bin/node_exporter --web.listen.address=":9900"
+ExecStart=/usr/local/bin/node_exporter --web.listen-address=":9900"
 Restart=always
 
 [Install]
