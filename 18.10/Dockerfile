@@ -30,9 +30,11 @@ COPY --from=containerd /go/src/github.com/containerd/containerd/containerd.servi
 COPY --from=containerd /go/src/github.com/containerd/containerd/bin/* /usr/local/bin/
 COPY --from=containerd /usr/local/sbin/runc /usr/local/sbin/
 
-# cni binaries
+# additional directories
 RUN mkdir -p /opt/containerd/bin && \
-	mkdir -p /opt/containerd/plugins
+	mkdir -p /opt/containerd/plugins && \
+	mkdir -p /etc/netplan
+
 COPY --from=cni /bin/* /opt/containerd/bin/
 
 # orbit binaries
@@ -55,7 +57,8 @@ RUN \
 
 ADD terra /etc/initramfs-tools/scripts/terra
 ADD modules /etc/initramfs-tools/modules
-ADD grub /etc/default/grub
+
+ADD 01-netcfg.yaml  /etc/netplan
 
 # motd
 RUN rm /etc/update-motd.d/*
