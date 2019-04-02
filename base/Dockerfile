@@ -23,4 +23,6 @@ ADD hosts /etc/
 ADD hostname /etc/
 ADD resolv.conf /etc/
 
+RUN chmod 0440 /etc/sudoers
+
 CMD ["bash"]

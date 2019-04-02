@@ -1,5 +1,5 @@
 all:
-	cd terra && vab build --arg KERNEL_VERSION=5.0.5 -p --ref docker.io/stellarproject/terra:18.10
+	cd 18.10 && vab build --arg KERNEL_VERSION=5.0.5 -p --ref docker.io/stellarproject/terra:18.10
 
 FORCE:
 
