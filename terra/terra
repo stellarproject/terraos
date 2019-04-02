@@ -13,6 +13,7 @@ local_mount_root()
 	local_top
 	local_device_setup "${ROOT}" "root file system"
 	ROOT="${DEV}"
+	VHOST="${vhost}"
 
 	# Get the root filesystem type if not set
 	if [ -z "${ROOTFSTYPE}" ]; then
@@ -47,12 +48,10 @@ local_mount_root()
 
 	# Mount the final overlay-root in $rootmnt
 	mount -t overlay \
-	    -olowerdir=/lower/terra,upperdir=/upper/data,workdir=/upper/work \
+	    -olowerdir=/lower/terra/${VHOST},upperdir=/upper/data,workdir=/upper/work \
 	    overlay ${rootmnt}
 
 	# mount rw locations
-	mount --bind /lower/terra/var ${rootmnt}/var
-	mount --bind /lower/terra/home ${rootmnt}/home
-	# boot is needed to update the boot order and kernel updates
-	mount --bind /lower/boot ${rootmnt}/boot
+	mount --bind /lower/terra/${VHOST}/var ${rootmnt}/var
+	mount --bind /lower/terra/${VHOST}/home ${rootmnt}/home
 }

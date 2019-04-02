@@ -17,11 +17,11 @@ RUN --mount=type=bind,from=kernel,target=/tmp dpkg -i \
 	/tmp/linux-image-$KERNEL_VERSION-terra_$KERNEL_VERSION-terra-1_amd64.deb
 
 RUN apt update && \
-	apt install -y \
+	DEBIAN_FRONTEND=noninteractive apt install -y \
 	openssh-server \
 	apparmor \
-	initramfs-tools \
-	pigz
+	pigz \
+	initramfs-tools
 
 ADD config.toml /etc/containerd/
 
@@ -31,12 +31,13 @@ COPY --from=containerd /go/src/github.com/containerd/containerd/bin/* /usr/local
 COPY --from=containerd /usr/local/sbin/runc /usr/local/sbin/
 
 # cni binaries
-RUN mkdir -p /opt/containerd/bin
+RUN mkdir -p /opt/containerd/bin && \
+	mkdir -p /opt/containerd/plugins
 COPY --from=cni /bin/* /opt/containerd/bin/
 
 # orbit binaries
 COPY --from=orbit /bin/o* /usr/local/bin/
-COPY --from=orbit /bin/plugins/* /var/lib/containerd/plugins/
+COPY --from=orbit /bin/plugins/* /opt/containerd/plugins/
 RUN ln -s /usr/local/bin/orbit-network /opt/containerd/bin/orbit-network
 
 COPY --from=node /bin/* /usr/local/bin/
@@ -63,8 +64,5 @@ ADD motd/* /etc/update-motd.d/
 ADD sshd_config /etc/ssh/
 
 RUN update-initramfs -u
-
-# setup initrd and boot
-ONBUILD update-grub
 
 CMD ["/sbin/init"]

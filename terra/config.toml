@@ -1,6 +1,7 @@
 root = "/var/lib/containerd"
 state = "/run/containerd"
 oom_score = -50
+plugin_dir = "/opt/containerd/plugins"
 
 disabled_plugins = [
 	"cri",
@@ -8,6 +9,7 @@ disabled_plugins = [
 	"zfs",
 	"aufs",
 	"restart",
+	"devmapper",
 ]
 
 [grpc]
