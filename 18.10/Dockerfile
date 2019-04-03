@@ -21,8 +21,7 @@ RUN apt update && \
 	DEBIAN_FRONTEND=noninteractive apt install -y \
 	openssh-server \
 	apparmor \
-	pigz \
-	initramfs-tools
+	pigz
 
 ADD config.toml /etc/containerd/
 
@@ -58,9 +57,6 @@ RUN \
 	systemctl enable node_exporter && \
 	systemctl enable serial-getty@ttyS0.service
 
-ADD terra /etc/initramfs-tools/scripts/terra
-ADD modules /etc/initramfs-tools/modules
-
 ADD 01-netcfg.yaml  /etc/netplan
 
 # motd
@@ -68,7 +64,5 @@ RUN rm /etc/update-motd.d/*
 ADD motd/* /etc/update-motd.d/
 
 ADD sshd_config /etc/ssh/
-
-RUN update-initramfs -u
 
 CMD ["/sbin/init"]
