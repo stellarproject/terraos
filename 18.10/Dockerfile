@@ -53,7 +53,8 @@ RUN \
 	systemctl enable containerd && \
 	systemctl enable ssh && \
 	systemctl enable buildkit && \
-	systemctl enable node_exporter
+	systemctl enable node_exporter && \
+	systemctl enable serial-getty@ttyS0.service
 
 ADD terra /etc/initramfs-tools/scripts/terra
 ADD modules /etc/initramfs-tools/modules
