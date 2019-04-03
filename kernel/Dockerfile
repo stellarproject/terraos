@@ -41,7 +41,6 @@ RUN bash -c 'cd /linux; for i in $(cd /patches; ls | grep patch); do echo "apply
 WORKDIR /linux
 
 RUN /wireguard/contrib/kernel-tree/create-patch.sh | patch -p1
-RUN make olddefconfig
 RUN make -j "$(getconf _NPROCESSORS_ONLN)" KDEB_PKGVERSION=$PKGVERSION INSTALL_MOD_STRIP=1 bindeb-pkg
 
 FROM scratch
