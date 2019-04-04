@@ -1,5 +1,5 @@
 all:
-	cd 18.10 && vab build --arg KERNEL_VERSION=5.0.5 -p --ref docker.io/stellarproject/terra:18.10
+	cd os && vab build --arg KERNEL_VERSION=5.0.5 -p --ref docker.io/stellarproject/terra:1
 
 FORCE:
 
@@ -16,3 +16,6 @@ kernel: FORCE
 
 base: FORCE
 	cd base && vab build -p --ref docker.io/stellarproject/ubuntu:18.10
+
+live: FORCE
+	cd live && vab build --ref docker.io/stellarproject/live:latest

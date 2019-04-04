@@ -1,5 +1,5 @@
 id = "terra"
-image = "docker.io/stellarproject/terra:18.10"
+image = "docker.io/stellarproject/terra:1"
 
 uid = 0
 gid = 0
