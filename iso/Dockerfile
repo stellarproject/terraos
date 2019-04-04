@@ -39,7 +39,7 @@ RUN mv /boot/initrd.img-$KERNEL_VERSION-terra /boot/initrd.img
 
 COPY isolinux.cfg /boot/isolinux.cfg
 COPY boot.txt /boot/boot.txt
-COPY --from=live /live.sqsh /boot/root.squashfs
+COPY --from=live /live.sqsh /boot/live.sq
 
 RUN mkisofs -o /terra.iso \
    -b isolinux.bin -c boot.cat \

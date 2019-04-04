@@ -56,8 +56,6 @@ RUN \
 	systemctl enable node_exporter && \
 	systemctl enable serial-getty@ttyS0.service
 
-ADD 01-netcfg.yaml  /etc/netplan
-
 # motd
 RUN rm /etc/update-motd.d/*
 ADD motd/* /etc/update-motd.d/

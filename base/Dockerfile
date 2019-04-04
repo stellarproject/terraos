@@ -12,6 +12,9 @@ COPY --from=debootstrap /terra/ /
 
 # add full apt sources
 ADD sources.list /etc/apt/
+ADD 01-netcfg.yaml  /etc/netplan
+
+RUN rm /etc/fstab
 
 # add the default terra user
 RUN addgroup --system terra && \

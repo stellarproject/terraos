@@ -1,21 +1,24 @@
 all:
-	cd os && vab build --arg KERNEL_VERSION=5.0.5 -p --ref docker.io/stellarproject/terra:1
+	vab build --arg KERNEL_VERSION=5.0.5 --local -c iso -d iso
 
 FORCE:
 
+os: FORCE
+	vab build -c os -d os --arg KERNEL_VERSION=5.0.5 -p --ref docker.io/stellarproject/terra:1
+
 containerd: FORCE
-	cd containerd && vab build -p --ref docker.io/stellarproject/containerd:latest
+	vab build -c containerd -d containerd -p --ref docker.io/stellarproject/containerd:latest
 
 extras: FORCE
-	cd cni && vab build -p --ref docker.io/stellarproject/cni:latest
-	cd node_exporter && vab build -p --ref docker.io/stellarproject/node_exporter:latest
-	cd buildkit && vab build -p --ref docker.io/stellarproject/buildkit:latest
+	vab build -c cni -d cni -p --ref docker.io/stellarproject/cni:latest
+	vab build -c node_exporter -d node_exporter -p --ref docker.io/stellarproject/node_exporter:latest
+	vab build -c buildkit -d buildkit -p --ref docker.io/stellarproject/buildkit:latest
 
 kernel: FORCE
-	cd kernel && vab build -p --ref docker.io/stellarproject/kernel:5.0.5
+	vab build -c kernel -d kernel -p --ref docker.io/stellarproject/kernel:5.0.5
 
 base: FORCE
-	cd base && vab build -p --ref docker.io/stellarproject/ubuntu:18.10
+	vab build -c base -d base -p --ref docker.io/stellarproject/ubuntu:18.10
 
 live: FORCE
-	cd live && vab build --ref docker.io/stellarproject/live:latest
+	vab build -c live -d live --ref docker.io/stellarproject/live:latest

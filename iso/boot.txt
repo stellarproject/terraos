@@ -1,5 +1,5 @@
-TerraOS Bootloader
-													 ___
+TerraOS Bootloader:
+
                                                   ,o88888
                                                ,o8888888'
                          ,:o:o:oooo.        ,8O88Pd8888"
