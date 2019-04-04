@@ -1,0 +1,48 @@
+# Local filesystem mounting			-*- shell-script -*-
+
+#
+# This script overrides local_mount_root() in /scripts/local
+#
+
+. /scripts/local
+
+rescue_shell() {
+    busybox --install -s
+    exec /bin/sh
+}
+
+local_mount_root()
+{
+	local_top
+	#local_device_setup "${ROOT}" "root file system"
+
+	ROOT="${DEV}"
+	VHOST="${vhost}"
+
+	## Get the root filesystem type if not set
+	#if [ -z "${ROOTFSTYPE}" ]; then
+	#	FSTYPE=$(get_fstype "${ROOT}")
+	#else
+	#	FSTYPE=${ROOTFSTYPE}
+	#fi
+
+	local_premount
+
+	# CHANGES TO THE ORIGINAL FUNCTION BEGIN HERE
+	# N.B. this code still lacks error checking
+
+	echo "setting up squashfs..."
+	mkdir -p /tmp/iso
+	mount -t iso9660 /dev/sr0 /tmp/iso
+	mkdir -p /tmp/fs
+	mount -t squashfs /tmp/iso/root.squ /tmp/fs
+
+	mkdir /mnt
+	mount -t tmpfs tmpfs /mnt
+
+	cp -rf /tmp/fs/* /mnt/
+	umount /tmp/fs
+	umount /tmp/iso
+
+	exec switch_root /mnt /sbin/init || rescue_shell
+}
