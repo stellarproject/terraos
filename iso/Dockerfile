@@ -27,6 +27,7 @@ RUN --mount=type=bind,from=kernel,target=/tmp dpkg -i \
 	/tmp/linux-image-$KERNEL_VERSION-terra_$KERNEL_VERSION-terra-1_amd64.deb
 
 RUN cp /syslinux-6.03/bios/core/isolinux.bin /boot/syslinux
+RUN cp /syslinux-6.03/bios/mbr/mbr.bin /boot/syslinux
 RUN cp /syslinux-6.03/bios/com32/elflink/ldlinux/ldlinux.c32 /boot/syslinux
 RUN cp /syslinux-6.03/bios/com32/menu/vesamenu.c32 /boot/syslinux/
 RUN cp /syslinux-6.03/bios/com32/menu/menu.c32 /boot/syslinux/
