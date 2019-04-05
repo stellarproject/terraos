@@ -14,7 +14,11 @@ ARG KERNEL_VERSION
 
 RUN --mount=type=bind,from=kernel,target=/tmp dpkg -i \
 	/tmp/linux-headers-$KERNEL_VERSION-terra_$KERNEL_VERSION-terra-1_amd64.deb \
-	/tmp/linux-libc-dev_$KERNEL_VERSION-terra-1_amd64.deb
+	/tmp/linux-libc-dev_$KERNEL_VERSION-terra-1_amd64.deb \
+	/tmp/linux-image-$KERNEL_VERSION-terra_$KERNEL_VERSION-terra-1_amd64.deb
+
+RUN mv /boot/vmlinuz-$KERNEL_VERSION-terra /boot/vmlinuz
+RUN mv /boot/initrd.img-$KERNEL_VERSION-terra /boot/initrd.img
 
 RUN apt update && \
 	DEBIAN_FRONTEND=noninteractive apt install -y \

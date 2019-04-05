@@ -29,6 +29,8 @@ RUN --mount=type=bind,from=kernel,target=/tmp dpkg -i \
 RUN cp /syslinux-6.03/bios/core/isolinux.bin /boot/syslinux
 RUN cp /syslinux-6.03/bios/com32/elflink/ldlinux/ldlinux.c32 /boot/syslinux
 RUN cp /syslinux-6.03/bios/com32/menu/vesamenu.c32 /boot/syslinux/
+RUN cp /syslinux-6.03/bios/com32/menu/menu.c32 /boot/syslinux/
+RUN cp /syslinux-6.03/bios/com32/chain/chain.c32 /boot/syslinux/
 RUN cp /syslinux-6.03/bios/com32/libutil/libutil.c32 /boot/syslinux/
 RUN cp /syslinux-6.03/bios/com32/lib/libcom32.c32 /boot/syslinux/
 
@@ -47,6 +49,7 @@ ADD splash.png /boot/syslinux/splash.png
 
 # COPY boot.txt /boot/boot.txt
 COPY --from=live /live.sqsh /boot/live.sq
+COPY --from=live /os.tgz /boot/os.tgz
 
 RUN mkisofs -o /terra.iso \
    -b syslinux/isolinux.bin -c syslinux/boot.cat \

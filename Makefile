@@ -6,7 +6,7 @@ all:
 FORCE:
 
 os: FORCE
-	vab build -c os -d os --arg KERNEL_VERSION=5.0.5 -p --ref docker.io/stellarproject/terra:1
+	vab build -c os -d os --arg KERNEL_VERSION=5.0.6 -p --ref docker.io/stellarproject/terra:2
 
 containerd: FORCE
 	vab build -c containerd -d containerd -p --ref docker.io/stellarproject/containerd:latest
@@ -17,7 +17,7 @@ extras: FORCE
 	vab build -c buildkit -d buildkit -p --ref docker.io/stellarproject/buildkit:latest
 
 kernel: FORCE
-	vab build -c kernel -d kernel -p --ref docker.io/stellarproject/kernel:5.0.5
+	vab build -c kernel -d kernel -p --ref docker.io/stellarproject/kernel:5.0.6
 
 base: FORCE
 	vab build -c base -d base -p --ref docker.io/stellarproject/ubuntu:18.10

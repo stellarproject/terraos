@@ -1,0 +1,24 @@
+#!/bin/sh
+
+set -e
+
+mkdir /run/iso
+mount -t iso9660 /dev/sr0 /run/iso
+
+echo "Partition /dev/sda..."
+echo -e "o\nn\np\n1\n\n\nw" | fdisk /dev/sda
+
+echo "Format /dev/sda1..."
+
+mkfs.ext4 /dev/sda1
+
+mkdir /run/disk
+mount -t ext4 /dev/sda1 /run/disk
+
+mkdir -p /run/disk/terra
+tar -C /run/disk/terra -zxf /run/iso/os.tgz
+
+umount /run/iso
+umount /run/disk
+
+echo "Reboot and enjoy..."
