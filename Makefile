@@ -1,3 +1,5 @@
+GO_LDFLAGS=-s -w
+
 all:
 	vab build --arg KERNEL_VERSION=5.0.5 --local -c iso -d iso
 
@@ -22,3 +24,6 @@ base: FORCE
 
 live: FORCE
 	vab build -c live -d live --ref docker.io/stellarproject/live:latest
+
+terra: FORCE
+	vab build -d terra -p --ref docker.io/stellarproject/terra:latest
