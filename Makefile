@@ -27,3 +27,6 @@ live: FORCE
 
 terra: FORCE
 	vab build -d terra -p --ref docker.io/stellarproject/terra:latest
+
+criu: FORCE
+	vab build -d criu -c criu -p --ref docker.io/stellarproject/criu:latest
