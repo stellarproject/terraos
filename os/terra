@@ -8,12 +8,16 @@
 
 . /scripts/local
 
+rescue_shell() {
+    busybox --install -s
+    exec /bin/sh
+}
+
 local_mount_root()
 {
 	local_top
 	local_device_setup "${ROOT}" "root file system"
 	ROOT="${DEV}"
-	VHOST="${vhost}"
 
 	# Get the root filesystem type if not set
 	if [ -z "${ROOTFSTYPE}" ]; then
@@ -44,14 +48,14 @@ local_mount_root()
 
 	# Mount a tmpfs for the overlay in /upper
 	mount -t tmpfs tmpfs /upper
-	mkdir /upper/data /upper/work
+	mkdir -p /upper/data /upper/work /lower/config
 
 	# Mount the final overlay-root in $rootmnt
 	mount -t overlay \
-	    -olowerdir=/lower/terra/config:/lower/terra/${VHOST},upperdir=/upper/data,workdir=/upper/work \
+	    -olowerdir=/lower/config:/lower/terra,upperdir=/upper/data,workdir=/upper/work \
 	    overlay ${rootmnt}
 
 	# mount rw locations
-	mount --bind /lower/terra/${VHOST}/var ${rootmnt}/var
-	mount --bind /lower/terra/${VHOST}/home ${rootmnt}/home
+	mount --bind /lower/terra/var ${rootmnt}/var
+	mount --bind /lower/terra/home ${rootmnt}/home
 }

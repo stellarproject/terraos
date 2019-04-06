@@ -28,7 +28,6 @@ RUN git clone https://github.com/checkpoint-restore/criu /criu
 RUN cd /criu \
     && make install-criu
 
-
 FROM scratch
 
 COPY --from=build /usr/local/sbin/criu /bin/

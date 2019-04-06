@@ -35,15 +35,12 @@ RUN cp /syslinux-6.03/bios/com32/chain/chain.c32 /boot/syslinux/
 RUN cp /syslinux-6.03/bios/com32/libutil/libutil.c32 /boot/syslinux/
 RUN cp /syslinux-6.03/bios/com32/lib/libcom32.c32 /boot/syslinux/
 
-ADD terra /etc/initramfs-tools/scripts/terra
 ADD live /etc/initramfs-tools/scripts/live
-ADD modules /etc/initramfs-tools/modules
 
 RUN update-initramfs -u
 
 RUN mv /boot/vmlinuz-$KERNEL_VERSION-terra /boot/vmlinuz
 RUN mv /boot/initrd.img-$KERNEL_VERSION-terra /boot/initrd.img
-
 
 ADD syslinux.cfg /boot/syslinux/syslinux.cfg
 ADD splash.png /boot/syslinux/splash.png

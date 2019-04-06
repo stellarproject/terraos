@@ -4,16 +4,17 @@ FROM stellarproject/terra:2 as os
 
 FROM alpine:latest as rootfs
 
+RUN mkdir -p /boot
+
 RUN apk update && \
-	apk add \
+	apk add -y \
 	e2fsprogs \
 	xfsprogs \
-	dosfstools \
 	btrfs-progs \
-	sfdisk \
-	squashfs-tools \
-	jfsutils
+	grub \
+	grub-bios
 
+ADD grub /etc/default/grub
 ADD install-terra /bin/
 RUN chmod +x /bin/install-terra
 

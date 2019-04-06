@@ -18,9 +18,6 @@ RUN --mount=type=bind,from=kernel,target=/tmp dpkg -i \
 	/tmp/linux-libc-dev_$KERNEL_VERSION-terra-1_amd64.deb \
 	/tmp/linux-image-$KERNEL_VERSION-terra_$KERNEL_VERSION-terra-1_amd64.deb
 
-RUN mv /boot/vmlinuz-$KERNEL_VERSION-terra /boot/vmlinuz
-RUN mv /boot/initrd.img-$KERNEL_VERSION-terra /boot/initrd.img
-
 RUN apt update && \
 	DEBIAN_FRONTEND=noninteractive apt install -y \
 	openssh-server \
@@ -28,9 +25,15 @@ RUN apt update && \
     libnl-3-dev \
     libnet-dev \
     libprotobuf-dev \
+	initramfs-tools \
 	pigz
 
 ADD config.toml /etc/containerd/
+ADD terra /etc/initramfs-tools/scripts/terra
+ADD modules /etc/initramfs-tools/modules
+
+# os needs the initrd updated with terra script to boot on its own
+RUN update-initramfs -u
 
 # containerd binaries
 COPY --from=containerd /go/src/github.com/containerd/containerd/containerd.service /etc/systemd/system/

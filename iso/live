@@ -25,10 +25,13 @@ local_mount_root()
 
 	echo "setting up squashfs..."
 
-	# mount the iso
-	mkdir -p /iso
-	mount -t iso9660 /dev/sr0 /iso
+	modprobe squashfs
+	modprobe unionfs
 
-	mkdir -p /fs
-	mount -t squashfs -o loop /iso/live.sq ${rootmnt}
+	# mount the iso
+	mkdir -p /run/iso /fs
+	mount -t iso9660 /dev/sr0 /run/iso
+
+	mount -t squashfs -o loop /run/iso/live.sq ${rootmnt}
+	mount -t tmpfs tmpfs ${rootmnt}/tmp
 }

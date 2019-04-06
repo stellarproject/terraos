@@ -2,11 +2,8 @@
 
 set -e
 
-mkdir /run/iso
-mount -t iso9660 /dev/sr0 /run/iso
-
 echo "Partition /dev/sda..."
-echo -e "o\nn\np\n1\n\n\nw" | fdisk /dev/sda
+echo -e "o\nn\np\n1\n\n\na\n1\nw" | fdisk /dev/sda
 
 echo "Format /dev/sda1..."
 
@@ -17,8 +14,15 @@ mount -t ext4 /dev/sda1 /run/disk
 
 mkdir -p /run/disk/terra
 tar -C /run/disk/terra -zxf /run/iso/os.tgz
+mv /run/disk/terra/boot /run/disk/
 
-umount /run/iso
+mount --bind /run/disk/boot /boot
+
+grub-install /dev/sda
+
+grub-mkconfig -o /boot/grub/grub.cfg
+
+umount /boot
 umount /run/disk
 
 echo "Reboot and enjoy..."
