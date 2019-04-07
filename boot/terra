@@ -57,6 +57,6 @@ local_mount_root()
 	    overlay ${rootmnt}
 
 	# mount rw locations
-	mount --bind /lower/terra/var ${rootmnt}/var
-	mount --bind /lower/terra/home ${rootmnt}/home
+	mount --bind /lower/terra/${OS}/var ${rootmnt}/var
+	mount --bind /lower/terra/${OS}/home ${rootmnt}/home
 }

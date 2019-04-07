@@ -7,7 +7,7 @@ all: terra
 FORCE:
 
 boot: FORCE
-	vab build -c boot -d boot --arg KERNEL_VERSION=${KERNEL} --ref docker.io/stellarproject/boot:${VERSION}
+	vab build -p -c boot -d boot --arg KERNEL_VERSION=${KERNEL} --ref docker.io/stellarproject/boot:${VERSION}
 
 os: boot FORCE
 	vab build -c os -d os --arg KERNEL_VERSION=${KERNEL} -p --ref docker.io/stellarproject/terraos:${VERSION}
