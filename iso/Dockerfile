@@ -24,7 +24,14 @@ ADD interfaces /etc/network/interfaces
 RUN rm /sbin/init
 ADD resolv.conf /etc/resolv.conf
 ADD init /sbin/init
-RUN chmod +x /sbin/init && \
+ADD partition /sbin/partition
+ADD install /sbin/install
+ADD configure /sbin/configure
+RUN chmod +x \
+	/sbin/install \
+	/sbin/partition \
+	/sbin/configure \
+	/sbin/init && \
 	touch /etc/default/grub
 
 FROM ubuntu:18.10 as live
@@ -35,8 +42,6 @@ RUN apt update && \
 RUN --mount=type=bind,from=rootfs,target=/rootfs,rw \
 	mkdir -p /rootfs/proc /rootfs/sys /rootfs/run && \
 	mksquashfs /rootfs live.sqsh
-
-
 
 FROM ubuntu:18.10 as iso
 ARG KERNEL_VERSION

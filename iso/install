@@ -11,4 +11,6 @@ dhclient || true
 rm /dev/console
 ln -s /dev/ttyS0 /dev/console
 
-exec /bin/sh
+terra os download 2
+umount /run/terramnt || true
+terra os enable 2

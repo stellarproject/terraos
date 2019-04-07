@@ -24,7 +24,7 @@ var osCommand = cli.Command{
 }
 
 var configureCommand = cli.Command{
-	Name:   "configure,c",
+	Name:   "config",
 	Usage:  "configure the os",
 	Before: before,
 	After:  after,
@@ -36,11 +36,11 @@ var configureCommand = cli.Command{
 		if err := os.MkdirAll("/run/config", 0755); err != nil {
 			return err
 		}
-		if err := os.MkdirAll("/run/work", 0755); err != nil {
+		if err := os.MkdirAll(disk("work"), 0755); err != nil {
 			return err
 		}
 		if err := syscall.Mount("overlay", "/run/config", "overlay", 0,
-			fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s", disk(root, strconv.Itoa(version)), disk("config"), "/run/work"),
+			fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s", disk(root, strconv.Itoa(version)), disk("config"), disk("work")),
 		); err != nil {
 			return err
 		}

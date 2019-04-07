@@ -1,0 +1,3 @@
+#!/bin/sh
+
+terra auto-partition
