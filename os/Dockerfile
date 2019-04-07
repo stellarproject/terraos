@@ -5,7 +5,7 @@ FROM stellarproject/containerd:latest as containerd
 FROM stellarproject/cni:latest as cni
 FROM stellarproject/buildkit:latest as buildkit
 FROM stellarproject/orbit:latest as orbit
-FROM stellarproject/terra:latest as terra
+FROM stellarproject/vab:latest as vab
 FROM stellarproject/criu:latest as criu
 FROM stellarproject/node_exporter:latest as node
 FROM stellarproject/kernel:$KERNEL_VERSION as kernel
@@ -15,8 +15,7 @@ ARG KERNEL_VERSION
 
 RUN --mount=type=bind,from=kernel,target=/tmp dpkg -i \
 	/tmp/linux-headers-$KERNEL_VERSION-terra_$KERNEL_VERSION-terra-1_amd64.deb \
-	/tmp/linux-libc-dev_$KERNEL_VERSION-terra-1_amd64.deb \
-	/tmp/linux-image-$KERNEL_VERSION-terra_$KERNEL_VERSION-terra-1_amd64.deb
+	/tmp/linux-libc-dev_$KERNEL_VERSION-terra-1_amd64.deb
 
 RUN apt update && \
 	DEBIAN_FRONTEND=noninteractive apt install -y \
@@ -29,11 +28,6 @@ RUN apt update && \
 	pigz
 
 ADD config.toml /etc/containerd/
-ADD terra /etc/initramfs-tools/scripts/terra
-ADD modules /etc/initramfs-tools/modules
-
-# os needs the initrd updated with terra script to boot on its own
-RUN update-initramfs -u
 
 # containerd binaries
 COPY --from=containerd /go/src/github.com/containerd/containerd/containerd.service /etc/systemd/system/
@@ -54,8 +48,8 @@ RUN ln -s /usr/local/bin/orbit-network /opt/containerd/bin/orbit-network
 
 COPY --from=node /bin/* /usr/local/bin/
 COPY --from=buildkit /bin/* /usr/local/bin/
-COPY --from=terra /terra /usr/local/bin/
 COPY --from=criu /bin/criu /usr/local/bin/
+COPY --from=vab /bin/vab /usr/local/bin/
 
 ADD buildkit.service /etc/systemd/system/
 ADD node_exporter.service /etc/systemd/system/

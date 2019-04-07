@@ -1,8 +1,42 @@
 # syntax=docker/dockerfile:experimental
 ARG KERNEL_VERSION
 
-FROM stellarproject/live:latest as live
 FROM docker.io/stellarproject/kernel:$KERNEL_VERSION as kernel
+FROM stellarproject/terra:latest as terra
+
+FROM alpine:latest as rootfs
+
+RUN mkdir -p /boot
+
+RUN apk update && \
+	apk add \
+	e2fsprogs \
+	xfsprogs \
+	btrfs-progs \
+	grub \
+	dhclient \
+	networkmanager \
+	openrc \
+	grub-bios
+
+COPY --from=terra /terra /bin/
+ADD interfaces /etc/network/interfaces
+RUN rm /sbin/init
+ADD resolv.conf /etc/resolv.conf
+ADD init /sbin/init
+RUN chmod +x /sbin/init && \
+	touch /etc/default/grub
+
+FROM ubuntu:18.10 as live
+
+RUN apt update && \
+	apt install -y squashfs-tools
+
+RUN --mount=type=bind,from=rootfs,target=/rootfs,rw \
+	mkdir -p /rootfs/proc /rootfs/sys /rootfs/run && \
+	mksquashfs /rootfs live.sqsh
+
+
 
 FROM ubuntu:18.10 as iso
 ARG KERNEL_VERSION
@@ -47,7 +81,6 @@ ADD splash.png /boot/syslinux/splash.png
 
 # COPY boot.txt /boot/boot.txt
 COPY --from=live /live.sqsh /boot/live.sq
-COPY --from=live /os.tgz /boot/os.tgz
 
 RUN mkisofs -o /terra.iso \
    -b syslinux/isolinux.bin -c syslinux/boot.cat \

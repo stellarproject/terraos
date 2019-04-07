@@ -1,12 +1,15 @@
-GO_LDFLAGS=-s -w
+VERSION=2
 
 all:
 	vab build --arg KERNEL_VERSION=5.0.5 --local -c iso -d iso
 
 FORCE:
 
+boot: FORCE
+	vab build -c boot -d boot --arg KERNEL_VERSION=5.0.6 -p --ref docker.io/stellarproject/boot:${VERSION}
+
 os: FORCE
-	vab build -c os -d os --arg KERNEL_VERSION=5.0.6 -p --ref docker.io/stellarproject/terra:2
+	vab build -c os -d os --arg KERNEL_VERSION=5.0.6 -p --ref docker.io/stellarproject/terraos:${VERSION}
 
 containerd: FORCE
 	vab build -c containerd -d containerd -p --ref docker.io/stellarproject/containerd:latest
@@ -21,9 +24,6 @@ kernel: FORCE
 
 base: FORCE
 	vab build -c base -d base -p --ref docker.io/stellarproject/ubuntu:18.10
-
-live: FORCE
-	vab build -c live -d live --ref docker.io/stellarproject/live:latest
 
 terra: FORCE
 	vab build -d terra -p --ref docker.io/stellarproject/terra:latest

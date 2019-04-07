@@ -1,6 +1,0 @@
-GRUB_DEFAULT=0
-GRUB_TIMEOUT_STYLE=hidden
-GRUB_TIMEOUT=2
-GRUB_DISTRIBUTOR="Terra OS"
-GRUB_CMDLINE_LINUX_DEFAULT=""
-GRUB_CMDLINE_LINUX="root=/dev/sda1 boot=terra quiet nosplash console=ttyS0 console=tty0"

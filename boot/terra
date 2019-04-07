@@ -18,6 +18,7 @@ local_mount_root()
 	local_top
 	local_device_setup "${ROOT}" "root file system"
 	ROOT="${DEV}"
+	OS="${os}"
 
 	# Get the root filesystem type if not set
 	if [ -z "${ROOTFSTYPE}" ]; then
@@ -52,7 +53,7 @@ local_mount_root()
 
 	# Mount the final overlay-root in $rootmnt
 	mount -t overlay \
-	    -olowerdir=/lower/config:/lower/terra,upperdir=/upper/data,workdir=/upper/work \
+	    -olowerdir=/lower/config:/lower/terra/${OS},upperdir=/upper/data,workdir=/upper/work \
 	    overlay ${rootmnt}
 
 	# mount rw locations

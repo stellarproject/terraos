@@ -4,22 +4,15 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
-)
-
-const terraRepoFormat = "docker.io/stellarproject/terra:%s"
-
-var (
-	errNoVhost = errors.New("no vhost specified")
 )
 
 func main() {
 	app := cli.NewApp()
 	app.Name = "terra"
-	app.Version = "1"
-	app.Usage = "node vhost management"
+	app.Version = "2"
+	app.Usage = "Terra OS management"
 	app.Description = `
                                                      ___
                                                   ,o88888
@@ -42,20 +35,21 @@ func main() {
          . . . ...."'
          .. . ."'
         .
-terra vhost management`
+Terra OS management`
 	app.Flags = []cli.Flag{
 		cli.BoolFlag{
 			Name:  "debug",
 			Usage: "enable debug output in the logs",
 		},
 		cli.StringFlag{
-			Name:  "root",
-			Usage: "vhost root on a system",
-			Value: "/terra",
+			Name:  "device,d",
+			Usage: "select the device terra is installed to",
+			Value: "/dev/sda",
 		},
 		cli.StringFlag{
-			Name:  "device",
-			Usage: "unpack to the device",
+			Name:  "fs-type",
+			Usage: "set the filesystem type",
+			Value: "ext4",
 		},
 	}
 	app.Before = func(clix *cli.Context) error {
@@ -65,10 +59,8 @@ terra vhost management`
 		return nil
 	}
 	app.Commands = []cli.Command{
-		enableCommand,
-		installCommand,
-		listCommand,
-		setupCommand,
+		osCommand,
+		autoPartitionCommand,
 	}
 	if err := app.Run(os.Args); err != nil {
 		fmt.Fprintln(os.Stderr, err)
