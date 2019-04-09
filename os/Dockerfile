@@ -1,3 +1,5 @@
+# syntax=docker/dockerfile:experimental
+
 # Copyright (c) 2019 Stellar Project
 
 # Permission is hereby granted, free of charge, to any person
@@ -23,7 +25,6 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH
 # THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-# syntax=docker/dockerfile:experimental
 ARG KERNEL_VERSION
 
 FROM stellarproject/containerd:latest as containerd
