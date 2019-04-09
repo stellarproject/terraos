@@ -18,7 +18,6 @@ local_mount_root()
 	local_top
 	local_device_setup "${ROOT}" "root file system"
 	ROOT="${DEV}"
-	OS="${os}"
 
 	# Get the root filesystem type if not set
 	if [ -z "${ROOTFSTYPE}" ]; then
@@ -45,10 +44,7 @@ local_mount_root()
 		mount ${ROOTFLAGS} ${ROOT} /lower
 	fi
 
-	modprobe overlay
-
+	OPTS="$(cat /lower/odisk)"
 	# Mount the final overlay-root in $rootmnt
-	mount -t overlay \
-	    -olowerdir=/lower/config:/lower/terra/${OS},upperdir=/lower/userdata,workdir=/lower/work \
-	    overlay ${rootmnt}
+	mount -t overlay -o "${OPTS}" overlay ${rootmnt}
 }

@@ -43,7 +43,7 @@ GRUB_TIMEOUT_STYLE=hidden
 GRUB_TIMEOUT=2
 GRUB_DISTRIBUTOR="Stellar Project"
 GRUB_CMDLINE_LINUX_DEFAULT=""
-GRUB_CMDLINE_LINUX="root=%s boot=terra os=%d quiet nosplash console=ttyS0 console=tty0"`
+GRUB_CMDLINE_LINUX="root=%s boot=terra quiet nosplash console=ttyS0 console=tty0"`
 )
 
 // Install grub to the provided device
@@ -56,8 +56,8 @@ func Install(device string) error {
 }
 
 // MkConfig updates the grub config
-func MkConfig(root string, os int, path string) error {
-	if err := writeGrub(root, os); err != nil {
+func MkConfig(root string, path string) error {
+	if err := writeGrub(root); err != nil {
 		return err
 	}
 	if err := syscall.Mount(tmpGrub, "/etc/default/grub", "none", syscall.MS_BIND, ""); err != nil {
@@ -72,12 +72,12 @@ func MkConfig(root string, os int, path string) error {
 	return nil
 }
 
-func writeGrub(root string, version int) error {
+func writeGrub(root string) error {
 	f, err := os.OpenFile(tmpGrub, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0666)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
-	_, err = fmt.Fprintf(f, grubFile, root, version)
+	_, err = fmt.Fprintf(f, grubFile, root)
 	return err
 }

@@ -32,7 +32,6 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	"github.com/stellarproject/terraos/terra/grub"
 	"github.com/urfave/cli"
@@ -41,7 +40,7 @@ import (
 var directories = []string{
 	"boot",
 	"config",
-	"terra",
+	"os",
 	"userdata",
 	"work",
 	"tmp",
@@ -54,26 +53,21 @@ var installCommand = cli.Command{
 	Before: before,
 	After:  after,
 	Flags: []cli.Flag{
-		cli.StringFlag{
-			Name:  "id",
-			Usage: "specify the id of the node",
-			Value: uuid.New().String(),
-		},
 		cli.BoolFlag{
 			Name:  "boot",
 			Usage: "only install the boot image",
 		},
+		cli.BoolFlag{
+			Name:  "http",
+			Usage: "download via http",
+		},
 	},
 	Action: func(clix *cli.Context) error {
-		id := clix.String("id")
-		if id == "" {
-			return errNoID
-		}
 		version, err := getVersion(clix)
 		if err != nil {
 			return err
 		}
-		logger := logrus.WithField("uuid", id)
+		logger := logrus.WithField("version", version)
 		if clix.Bool("boot") {
 			logger.Info("creating new content store")
 			store, err := newContentStore()
@@ -83,12 +77,11 @@ var installCommand = cli.Command{
 			defer os.RemoveAll(disk("/tmp/content"))
 			return applyImage(clix, store, fmt.Sprintf(bootRepoFormat, version), disk())
 		}
-		logger.Info("write uuid")
-		if err := writeUUID(id); err != nil {
-			return err
-		}
 		logger.Info("setup directories")
 		if err := setupDirectories(); err != nil {
+			return err
+		}
+		if err := writeMountOptions(defaultMountOptions); err != nil {
 			return err
 		}
 
@@ -104,7 +97,7 @@ var installCommand = cli.Command{
 			return err
 		}
 		// download initial terra os
-		if err := applyImage(clix, store, fmt.Sprintf(terraRepoFormat, version), disk(root, strconv.Itoa(version))); err != nil {
+		if err := applyImage(clix, store, fmt.Sprintf(terraRepoFormat, version), disk("os", strconv.Itoa(version))); err != nil {
 			return err
 		}
 
@@ -120,7 +113,7 @@ var installCommand = cli.Command{
 			return err
 		}
 		logger.Info("making grub config")
-		return grub.MkConfig(partitionPath(clix), version, "/boot/grub/grub.cfg")
+		return grub.MkConfig(partitionPath(clix), "/boot/grub/grub.cfg")
 	},
 }
 

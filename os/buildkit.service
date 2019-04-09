@@ -1,6 +1,5 @@
 [Unit]
 Description=buildkit
-Documentation=moby/buildkit
 After=containerd.service network.target
 
 [Service]

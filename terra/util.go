@@ -56,12 +56,16 @@ import (
 )
 
 const (
-	root            = "/terra"
 	terraRepoFormat = "docker.io/stellarproject/terraos:%d"
 	bootRepoFormat  = "docker.io/stellarproject/boot:%d"
 	devicePath      = "/run/terramnt"
-	enabledPath     = "/os"
 )
+
+var defaultMountOptions = []string{
+	"lowerdir=/lower/config:/lower/os/2",
+	"upperdir=/lower/userdata",
+	"workdir=/lower/work",
+}
 
 var (
 	errNoOS = errors.New("no os version specified")
@@ -118,7 +122,6 @@ func applyImage(clix *cli.Context, cs content.Store, imageName, dest string) err
 	if err := os.MkdirAll(dest, 0755); err != nil {
 		return err
 	}
-
 	authorizer := docker.NewAuthorizer(nil, getDockerCredentials)
 	resolver := docker.NewResolver(docker.ResolverOptions{
 		PlainHTTP:  clix.Bool("http"),
@@ -257,10 +260,6 @@ func getLayers(ctx context.Context, cs content.Store, desc v1.Descriptor) (*Imag
 	return config, layers, nil
 }
 
-func writeUUID(id string) error {
-	return ioutil.WriteFile(disk("uuid"), []byte(id), 0600)
-}
-
 func overlayBoot() (func() error, error) {
 	if err := syscall.Mount(disk("boot"), "/boot", "none", syscall.MS_BIND, ""); err != nil {
 		return nil, err
@@ -268,4 +267,14 @@ func overlayBoot() (func() error, error) {
 	return func() error {
 		return syscall.Unmount("/boot", 0)
 	}, nil
+}
+
+func writeMountOptions(options []string) error {
+	f, err := os.OpenFile(disk("odisk"), os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	_, err = f.WriteString(strings.Join(options, ","))
+	return err
 }
