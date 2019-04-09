@@ -27,7 +27,7 @@ VERSION=2
 KERNEL=5.0.7
 
 all: terra
-	vab build --arg KERNEL_VERSION=5.0.5 --local -c iso -d iso
+	vab build --arg KERNEL_VERSION=${KERNEL} --local -c iso -d iso
 
 FORCE:
 
