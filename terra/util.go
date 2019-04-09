@@ -35,7 +35,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -57,31 +56,24 @@ import (
 )
 
 const (
-	grubFile = `GRUB_DEFAULT=0
-GRUB_TIMEOUT_STYLE=hidden
-GRUB_TIMEOUT=2
-GRUB_DISTRIBUTOR="Stellar Project"
-GRUB_CMDLINE_LINUX_DEFAULT=""
-GRUB_CMDLINE_LINUX="root=/dev/sda1 boot=terra os=%d quiet nosplash console=ttyS0 console=tty0"`
-)
-
-const (
 	root            = "/terra"
 	terraRepoFormat = "docker.io/stellarproject/terraos:%d"
 	bootRepoFormat  = "docker.io/stellarproject/boot:%d"
 	devicePath      = "/run/terramnt"
-	partitionNo     = 1
 	enabledPath     = "/os"
 )
 
-var errNoOS = errors.New("no os version specified")
+var (
+	errNoOS = errors.New("no os version specified")
+	errNoID = errors.New("no id specified")
+)
 
 func disk(args ...string) string {
 	return filepath.Join(append([]string{devicePath}, args...)...)
 }
 
-func partitionPath(device string) string {
-	return fmt.Sprintf("%s%d", device, partitionNo)
+func partitionPath(clix *cli.Context) string {
+	return fmt.Sprintf("%s%d", clix.GlobalString("device"), clix.GlobalInt("partition"))
 }
 
 // before mounts the device before doing operations
@@ -89,12 +81,7 @@ func before(clix *cli.Context) error {
 	if err := os.MkdirAll(devicePath, 0755); err != nil {
 		return err
 	}
-	path := partitionPath(clix.GlobalString("device"))
-	logrus.WithFields(logrus.Fields{
-		"device": path,
-		"path":   devicePath,
-	}).Info("mounting device")
-	return syscall.Mount(path, devicePath, clix.GlobalString("fs-type"), 0, "")
+	return syscall.Mount(partitionPath(clix), devicePath, clix.GlobalString("fs-type"), 0, "")
 }
 
 // after unmounts the device
@@ -116,43 +103,19 @@ func getVersion(clix *cli.Context) (int, error) {
 	return strconv.Atoi(version)
 }
 
-func writeEnabled(version int) error {
-	f, err := os.OpenFile(disk(enabledPath), os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
-	if err != nil {
-		return err
+func newContentStore() (content.Store, error) {
+	if err := os.MkdirAll(disk("/tmp/content"), 0755); err != nil {
+		return nil, err
 	}
-	defer f.Close()
-	_, err = fmt.Fprintf(f, "%d", version)
-	return err
+	tmpContent, err := ioutil.TempDir(disk("/tmp/content"), "terra-content-")
+	if err != nil {
+		return nil, err
+	}
+	return local.NewStore(tmpContent)
 }
 
-func readEnabled() (string, error) {
-	data, err := ioutil.ReadFile(disk(enabledPath))
-	return string(data), err
-}
-
-func applyImage(clix *cli.Context, imageName, dest string) error {
+func applyImage(clix *cli.Context, cs content.Store, imageName, dest string) error {
 	if err := os.MkdirAll(dest, 0755); err != nil {
-		return err
-	}
-	if err := os.MkdirAll(disk("/tmp"), 0755); err != nil {
-		return err
-	}
-	tmpContent, err := ioutil.TempDir(disk("/tmp"), "terra-content-")
-	if err != nil {
-		return err
-	}
-	defer func() {
-		if err := os.RemoveAll(tmpContent); err != nil {
-			logrus.WithError(err).Errorf("removing content store at %s", tmpContent)
-			return
-		}
-		logrus.Infof("removing content store at %s", tmpContent)
-	}()
-
-	logrus.Infof("created content store at %s", tmpContent)
-	cs, err := local.NewStore(tmpContent)
-	if err != nil {
 		return err
 	}
 
@@ -294,30 +257,15 @@ func getLayers(ctx context.Context, cs content.Store, desc v1.Descriptor) (*Imag
 	return config, layers, nil
 }
 
-func writeGrub(version int) error {
-	f, err := os.OpenFile("/run/grub", os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0666)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	_, err = fmt.Fprintf(f, grubFile, version)
-	return err
+func writeUUID(id string) error {
+	return ioutil.WriteFile(disk("uuid"), []byte(id), 0600)
 }
 
-func updateGrub(version int) error {
-	if err := writeGrub(version); err != nil {
-		return err
-	}
-	if err := syscall.Mount("/run/grub", "/etc/default/grub", "none", syscall.MS_BIND, ""); err != nil {
-		return err
-	}
-	defer syscall.Unmount("/etc/default/grub", 0)
+func overlayBoot() (func() error, error) {
 	if err := syscall.Mount(disk("boot"), "/boot", "none", syscall.MS_BIND, ""); err != nil {
-		return err
+		return nil, err
 	}
-	defer syscall.Unmount("/boot", 0)
-	cmd := exec.Command("grub-mkconfig", "-o", disk("/boot/grub/grub.cfg"))
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	return cmd.Run()
+	return func() error {
+		return syscall.Unmount("/boot", 0)
+	}, nil
 }

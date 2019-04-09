@@ -36,7 +36,7 @@ local_mount_root()
 	checkfs ${ROOT} root "${FSTYPE}"
 
 	# Create directories for root and the overlay
-	mkdir /lower /upper
+	mkdir /lower
 
 	# mount the disk to lower
 	if [ "${FSTYPE}" != "unknown" ]; then
@@ -47,16 +47,8 @@ local_mount_root()
 
 	modprobe overlay
 
-	# Mount a tmpfs for the overlay in /upper
-	mount -t tmpfs tmpfs /upper
-	mkdir -p /upper/data /upper/work /lower/config
-
 	# Mount the final overlay-root in $rootmnt
 	mount -t overlay \
-	    -olowerdir=/lower/config:/lower/terra/${OS},upperdir=/upper/data,workdir=/upper/work \
+	    -olowerdir=/lower/config:/lower/terra/${OS},upperdir=/lower/userdata,workdir=/lower/work \
 	    overlay ${rootmnt}
-
-	# mount rw locations
-	mount --bind /lower/terra/${OS}/var ${rootmnt}/var
-	mount --bind /lower/terra/${OS}/home ${rootmnt}/home
 }

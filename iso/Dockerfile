@@ -50,14 +50,7 @@ ADD interfaces /etc/network/interfaces
 RUN rm /sbin/init
 ADD resolv.conf /etc/resolv.conf
 ADD init /sbin/init
-ADD partition /sbin/partition
-ADD install /sbin/install
-ADD configure /sbin/configure
-RUN chmod +x \
-	/sbin/install \
-	/sbin/partition \
-	/sbin/configure \
-	/sbin/init && \
+RUN chmod +x /sbin/init && \
 	touch /etc/default/grub
 
 FROM ubuntu:18.10 as live

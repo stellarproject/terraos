@@ -38,7 +38,7 @@ import (
 func main() {
 	app := cli.NewApp()
 	app.Name = "terra"
-	app.Version = "2"
+	app.Version = "3"
 	app.Usage = "Terra OS management"
 	app.Description = `
                                                      ___
@@ -73,6 +73,11 @@ Terra OS management`
 			Usage: "select the device terra is installed to",
 			Value: "/dev/sda",
 		},
+		cli.IntFlag{
+			Name:  "partition",
+			Usage: "parition number",
+			Value: 1,
+		},
 		cli.StringFlag{
 			Name:  "fs-type",
 			Usage: "set the filesystem type",
@@ -86,8 +91,7 @@ Terra OS management`
 		return nil
 	}
 	app.Commands = []cli.Command{
-		osCommand,
-		autoPartitionCommand,
+		installCommand,
 	}
 	if err := app.Run(os.Args); err != nil {
 		fmt.Fprintln(os.Stderr, err)
