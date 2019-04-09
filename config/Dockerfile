@@ -12,3 +12,4 @@ FROM scratch
 
 COPY --from=setup /etc/hostname /etc/hostname
 COPY --from=setup /keys /home/terra/.ssh/authorized_keys
+ADD hosts /etc/hosts

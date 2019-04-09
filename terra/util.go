@@ -148,23 +148,33 @@ func applyImage(clix *cli.Context, cs content.Store, imageName, dest string) err
 	}
 	logrus.Infof("unpacking os to %q", dest)
 	for _, layer := range layers {
-		ra, err := cs.ReaderAt(ctx, layer.Blob)
-		if err != nil {
+		if err := extract(ctx, cs, layer, dest); err != nil {
 			return err
 		}
-		cr := content.NewReader(ra)
-		r, err := compression.DecompressStream(cr)
-		if err != nil {
-			return err
-		}
-		defer r.Close()
-		if r.(compression.DecompressReadCloser).GetCompression() == compression.Uncompressed {
-			continue
-		}
-		logrus.WithField("layer", layer.Blob.Digest).Info("apply layer")
-		if _, err := archive.Apply(ctx, dest, r, archive.WithFilter(HostFilter)); err != nil {
-			return err
-		}
+	}
+	return nil
+}
+
+func extract(ctx context.Context, cs content.Store, layer rootfs.Layer, dest string) error {
+	ra, err := cs.ReaderAt(ctx, layer.Blob)
+	if err != nil {
+		return err
+	}
+	defer ra.Close()
+
+	cr := content.NewReader(ra)
+	r, err := compression.DecompressStream(cr)
+	if err != nil {
+		return err
+	}
+	defer r.Close()
+
+	if r.(compression.DecompressReadCloser).GetCompression() == compression.Uncompressed {
+		return nil
+	}
+	logrus.WithField("layer", layer.Blob.Digest).Info("apply layer")
+	if _, err := archive.Apply(ctx, dest, r, archive.WithFilter(HostFilter)); err != nil {
+		return err
 	}
 	return nil
 }

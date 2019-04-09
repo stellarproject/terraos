@@ -55,7 +55,7 @@ var installCommand = cli.Command{
 	Flags: []cli.Flag{
 		cli.BoolFlag{
 			Name:  "boot",
-			Usage: "only install the boot image",
+			Usage: "install grub and make terra bootable",
 		},
 		cli.BoolFlag{
 			Name:  "http",
@@ -68,15 +68,6 @@ var installCommand = cli.Command{
 			return err
 		}
 		logger := logrus.WithField("version", version)
-		if clix.Bool("boot") {
-			logger.Info("creating new content store")
-			store, err := newContentStore()
-			if err != nil {
-				return err
-			}
-			defer os.RemoveAll(disk("/tmp/content"))
-			return applyImage(clix, store, fmt.Sprintf(bootRepoFormat, version), disk())
-		}
 		logger.Info("setup directories")
 		if err := setupDirectories(); err != nil {
 			return err
@@ -100,20 +91,22 @@ var installCommand = cli.Command{
 		if err := applyImage(clix, store, fmt.Sprintf(terraRepoFormat, version), disk("os", strconv.Itoa(version))); err != nil {
 			return err
 		}
+		if clix.Bool("boot") {
+			logger.Info("overlay boot directory")
+			closer, err := overlayBoot()
+			if err != nil {
+				return err
+			}
+			defer closer()
 
-		logger.Info("overlay boot directory")
-		closer, err := overlayBoot()
-		if err != nil {
-			return err
+			logger.Info("installing grub")
+			if err := grub.Install(clix.GlobalString("device")); err != nil {
+				return err
+			}
+			logger.Info("making grub config")
+			return grub.MkConfig(partitionPath(clix), "/boot/grub/grub.cfg")
 		}
-		defer closer()
-
-		logger.Info("installing grub")
-		if err := grub.Install(clix.GlobalString("device")); err != nil {
-			return err
-		}
-		logger.Info("making grub config")
-		return grub.MkConfig(partitionPath(clix), "/boot/grub/grub.cfg")
+		return nil
 	},
 }
 
