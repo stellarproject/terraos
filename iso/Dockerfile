@@ -43,6 +43,7 @@ RUN apk update && \
 	dhclient \
 	networkmanager \
 	openrc \
+	openssh \
 	grub-bios
 
 COPY --from=terra /terra /bin/
@@ -52,6 +53,11 @@ ADD resolv.conf /etc/resolv.conf
 ADD init /sbin/init
 RUN chmod +x /sbin/init && \
 	touch /etc/default/grub
+
+RUN ssh-keygen -f /etc/ssh/ssh_host_rsa_key -N '' -t rsa && \
+	ssh-keygen -f /etc/ssh/ssh_host_dsa_key -N '' -t dsa && \
+	echo "PermitRootLogin yes" >> /etc/ssh/sshd_config
+RUN echo 'root:root' | chpasswd
 
 FROM ubuntu:18.10 as live
 

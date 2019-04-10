@@ -1,11 +1,12 @@
 #!/bin/sh
 
-/etc/init.d/networking restart || true
+mkdir -p /run/sshd
+/usr/sbin/sshd -h /etc/ssh/ssh_host_rsa_key &
 
 ip link set lo up
 
 echo "setting up dhcp..."
-sleep 2
+sleep 1
 dhclient || true
 
 rm /dev/console

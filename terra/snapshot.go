@@ -40,7 +40,7 @@ import (
 )
 
 func newSnapshotter(root string) (snapshots.Snapshotter, error) {
-	root = filepath.Join(root, "overlay")
+	root = filepath.Join(root, "ov")
 	return overlay.NewSnapshotter(root, overlay.AsynchronousRemove)
 }
 

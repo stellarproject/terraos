@@ -47,7 +47,8 @@ RUN rm /etc/fstab
 # add the default terra user
 RUN addgroup --system terra && \
 	useradd -s /bin/bash -g terra --groups adm --groups cdrom --groups sudo --groups dip --groups plugdev -m -k /dev/null terra && \
-	echo 'terra:terra' | chpasswd
+	echo 'terra:terra' | chpasswd && \
+	chown -R terra:terra /home/terra
 
 ADD sudoers /etc/
 ADD hosts /etc/

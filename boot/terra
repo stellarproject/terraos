@@ -35,16 +35,20 @@ local_mount_root()
 	checkfs ${ROOT} root "${FSTYPE}"
 
 	# Create directories for root and the overlay
-	mkdir /sd
 
+	mkdir -p /sd
 	# mount the disk to sd
 	if [ "${FSTYPE}" != "unknown" ]; then
 		mount -t ${FSTYPE} ${ROOTFLAGS} ${ROOT} /sd
 	else
 		mount ${ROOTFLAGS} ${ROOT} /sd
 	fi
+	# create persistent dir for containerd snapshotts
+	mkdir -p /sd/vl
 
 	OPTS="$(cat /sd/odisk)"
 	# Mount the final overlay-root in $rootmnt
-	mount -t overlay -o "${OPTS}" overlay ${rootmnt}
+	mount -t overlay -o "${OPTS}" overlay ${rootmnt} || rescue_shell
+	# overlay the ext4 on /var/lib so containerd to create overlay dirs
+	mount --bind /sd/vl ${rootmnt}/var/lib || rescue_shell
 }
