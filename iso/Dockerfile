@@ -32,7 +32,7 @@ FROM stellarproject/terra:latest as terra
 
 FROM alpine:latest as rootfs
 
-RUN mkdir -p /boot
+RUN mkdir -p /boot /sd
 
 RUN apk update && \
 	apk add \

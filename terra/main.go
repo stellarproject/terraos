@@ -28,8 +28,11 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
@@ -92,10 +95,20 @@ Terra OS management`
 	}
 	app.Commands = []cli.Command{
 		installCommand,
-		applyCommand,
 	}
 	if err := app.Run(os.Args); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
+}
+
+func cancelContext() context.Context {
+	ctx, cancel := context.WithCancel(context.Background())
+	s := make(chan os.Signal)
+	signal.Notify(s, syscall.SIGTERM, syscall.SIGINT)
+	go func() {
+		<-s
+		cancel()
+	}()
+	return ctx
 }

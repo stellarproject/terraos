@@ -32,7 +32,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -56,14 +55,8 @@ import (
 const (
 	terraRepoFormat = "docker.io/stellarproject/terraos:%s"
 	bootRepoFormat  = "docker.io/stellarproject/boot:%s"
-	devicePath      = "/run/terramnt"
+	devicePath      = "/sd"
 )
-
-var defaultMountOptions = []string{
-	"lowerdir=/sd/config:/sd/os/2",
-	"upperdir=/sd/userdata",
-	"workdir=/sd/work",
-}
 
 var (
 	errNoOS = errors.New("no os version specified")
@@ -105,21 +98,18 @@ func getVersion(clix *cli.Context) (string, error) {
 	return version, nil
 }
 
-func newContentStore() (content.Store, error) {
-	if err := os.MkdirAll(disk("/tmp/content"), 0755); err != nil {
+func newContentStore(root string) (content.Store, error) {
+	root = filepath.Join(root, "content")
+	if err := os.MkdirAll(root, 0755); err != nil {
 		return nil, err
 	}
-	tmpContent, err := ioutil.TempDir(disk("/tmp/content"), "terra-content-")
-	if err != nil {
-		return nil, err
-	}
-	return local.NewStore(tmpContent)
+	return local.NewStore(root)
 }
 
-func fetch(ctx context.Context, clix *cli.Context, cs content.Store, imageName string) (*v1.Descriptor, error) {
+func fetch(ctx context.Context, http bool, cs content.Store, imageName string) (*v1.Descriptor, error) {
 	authorizer := docker.NewAuthorizer(nil, getDockerCredentials)
 	resolver := docker.NewResolver(docker.ResolverOptions{
-		PlainHTTP:  clix.Bool("http"),
+		PlainHTTP:  http,
 		Authorizer: authorizer,
 	})
 	name, desc, err := resolver.Resolve(ctx, imageName)

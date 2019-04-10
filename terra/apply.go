@@ -29,39 +29,38 @@ package main
 
 import (
 	"context"
-	"errors"
+	"io/ioutil"
 	"os"
 
-	"github.com/urfave/cli"
+	"github.com/containerd/containerd/content"
+	"github.com/containerd/containerd/mount"
+	"github.com/containerd/containerd/snapshots"
 )
 
-var applyCommand = cli.Command{
-	Name:   "apply",
-	Usage:  "apply the configuration layer to the os",
-	Before: before,
-	After:  after,
-	Flags: []cli.Flag{
-		cli.BoolFlag{
-			Name:  "http",
-			Usage: "download via http",
-		},
-	},
-	Action: func(clix *cli.Context) error {
-		repo := clix.Args().First()
-		if repo == "" {
-			return errors.New("no configuration repo specified")
-		}
-		store, err := newContentStore()
-		if err != nil {
-			return err
-		}
-		ctx := context.Background()
-		desc, err := fetch(ctx, clix, store, repo)
-		if err != nil {
-			return err
-		}
-		defer os.RemoveAll(disk("/tmp/content"))
-		// download boot images for initrd and kernel
-		return unpackFlat(ctx, store, desc, disk("config"))
-	},
+const (
+	configKey   = "config"
+	configRWKey = "config-rw"
+)
+
+func applyConfig(ctx context.Context, http bool, store content.Store, sn snapshots.Snapshotter, name string) error {
+	configDesc, err := fetch(ctx, http, store, name)
+	if err != nil {
+		return err
+	}
+	tmp, err := ioutil.TempDir(disk("tmp"), "config-rw-")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(tmp)
+
+	mounts, err := sn.Mounts(ctx, configRWKey)
+	if err != nil {
+		return err
+	}
+	if err := mount.All(mounts, tmp); err != nil {
+		return err
+	}
+	defer mount.UnmountAll(tmp, 0)
+
+	return unpackFlat(ctx, store, configDesc, tmp)
 }

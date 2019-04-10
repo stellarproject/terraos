@@ -28,10 +28,31 @@
 package main
 
 import (
+	"context"
+	"path/filepath"
+
+	"github.com/containerd/containerd/content"
+	"github.com/containerd/containerd/diff/apply"
+	"github.com/containerd/containerd/rootfs"
 	"github.com/containerd/containerd/snapshots"
 	"github.com/containerd/containerd/snapshots/overlay"
+	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
 func newSnapshotter(root string) (snapshots.Snapshotter, error) {
+	root = filepath.Join(root, "overlay")
 	return overlay.NewSnapshotter(root, overlay.AsynchronousRemove)
+}
+
+func unpackSnapshots(ctx context.Context, store content.Store, sn snapshots.Snapshotter, desc *v1.Descriptor) (string, error) {
+	applier := apply.NewFileSystemApplier(store)
+	_, layers, err := getLayers(ctx, store, *desc)
+	if err != nil {
+		return "", err
+	}
+	chain, err := rootfs.ApplyLayers(ctx, layers, sn, applier)
+	if err != nil {
+		return "", err
+	}
+	return chain.String(), nil
 }

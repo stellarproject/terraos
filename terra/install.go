@@ -28,7 +28,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"os"
 
@@ -39,10 +38,6 @@ import (
 
 var directories = []string{
 	"boot",
-	"config",
-	"os",
-	"userdata",
-	"work",
 	"tmp",
 }
 
@@ -60,6 +55,10 @@ var installCommand = cli.Command{
 			Name:  "http",
 			Usage: "download via http",
 		},
+		cli.StringFlag{
+			Name:  "config",
+			Usage: "config image to install",
+		},
 	},
 	Action: func(clix *cli.Context) error {
 		version, err := getVersion(clix)
@@ -71,23 +70,19 @@ var installCommand = cli.Command{
 		if err := setupDirectories(); err != nil {
 			return err
 		}
-		if err := writeMountOptions(defaultMountOptions); err != nil {
-			return err
-		}
 
 		logger.Info("creating new content store")
-		store, err := newContentStore()
+		store, err := newContentStore(disk())
 		if err != nil {
 			return err
 		}
-		defer os.RemoveAll(disk("/tmp/content"))
 
-		ctx := context.Background()
-		bootDesc, err := fetch(ctx, clix, store, fmt.Sprintf(bootRepoFormat, version))
+		ctx := cancelContext()
+		bootDesc, err := fetch(ctx, clix.Bool("http"), store, fmt.Sprintf(bootRepoFormat, version))
 		if err != nil {
 			return err
 		}
-		osDesc, err := fetch(ctx, clix, store, fmt.Sprintf(terraRepoFormat, version))
+		osDesc, err := fetch(ctx, clix.Bool("http"), store, fmt.Sprintf(terraRepoFormat, version))
 		if err != nil {
 			return err
 		}
@@ -96,11 +91,38 @@ var installCommand = cli.Command{
 		if err := unpackFlat(ctx, store, bootDesc, disk()); err != nil {
 			return err
 		}
-		// download initial terra os
-		if err := unpackFlat(ctx, store, osDesc, disk("os", version)); err != nil {
+
+		// unpack the os as a
+		sn, err := newSnapshotter(disk())
+		if err != nil {
 			return err
 		}
+		defer sn.Close()
 
+		chain, err := unpackSnapshots(ctx, store, sn, osDesc)
+		if err != nil {
+			return err
+		}
+		// create config layer
+		if _, err := sn.Prepare(ctx, configRWKey, chain); err != nil {
+			return err
+		}
+		configImage := clix.String("config")
+		if configImage != "" {
+			if err := applyConfig(ctx, clix.Bool("http"), store, sn, configImage); err != nil {
+				return err
+			}
+		}
+		if err := sn.Commit(ctx, configKey, configRWKey); err != nil {
+			return err
+		}
+		mounts, err := sn.Prepare(ctx, version, configKey)
+		if err != nil {
+			return err
+		}
+		if err := writeMountOptions(mounts[0].Options); err != nil {
+			return err
+		}
 		if clix.Bool("boot") {
 			logger.Info("overlay boot directory")
 			closer, err := overlayBoot()
