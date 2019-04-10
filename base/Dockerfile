@@ -23,6 +23,8 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH
 # THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+FROM stellarproject/terra:latest as terra
+
 FROM ubuntu:18.10 as debootstrap
 
 RUN apt update && \
@@ -38,6 +40,7 @@ COPY --from=debootstrap /terra/ /
 # add full apt sources
 ADD sources.list /etc/apt/
 ADD 01-netcfg.yaml  /etc/netplan
+COPY --from=terra /terra /bin/
 
 RUN rm /etc/fstab
 

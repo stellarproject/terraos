@@ -30,7 +30,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"strconv"
 
 	"github.com/sirupsen/logrus"
 	"github.com/stellarproject/terraos/terra/grub"
@@ -44,7 +43,6 @@ var directories = []string{
 	"userdata",
 	"work",
 	"tmp",
-	"tmp/content",
 }
 
 var installCommand = cli.Command{
@@ -88,7 +86,7 @@ var installCommand = cli.Command{
 			return err
 		}
 		// download initial terra os
-		if err := applyImage(clix, store, fmt.Sprintf(terraRepoFormat, version), disk("os", strconv.Itoa(version))); err != nil {
+		if err := applyImage(clix, store, fmt.Sprintf(terraRepoFormat, version), disk("os", version)); err != nil {
 			return err
 		}
 		if clix.Bool("boot") {

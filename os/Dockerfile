@@ -32,7 +32,6 @@ FROM stellarproject/cni:latest as cni
 FROM stellarproject/buildkit:latest as buildkit
 FROM stellarproject/orbit:latest as orbit
 FROM stellarproject/vab:latest as vab
-FROM stellarproject/terra:latest as terra
 FROM stellarproject/criu:latest as criu
 FROM stellarproject/node_exporter:latest as node
 FROM stellarproject/kernel:$KERNEL_VERSION as kernel
@@ -63,8 +62,7 @@ COPY --from=containerd /usr/local/sbin/runc /usr/local/sbin/
 
 # additional directories
 RUN mkdir -p /opt/containerd/bin && \
-	mkdir -p /opt/containerd/plugins && \
-	mkdir -p /etc/netplan
+	mkdir -p /opt/containerd/plugins
 
 COPY --from=cni /bin/* /opt/containerd/bin/
 
@@ -77,7 +75,6 @@ COPY --from=node /bin/* /usr/local/bin/
 COPY --from=buildkit /bin/* /usr/local/bin/
 COPY --from=criu /bin/criu /usr/local/bin/
 COPY --from=vab /bin/vab /usr/local/bin/
-COPY --from=terra /terra /bin/
 
 ADD buildkit.service /etc/systemd/system/
 ADD node_exporter.service /etc/systemd/system/

@@ -36,7 +36,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -56,15 +55,15 @@ import (
 )
 
 const (
-	terraRepoFormat = "docker.io/stellarproject/terraos:%d"
-	bootRepoFormat  = "docker.io/stellarproject/boot:%d"
+	terraRepoFormat = "docker.io/stellarproject/terraos:%s"
+	bootRepoFormat  = "docker.io/stellarproject/boot:%s"
 	devicePath      = "/run/terramnt"
 )
 
 var defaultMountOptions = []string{
-	"lowerdir=/lower/config:/lower/os/2",
-	"upperdir=/lower/userdata",
-	"workdir=/lower/work",
+	"lowerdir=/sd/config:/sd/os/2",
+	"upperdir=/sd/userdata",
+	"workdir=/sd/work",
 }
 
 var (
@@ -99,12 +98,12 @@ func after(clix *cli.Context) error {
 	return errors.New("unable to remove mount")
 }
 
-func getVersion(clix *cli.Context) (int, error) {
+func getVersion(clix *cli.Context) (string, error) {
 	version := clix.Args().First()
 	if version == "" {
-		return 0, errNoOS
+		return "", errNoOS
 	}
-	return strconv.Atoi(version)
+	return version, nil
 }
 
 func newContentStore() (content.Store, error) {

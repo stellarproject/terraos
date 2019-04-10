@@ -23,6 +23,7 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH
 # THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+REVISION=$(shell git rev-parse HEAD)$(shell if ! git diff --no-ext-diff --quiet --exit-code; then echo .m; fi)
 VERSION=2
 KERNEL=5.0.7
 
@@ -49,7 +50,7 @@ extras: FORCE
 kernel: FORCE
 	vab build --arg KERNEL_VERSION=${KERNEL} -c kernel -d kernel -p --ref docker.io/stellarproject/kernel:${KERNEL}
 
-base: FORCE
+base: terra FORCE
 	vab build -c base -d base -p --ref docker.io/stellarproject/ubuntu:18.10
 
 terra: FORCE

@@ -35,16 +35,16 @@ local_mount_root()
 	checkfs ${ROOT} root "${FSTYPE}"
 
 	# Create directories for root and the overlay
-	mkdir /lower
+	mkdir /sd
 
-	# mount the disk to lower
+	# mount the disk to sd
 	if [ "${FSTYPE}" != "unknown" ]; then
-		mount -t ${FSTYPE} ${ROOTFLAGS} ${ROOT} /lower
+		mount -t ${FSTYPE} ${ROOTFLAGS} ${ROOT} /sd
 	else
-		mount ${ROOTFLAGS} ${ROOT} /lower
+		mount ${ROOTFLAGS} ${ROOT} /sd
 	fi
 
-	OPTS="$(cat /lower/odisk)"
+	OPTS="$(cat /sd/odisk)"
 	# Mount the final overlay-root in $rootmnt
 	mount -t overlay -o "${OPTS}" overlay ${rootmnt}
 }
