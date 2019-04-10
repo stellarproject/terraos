@@ -28,13 +28,8 @@ local_mount_root()
 
 	local_premount
 
-	# CHANGES TO THE ORIGINAL FUNCTION BEGIN HERE
-	# N.B. this code still lacks error checking
-
 	modprobe ${FSTYPE}
 	checkfs ${ROOT} root "${FSTYPE}"
-
-	# Create directories for root and the overlay
 
 	mkdir -p /sd
 	# mount the disk to sd
@@ -43,12 +38,17 @@ local_mount_root()
 	else
 		mount ${ROOTFLAGS} ${ROOT} /sd
 	fi
-	# create persistent dir for containerd snapshotts
-	mkdir -p /sd/vl
 
+	# create persistent dir for containerd snapshotts
+	mkdir -p /sd/vlc
+
+	# get preset mounting options
 	OPTS="$(cat /sd/odisk)"
-	# Mount the final overlay-root in $rootmnt
+
+	# mount overlay with the preset options by the snapshotter
 	mount -t overlay -o "${OPTS}" overlay ${rootmnt} || rescue_shell
+
+	mkdir -p ${rootmnt}/var/lib/containerd
 	# overlay the ext4 on /var/lib so containerd to create overlay dirs
-	mount --bind /sd/vl ${rootmnt}/var/lib || rescue_shell
+	mount --bind /sd/vlc ${rootmnt}/var/lib/containerd || rescue_shell
 }

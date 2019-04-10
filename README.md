@@ -25,38 +25,39 @@ You are good to go with terra now.  Have fun.
 Terra supports booting from a single partition disk and will layout the terra files as follows:
 
 ```
-.
 ├── boot
 │   ├── System.map-5.0.7-terra
 │   ├── config-5.0.7-terra
 │   ├── grub
 │   ├── initrd.img-5.0.7-terra
 │   └── vmlinuz-5.0.7-terra
-├── config
-│   ├── etc
-│   └── home
+├── content
+│   ├── blobs
+│   └── ingest
+├── lost+found
 ├── odisk
-├── os
-│   └── 2
+├── ov
+│   ├── metadata.db
+│   └── snapshots
 ├── tmp
-├── userdata
-│   ├── etc
-│   ├── mnt
-│   ├── opt
-│   ├── root
-│   ├── tmp
-│   ├── usr
-│   └── var
-└── work
-    └── work
+└── vlc
+    ├── io.containerd.content.v1.content
+    ├── io.containerd.metadata.v1.bolt
+    ├── io.containerd.runtime.v1.linux
+    ├── io.containerd.runtime.v2.task
+    ├── io.containerd.snapshotter.v1.native
+    ├── io.containerd.snapshotter.v1.overlayfs
+    ├── stellarproject.io.containerd.store.stellarproject.io
+    └── tmpmounts
+
 ```
 
-* work - overlay working directory
-* userdata - `rw` user data of the system
 * boot - grub, initrd, and kernel
+* content - content store
 * odisk - filesystem mounting options
-* os - terra os installs
-* config - user config layer
+* ov - overlay snapshotter
+* tmp - tmp directory
+* vlc = `/var/lib/containerd` mount point for overlay mounts
 
 ## Kernel
 
