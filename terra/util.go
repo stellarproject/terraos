@@ -30,7 +30,6 @@ package main
 import (
 	"archive/tar"
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -117,31 +116,34 @@ func newContentStore() (content.Store, error) {
 	return local.NewStore(tmpContent)
 }
 
-func applyImage(clix *cli.Context, cs content.Store, imageName, dest string) error {
-	if err := os.MkdirAll(dest, 0755); err != nil {
-		return err
-	}
+func fetch(ctx context.Context, clix *cli.Context, cs content.Store, imageName string) (*v1.Descriptor, error) {
 	authorizer := docker.NewAuthorizer(nil, getDockerCredentials)
 	resolver := docker.NewResolver(docker.ResolverOptions{
 		PlainHTTP:  clix.Bool("http"),
 		Authorizer: authorizer,
 	})
-	ctx := context.Background()
 	name, desc, err := resolver.Resolve(ctx, imageName)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	fetcher, err := resolver.Fetcher(ctx, name)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	logrus.Infof("fetching os %s", imageName)
 	childrenHandler := images.ChildrenHandler(cs)
 	h := images.Handlers(remotes.FetchHandler(cs, fetcher), childrenHandler)
 	if err := images.Dispatch(ctx, h, nil, desc); err != nil {
+		return nil, err
+	}
+	return &desc, nil
+}
+
+func unpackFlat(ctx context.Context, cs content.Store, desc *v1.Descriptor, dest string) error {
+	if err := os.MkdirAll(dest, 0755); err != nil {
 		return err
 	}
-	_, layers, err := getLayers(ctx, cs, desc)
+	_, layers, err := getLayers(ctx, cs, *desc)
 	if err != nil {
 		return err
 	}
@@ -186,49 +188,6 @@ func HostFilter(h *tar.Header) (bool, error) {
 		return false, nil
 	}
 	return true, nil
-}
-
-// RegistryAuth is the base64 encoded credentials for the registry credentials
-type RegistryAuth struct {
-	Auth string `json:"auth,omitempty"`
-}
-
-// DockerConfig is the docker config struct
-type DockerConfig struct {
-	Auths map[string]RegistryAuth `json:"auths"`
-}
-
-func getDockerCredentials(host string) (string, string, error) {
-	logrus.WithField("host", host).Debug("checking for registry auth config")
-	home := os.Getenv("HOME")
-	credentialConfig := filepath.Join(home, ".docker", "config.json")
-	f, err := os.Open(credentialConfig)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return "", "", nil
-		}
-		return "", "", err
-	}
-	defer f.Close()
-
-	var cfg DockerConfig
-	if err := json.NewDecoder(f).Decode(&cfg); err != nil {
-		return "", "", err
-	}
-
-	for h, r := range cfg.Auths {
-		if h == host {
-			creds, err := base64.StdEncoding.DecodeString(r.Auth)
-			if err != nil {
-				return "", "", err
-			}
-			parts := strings.SplitN(string(creds), ":", 2)
-			logrus.Debugf("using auth for registry %s: user=%s", host, parts[0])
-			return parts[0], parts[1], nil
-		}
-	}
-
-	return "", "", nil
 }
 
 func getConfig(ctx context.Context, provider content.Provider, desc v1.Descriptor) (*Image, error) {

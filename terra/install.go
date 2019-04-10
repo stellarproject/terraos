@@ -28,6 +28,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -81,14 +82,25 @@ var installCommand = cli.Command{
 		}
 		defer os.RemoveAll(disk("/tmp/content"))
 
+		ctx := context.Background()
+		bootDesc, err := fetch(ctx, clix, store, fmt.Sprintf(bootRepoFormat, version))
+		if err != nil {
+			return err
+		}
+		osDesc, err := fetch(ctx, clix, store, fmt.Sprintf(terraRepoFormat, version))
+		if err != nil {
+			return err
+		}
+
 		// download boot images for initrd and kernel
-		if err := applyImage(clix, store, fmt.Sprintf(bootRepoFormat, version), disk()); err != nil {
+		if err := unpackFlat(ctx, store, bootDesc, disk()); err != nil {
 			return err
 		}
 		// download initial terra os
-		if err := applyImage(clix, store, fmt.Sprintf(terraRepoFormat, version), disk("os", version)); err != nil {
+		if err := unpackFlat(ctx, store, osDesc, disk("os", version)); err != nil {
 			return err
 		}
+
 		if clix.Bool("boot") {
 			logger.Info("overlay boot directory")
 			closer, err := overlayBoot()

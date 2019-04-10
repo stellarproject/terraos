@@ -28,40 +28,10 @@
 package main
 
 import (
-	"context"
-	"errors"
-	"os"
-
-	"github.com/urfave/cli"
+	"github.com/containerd/containerd/snapshots"
+	"github.com/containerd/containerd/snapshots/overlay"
 )
 
-var applyCommand = cli.Command{
-	Name:   "apply",
-	Usage:  "apply the configuration layer to the os",
-	Before: before,
-	After:  after,
-	Flags: []cli.Flag{
-		cli.BoolFlag{
-			Name:  "http",
-			Usage: "download via http",
-		},
-	},
-	Action: func(clix *cli.Context) error {
-		repo := clix.Args().First()
-		if repo == "" {
-			return errors.New("no configuration repo specified")
-		}
-		store, err := newContentStore()
-		if err != nil {
-			return err
-		}
-		ctx := context.Background()
-		desc, err := fetch(ctx, clix, store, repo)
-		if err != nil {
-			return err
-		}
-		defer os.RemoveAll(disk("/tmp/content"))
-		// download boot images for initrd and kernel
-		return unpackFlat(ctx, store, desc, disk("config"))
-	},
+func newSnapshotter(root string) (snapshots.Snapshotter, error) {
+	return overlay.NewSnapshotter(root, overlay.AsynchronousRemove)
 }
