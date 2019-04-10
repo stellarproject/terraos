@@ -78,6 +78,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 	ca-certificates \
 	xz-utils \
 	xorriso \
+	syslinux-utils \
 	initramfs-tools
 
 RUN curl -sSL https://mirrors.edge.kernel.org/pub/linux/utils/boot/syslinux/syslinux-6.03.tar.xz -o /tmp/syslinux.tar.xz && \
@@ -116,6 +117,8 @@ RUN mkisofs -o /terra.iso \
    -b syslinux/isolinux.bin -c syslinux/boot.cat \
    -no-emul-boot -boot-load-size 4 -boot-info-table \
    /boot
+
+RUN isohybrid /terra.iso
 
 FROM scratch
 
