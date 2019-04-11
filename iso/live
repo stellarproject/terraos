@@ -21,13 +21,8 @@ local_mount_root()
 
 	modprobe squashfs || rescue_shell
 
-	# mount the iso
-	echo "mounting iso..."
-	mkdir -p /run/iso /fs
-	mount -t iso9660 /dev/sr0 /run/iso
-
 	echo "setting up squashfs..."
-	mount -t squashfs -o loop /run/iso/live.sq ${rootmnt} || rescue_shell
+	mount -t squashfs -o loop /bin/live.sq ${rootmnt} || rescue_shell
 
 	echo "mounting /tmp..."
 	mount -t tmpfs tmpfs ${rootmnt}/tmp || rescue_shell

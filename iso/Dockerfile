@@ -101,6 +101,9 @@ RUN cp /syslinux-6.03/bios/com32/libutil/libutil.c32 /boot/syslinux/
 RUN cp /syslinux-6.03/bios/com32/lib/libcom32.c32 /boot/syslinux/
 
 ADD live /etc/initramfs-tools/scripts/live
+ADD squashhook /etc/initramfs-tools/hooks/squash
+RUN chmod +x /etc/initramfs-tools/hooks/squash
+COPY --from=live /live.sqsh /live.sq
 
 RUN update-initramfs -u
 
@@ -109,9 +112,6 @@ RUN mv /boot/initrd.img-$KERNEL_VERSION-terra /boot/initrd.img
 
 ADD syslinux.cfg /boot/syslinux/syslinux.cfg
 ADD splash.png /boot/syslinux/splash.png
-
-# COPY boot.txt /boot/boot.txt
-COPY --from=live /live.sqsh /boot/live.sq
 
 RUN mkisofs -o /terra.iso \
    -b syslinux/isolinux.bin -c syslinux/boot.cat \
