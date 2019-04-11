@@ -40,11 +40,9 @@ RUN apt update && \
 	make \
 	xfsprogs
 
-ENV CONTAINERD_VERSION b911ae3428717763377d038958597383c7ed0491
-RUN git clone https://github.com/crosbymichael/containerd /go/src/github.com/containerd/containerd
+RUN git clone https://github.com/containerd/containerd /go/src/github.com/containerd/containerd
 
 WORKDIR /go/src/github.com/containerd/containerd
-RUN git checkout ${CONTAINERD_VERSION}
 
 RUN rsync -au /go/src/github.com/containerd/containerd/vendor/ /go/src/ && \
 	rm -rf /go/src/github.com/containerd/containerd/vendor/*
