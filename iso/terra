@@ -1,0 +1,58 @@
+# Local filesystem mounting			-*- shell-script -*-
+
+#
+# This script overrides local_mount_root() in /scripts/local
+# and mounts root as a read-only filesystem with a temporary (rw)
+# overlay filesystem.
+#
+
+. /scripts/local
+
+rescue_shell() {
+    busybox --install -s
+    exec /bin/sh
+}
+
+local_mount_root()
+{
+	local_top
+	local_device_setup "${ROOT}" "root file system"
+	ROOT="${DEV}"
+
+	if [ -z "${ROOT}" ]; then
+		ROOT=$(blkid -L terra)
+	fi
+
+	# Get the root filesystem type if not set
+	if [ -z "${ROOTFSTYPE}" ]; then
+		FSTYPE=$(get_fstype "${ROOT}")
+	else
+		FSTYPE=${ROOTFSTYPE}
+	fi
+
+	local_premount
+
+	modprobe ${FSTYPE}
+	checkfs ${ROOT} root "${FSTYPE}"
+
+	mkdir -p /sd
+	# mount the disk to sd
+	if [ "${FSTYPE}" != "unknown" ]; then
+		mount -t ${FSTYPE} ${ROOTFLAGS} ${ROOT} /sd
+	else
+		mount ${ROOTFLAGS} ${ROOT} /sd
+	fi
+
+	# create persistent dir for containerd snapshotts
+	mkdir -p /sd/vlc
+
+	# get preset mounting options
+	OPTS="$(cat /sd/odisk)"
+
+	# mount overlay with the preset options by the snapshotter
+	mount -t overlay -o "${OPTS}" overlay ${rootmnt} || rescue_shell
+
+	mkdir -p ${rootmnt}/var/lib/containerd
+	# overlay the ext4 on /var/lib so containerd to create overlay dirs
+	mount --bind /sd/vlc ${rootmnt}/var/lib/containerd || rescue_shell
+}

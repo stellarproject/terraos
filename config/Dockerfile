@@ -5,11 +5,13 @@ RUN apt update && \
 	curl \
 	ca-certificates
 
-RUN echo "aegis-testing" > /etc/hostname
+RUN echo "cm-01" > /etc/hostname
 RUN curl -Ssl https://github.com/crosbymichael.keys -o /keys
 
 FROM scratch
 
 COPY --from=setup /etc/hostname /etc/hostname
 COPY --from=setup /keys /home/terra/.ssh/authorized_keys
+
 ADD hosts /etc/hosts
+ADD 01-netcfg.yaml  /etc/netplan/

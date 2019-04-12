@@ -12,6 +12,6 @@ dhclient || true
 rm /dev/console
 ln -s /dev/ttyS0 /dev/console
 
-ip a
+ip -f inet a
 
 exec /bin/sh

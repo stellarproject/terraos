@@ -104,6 +104,8 @@ ADD live /etc/initramfs-tools/scripts/live
 ADD squashhook /etc/initramfs-tools/hooks/squash
 RUN chmod +x /etc/initramfs-tools/hooks/squash
 COPY --from=live /live.sqsh /live.sq
+ADD terra /etc/initramfs-tools/scripts/terra
+ADD modules /etc/initramfs-tools/modules
 
 RUN update-initramfs -u
 

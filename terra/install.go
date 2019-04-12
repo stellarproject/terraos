@@ -32,7 +32,6 @@ import (
 	"os"
 
 	"github.com/sirupsen/logrus"
-	"github.com/stellarproject/terraos/terra/grub"
 	"github.com/urfave/cli"
 )
 
@@ -47,10 +46,6 @@ var installCommand = cli.Command{
 	Before: before,
 	After:  after,
 	Flags: []cli.Flag{
-		cli.BoolFlag{
-			Name:  "boot",
-			Usage: "install grub and make terra bootable",
-		},
 		cli.BoolFlag{
 			Name:  "http",
 			Usage: "download via http",
@@ -78,20 +73,10 @@ var installCommand = cli.Command{
 		}
 
 		ctx := cancelContext()
-		bootDesc, err := fetch(ctx, clix.Bool("http"), store, fmt.Sprintf(bootRepoFormat, version))
-		if err != nil {
-			return err
-		}
 		osDesc, err := fetch(ctx, clix.Bool("http"), store, fmt.Sprintf(terraRepoFormat, version))
 		if err != nil {
 			return err
 		}
-
-		// download boot images for initrd and kernel
-		if err := unpackFlat(ctx, store, bootDesc, disk()); err != nil {
-			return err
-		}
-
 		// unpack the os as a
 		sn, err := newSnapshotter(disk())
 		if err != nil {
@@ -120,25 +105,7 @@ var installCommand = cli.Command{
 		if err != nil {
 			return err
 		}
-		if err := writeMountOptions(mounts[0].Options); err != nil {
-			return err
-		}
-		if clix.Bool("boot") {
-			logger.Info("overlay boot directory")
-			closer, err := overlayBoot()
-			if err != nil {
-				return err
-			}
-			defer closer()
-
-			logger.Info("installing grub")
-			if err := grub.Install(clix.GlobalString("device")); err != nil {
-				return err
-			}
-			logger.Info("making grub config")
-			return grub.MkConfig(partitionPath(clix), "/boot/grub/grub.cfg")
-		}
-		return nil
+		return writeMountOptions(mounts[0].Options)
 	},
 }
 

@@ -24,18 +24,15 @@
 # THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 REVISION=$(shell git rev-parse HEAD)$(shell if ! git diff --no-ext-diff --quiet --exit-code; then echo .m; fi)
-VERSION=2
+VERSION=v3
 KERNEL=5.0.7
 
-all: terra
+all:
 	vab build --arg KERNEL_VERSION=${KERNEL} --local -c iso -d iso
 
 FORCE:
 
-boot: FORCE
-	vab build -p -c boot -d boot --arg KERNEL_VERSION=${KERNEL} --ref docker.io/stellarproject/boot:${VERSION}
-
-os: boot FORCE
+os: FORCE
 	vab build -c os -d os --arg KERNEL_VERSION=${KERNEL} -p --ref docker.io/stellarproject/terraos:${VERSION}
 
 containerd: FORCE

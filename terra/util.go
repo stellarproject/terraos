@@ -31,7 +31,6 @@ import (
 	"archive/tar"
 	"context"
 	"encoding/json"
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -67,16 +66,12 @@ func disk(args ...string) string {
 	return filepath.Join(append([]string{devicePath}, args...)...)
 }
 
-func partitionPath(clix *cli.Context) string {
-	return fmt.Sprintf("%s%d", clix.GlobalString("device"), clix.GlobalInt("partition"))
-}
-
 // before mounts the device before doing operations
 func before(clix *cli.Context) error {
 	if err := os.MkdirAll(devicePath, 0755); err != nil {
 		return err
 	}
-	return syscall.Mount(partitionPath(clix), devicePath, clix.GlobalString("fs-type"), 0, "")
+	return syscall.Mount(clix.GlobalString("device"), devicePath, clix.GlobalString("fs-type"), 0, "")
 }
 
 // after unmounts the device

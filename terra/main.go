@@ -74,12 +74,7 @@ Terra OS management`
 		cli.StringFlag{
 			Name:  "device,d",
 			Usage: "select the device terra is installed to",
-			Value: "/dev/sda",
-		},
-		cli.IntFlag{
-			Name:  "partition",
-			Usage: "parition number",
-			Value: 1,
+			Value: "/dev/sda1",
 		},
 		cli.StringFlag{
 			Name:  "fs-type",
