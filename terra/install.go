@@ -108,7 +108,12 @@ var installCommand = cli.Command{
 		}
 		mounts, err := sn.Prepare(ctx, version, chain)
 		if err != nil {
-			return err
+			if !errdefs.IsAlreadyExists(err) {
+				return err
+			}
+			if mounts, err = sn.Mounts(ctx, version); err != nil {
+				return err
+			}
 		}
 		return writeMountOptions(mounts[0].Options)
 	},

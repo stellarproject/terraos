@@ -89,6 +89,7 @@ Terra OS management`
 		return nil
 	}
 	app.Commands = []cli.Command{
+		deleteCommand,
 		installCommand,
 		releaseCommand,
 	}

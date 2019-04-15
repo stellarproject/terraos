@@ -24,7 +24,7 @@
 # THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 REVISION=$(shell git rev-parse HEAD)$(shell if ! git diff --no-ext-diff --quiet --exit-code; then echo .m; fi)
-VERSION=v4
+VERSION=v5
 KERNEL=5.0.7
 
 all: iso
@@ -34,6 +34,7 @@ FORCE:
 
 iso: terra FORCE
 	cd iso && vab build --local --arg KERNEL_VERSION=${KERNEL}
+	mv iso/terra.iso "terra-${VERSION}.iso"
 
 containerd-build: FORCE
 	vab build -c containerd-build -d containerd-build -p --ref docker.io/stellarproject/containerd-build:latest
