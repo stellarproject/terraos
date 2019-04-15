@@ -31,6 +31,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/containerd/containerd/errdefs"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
@@ -93,15 +94,17 @@ var installCommand = cli.Command{
 			// create config layer
 			key := fmt.Sprintf("%s.rw", chain)
 			if _, err := sn.Prepare(ctx, key, chain); err != nil {
-				return err
+				if !errdefs.IsAlreadyExists(err) {
+					return err
+				}
 			}
 			if err := applyConfig(ctx, clix.Bool("http"), store, sn, configImage, key); err != nil {
 				return err
 			}
-			if err := sn.Commit(ctx, configKey, key); err != nil {
+			chain = fmt.Sprintf("%s.c", chain)
+			if err := sn.Commit(ctx, chain, key); err != nil {
 				return err
 			}
-			chain = key
 		}
 		mounts, err := sn.Prepare(ctx, version, chain)
 		if err != nil {

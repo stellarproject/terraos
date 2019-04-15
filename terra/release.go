@@ -28,6 +28,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -81,7 +82,7 @@ var releaseCommand = cli.Command{
 
 		cmd := exec.CommandContext(ctx, "vab", "build",
 			"-c", abs,
-			"--ref", fmt.Sprintf("%s/terra:%s", defaultRepo, config.Version),
+			"--ref", fmt.Sprintf("%s/terraos:%s", defaultRepo, config.Version),
 			"--push",
 		)
 		cmd.Stdout = os.Stdout
@@ -97,8 +98,20 @@ var releaseCommand = cli.Command{
 			io.Copy(os.Stdout, f)
 			return err
 		}
-		return nil
+		return nil // return createISO(ctx, config)
 	},
+}
+
+func createISO(ctx context.Context, config *Config) error {
+	cmd := exec.CommandContext(ctx, "vab", "build",
+		"--arg", fmt.Sprintf("KERNEL_VERSION=%s", config.Kernel),
+		"-c", "iso",
+		"-d", "iso",
+		"--local",
+	)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
 }
 
 func writeDir(ctx *OSContext) (string, error) {

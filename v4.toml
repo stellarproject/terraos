@@ -13,7 +13,7 @@ RUN apt update && DEBIAN_FRONTEND=noninteractive apt install -y \
 RUN systemctl enable serial-getty@ttyS0.service
 
 RUN rm /etc/update-motd.d/*
-ADD motd/* /etc/update-motd.d/
+ADD os/motd/* /etc/update-motd.d/
 """
 
 [[components]]
@@ -31,3 +31,5 @@ ADD motd/* /etc/update-motd.d/
 [[components]]
 	name = "containerd"
 	systemd = true
+[[components]]
+	name = "orbit"

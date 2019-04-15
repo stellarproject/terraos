@@ -28,8 +28,9 @@
 ARG KERNEL_VERSION
 
 FROM docker.io/stellarproject/kernel:$KERNEL_VERSION as kernel
-FROM stellarproject/terra:latest as terra
+FROM docker.io/stellarproject/terra:latest as terra
 
+# live boot distro
 FROM alpine:latest as rootfs
 
 RUN mkdir -p /boot /sd
@@ -41,8 +42,6 @@ RUN apk update && \
 	btrfs-progs \
 	grub \
 	dhclient \
-	networkmanager \
-	openrc \
 	openssh \
 	grub-bios
 

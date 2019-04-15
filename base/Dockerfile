@@ -23,8 +23,6 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH
 # THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-FROM stellarproject/terra:latest as terra
-
 FROM ubuntu:18.10 as debootstrap
 
 RUN apt update && \
@@ -33,6 +31,7 @@ RUN apt update && \
 
 RUN debootstrap --arch amd64 cosmic /terra/ http://archive.ubuntu.com/ubuntu
 
+# base image
 FROM scratch
 
 COPY --from=debootstrap /terra/ /
