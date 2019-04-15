@@ -6,19 +6,33 @@ Modern, minimal operating system (we've heard that before) optimized for contain
 
 ## Install
 
-To install terra on a fresh system make sure you partition and format your disk.
-By default, terra will handled `ext4` but you can change the filesystem type with the `--fs-type` flag during install.
-
-Make a bootable USB drive or mount the `terra.iso` to your system and at boot, drop into the live shell.
-You can install multiple terra os versions, the current default version to get your system going is `2`.
+Format a new partition and format it.  You *MUST* have the `terra` label applied on your partition that will host terra.
 
 ```bash
-> terra install --boot 2
+> mkfs.ext4 -L terra /dev/sda1
 ```
 
-Now reboot the system, keep the usb drive in the system to manage it after.  It allows a 2 stage boot from the iso.
+Make a bootable USB drive or mount the `iso` to your system and at boot, drop into the live shell.
+You can install multiple terra os versions.
+
+```bash
+> terra --device /dev/sda1 install docker.io/stellarproject/terraos:v5
+```
+
+Now reboot the system, keep the usb drive in the system to manage it after.
 
 You are good to go with terra now.  Have fun.
+
+## OS Customizations
+
+You can customize your install by building images based on the released terra os version.
+
+
+```Dockerfile
+FROM docker.io/stellarproject/terraos:v5
+
+RUN echo "testing" > /etc/hostname
+```
 
 ## Filesystem Layout
 
@@ -68,8 +82,6 @@ The config is optimized for the KSPP guidelines.
 
 * wireguard
 
-## OS
-
 ### Services
 
 * containerd - runtime
@@ -84,6 +96,7 @@ The config is optimized for the KSPP guidelines.
 * criu - checkpoint and restore
 * cni plugins - networking
 * vab - image build frontend
+* terra - post install management
 
 ## License
 

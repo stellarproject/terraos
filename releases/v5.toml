@@ -8,6 +8,7 @@ RUN apt update && DEBIAN_FRONTEND=noninteractive apt install -y \
 	libnl-3-dev \
 	libnet-dev \
 	libprotobuf-dev \
+	ca-certificates \
 	pigz
 
 RUN systemctl enable serial-getty@ttyS0.service

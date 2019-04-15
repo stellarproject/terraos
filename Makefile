@@ -37,14 +37,14 @@ iso: terra FORCE
 	mv iso/terra.iso "terra-${VERSION}.iso"
 
 containerd-build: FORCE
-	vab build -c containerd-build -d containerd-build -p --ref docker.io/stellarproject/containerd-build:latest
+	vab build -c extras/containerd-build -d extras/containerd-build -p --ref docker.io/stellarproject/containerd-build:latest
 
 extras: containerd-build FORCE
-	vab build -c containerd -d containerd -p --ref docker.io/stellarproject/containerd:latest
-	vab build -c cni -d cni -p --ref docker.io/stellarproject/cni:latest
-	vab build -c node_exporter -d node_exporter -p --ref docker.io/stellarproject/node_exporter:latest
-	vab build -c buildkit -d buildkit -p --ref docker.io/stellarproject/buildkit:latest
-	vab build -d criu -c criu -p --ref docker.io/stellarproject/criu:latest
+	vab build -c extras/containerd -d extras/containerd -p --ref docker.io/stellarproject/containerd:latest
+	vab build -c extras/cni -d extras/cni -p --ref docker.io/stellarproject/cni:latest
+	vab build -c extras/node_exporter -d extras/node_exporter -p --ref docker.io/stellarproject/node_exporter:latest
+	vab build -c extras/buildkit -d extras/buildkit -p --ref docker.io/stellarproject/buildkit:latest
+	vab build -d extras/criu -c extras/criu -p --ref docker.io/stellarproject/criu:latest
 
 kernel: FORCE
 	vab build --arg KERNEL_VERSION=${KERNEL} -c kernel -d kernel -p --ref docker.io/stellarproject/kernel:${KERNEL}
