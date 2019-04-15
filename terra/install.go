@@ -28,10 +28,10 @@
 package main
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/containerd/containerd/errdefs"
+	"github.com/containerd/containerd/snapshots"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
@@ -51,17 +51,13 @@ var installCommand = cli.Command{
 			Name:  "http",
 			Usage: "download via http",
 		},
-		cli.StringFlag{
-			Name:  "config",
-			Usage: "config image to install",
-		},
 	},
 	Action: func(clix *cli.Context) error {
-		version, err := getVersion(clix)
+		repo, err := getRepo(clix)
 		if err != nil {
 			return err
 		}
-		logger := logrus.WithField("version", version)
+		logger := logrus.WithField("repo", repo)
 		logger.Info("setup directories")
 		if err := setupDirectories(); err != nil {
 			return err
@@ -74,7 +70,7 @@ var installCommand = cli.Command{
 		}
 
 		ctx := cancelContext()
-		osDesc, err := fetch(ctx, clix.Bool("http"), store, fmt.Sprintf(terraRepoFormat, version))
+		osDesc, err := fetch(ctx, clix.Bool("http"), store, string(repo))
 		if err != nil {
 			return err
 		}
@@ -89,29 +85,15 @@ var installCommand = cli.Command{
 		if err != nil {
 			return err
 		}
-		configImage := clix.String("config")
-		if configImage != "" {
-			// create config layer
-			key := fmt.Sprintf("%s.rw", chain)
-			if _, err := sn.Prepare(ctx, key, chain); err != nil {
-				if !errdefs.IsAlreadyExists(err) {
-					return err
-				}
-			}
-			if err := applyConfig(ctx, clix.Bool("http"), store, sn, configImage, key); err != nil {
-				return err
-			}
-			chain = fmt.Sprintf("%s.c", chain)
-			if err := sn.Commit(ctx, chain, key); err != nil {
-				return err
-			}
-		}
-		mounts, err := sn.Prepare(ctx, version, chain)
+		mounts, err := sn.Prepare(ctx, repo.Version(), chain, snapshots.WithLabels(map[string]string{
+			"repo": string(repo),
+			"os":   "true",
+		}))
 		if err != nil {
 			if !errdefs.IsAlreadyExists(err) {
 				return err
 			}
-			if mounts, err = sn.Mounts(ctx, version); err != nil {
+			if mounts, err = sn.Mounts(ctx, repo.Version()); err != nil {
 				return err
 			}
 		}

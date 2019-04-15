@@ -91,6 +91,7 @@ Terra OS management`
 	app.Commands = []cli.Command{
 		deleteCommand,
 		installCommand,
+		listCommand,
 		releaseCommand,
 	}
 	if err := app.Run(os.Args); err != nil {

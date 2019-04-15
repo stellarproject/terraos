@@ -85,12 +85,19 @@ func after(clix *cli.Context) error {
 	return errors.New("unable to remove mount")
 }
 
-func getVersion(clix *cli.Context) (string, error) {
-	version := clix.Args().First()
-	if version == "" {
+type Repo string
+
+func (r Repo) Version() string {
+	parts := strings.Split(string(r), ":")
+	return parts[len(parts)-1]
+}
+
+func getRepo(clix *cli.Context) (Repo, error) {
+	repo := clix.Args().First()
+	if repo == "" {
 		return "", errNoOS
 	}
-	return version, nil
+	return Repo(repo), nil
 }
 
 func newContentStore(root string) (content.Store, error) {

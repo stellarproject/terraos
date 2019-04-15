@@ -29,47 +29,42 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"os"
+	"text/tabwriter"
 
 	"github.com/containerd/containerd/snapshots"
-	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
 
-var deleteCommand = cli.Command{
-	Name:   "delete",
-	Usage:  "delete a release",
+var listCommand = cli.Command{
+	Name:   "list",
+	Usage:  "list install versions",
 	Before: before,
 	After:  after,
 	Action: func(clix *cli.Context) error {
-		repo, err := getRepo(clix)
-		if err != nil {
-			return err
-		}
-		logger := logrus.WithField("repo", repo)
+		w := tabwriter.NewWriter(os.Stdout, 10, 1, 3, ' ', 0)
+		const tfmt = "%s\t%s\n"
+		fmt.Fprint(w, "REPO\tINSTALLED\n")
+
 		ctx := cancelContext()
 		sn, err := newSnapshotter(disk())
 		if err != nil {
 			return err
 		}
 		defer sn.Close()
-		parents := make(map[string]string)
+
 		if err := sn.Walk(ctx, func(ctx context.Context, info snapshots.Info) error {
-			parents[info.Name] = info.Parent
+			if info.Labels != nil && info.Labels["os"] == "true" {
+				fmt.Fprintf(w, tfmt,
+					info.Labels["repo"],
+					info.Created,
+				)
+			}
 			return nil
 		}); err != nil {
 			return err
 		}
-		current := repo.Version()
-		for {
-			if current == "" {
-				break
-			}
-			logger.Infof("removing %s...", current)
-			if err := sn.Remove(ctx, current); err != nil {
-				return err
-			}
-			current = parents[current]
-		}
-		return nil
+		return w.Flush()
 	},
 }

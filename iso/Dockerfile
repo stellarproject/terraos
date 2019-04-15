@@ -43,6 +43,7 @@ RUN apk update && \
 	grub \
 	dhclient \
 	openssh \
+	ca-certificates \
 	grub-bios
 
 COPY --from=terra /usr/local/sbin/terra /bin/
