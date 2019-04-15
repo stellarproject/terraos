@@ -89,7 +89,9 @@ Terra OS management`
 		return nil
 	}
 	app.Commands = []cli.Command{
+		deleteCommand,
 		installCommand,
+		releaseCommand,
 	}
 	if err := app.Run(os.Args); err != nil {
 		fmt.Fprintln(os.Stderr, err)

@@ -23,8 +23,6 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH
 # THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-FROM stellarproject/terra:latest as terra
-
 FROM ubuntu:18.10 as debootstrap
 
 RUN apt update && \
@@ -33,14 +31,19 @@ RUN apt update && \
 
 RUN debootstrap --arch amd64 cosmic /terra/ http://archive.ubuntu.com/ubuntu
 
+# base image
 FROM scratch
 
 COPY --from=debootstrap /terra/ /
 
 # add full apt sources
 ADD sources.list /etc/apt/
+RUN apt update && \
+	apt install -y \
+	openssh-server \
+	apparmor
+
 ADD 01-netcfg.yaml  /etc/netplan
-COPY --from=terra /terra /bin/
 
 RUN rm /etc/fstab
 
@@ -56,5 +59,9 @@ ADD hostname /etc/
 ADD resolv.conf /etc/
 
 RUN chmod 0440 /etc/sudoers
+
+ADD sshd_config /etc/ssh/
+RUN systemctl disable systemd-resolved && \
+	systemctl enable ssh
 
 CMD ["bash"]

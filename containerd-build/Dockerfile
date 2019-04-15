@@ -23,14 +23,35 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH
 # THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-FROM golang:1.12 as prom
+FROM golang:1.12
 
-RUN go get -d github.com/prometheus/node_exporter
-WORKDIR /go/src/github.com/prometheus/node_exporter
+RUN apt update && \
+	apt install -y \
+	rsync \
+	autoconf \
+	automake \
+	g++ \
+	libtool \
+	unzip \
+	btrfs-tools \
+	gcc \
+	git \
+	libseccomp-dev \
+	make \
+	xfsprogs
 
-RUN go build
+RUN git clone https://github.com/containerd/containerd /go/src/github.com/containerd/containerd
 
-FROM scratch
+WORKDIR /go/src/github.com/containerd/containerd
 
-COPY --from=prom /go/src/github.com/prometheus/node_exporter/node_exporter /usr/local/bin/
-ADD node_exporter.service /etc/systemd/system/
+RUN rsync -au /go/src/github.com/containerd/containerd/vendor/ /go/src/ && \
+	rm -rf /go/src/github.com/containerd/containerd/vendor/*
+RUN rm -rf /go/src/github.com/opencontainers/runc && \
+	git clone https://github.com/opencontainers/runc /go/src/github.com/opencontainers/runc
+
+RUN ./script/setup/install-protobuf
+RUN ./script/setup/install-runc
+
+RUN make BUILDTAGS='no_btrfs no_cri no_devmapper'
+
+ADD config.toml /etc/containerd/

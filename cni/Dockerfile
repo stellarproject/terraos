@@ -32,4 +32,4 @@ RUN ./build_linux.sh
 
 FROM scratch
 
-COPY --from=cni /go/src/github.com/containernetworking/plugins/bin/* /bin/
+COPY --from=cni /go/src/github.com/containernetworking/plugins/bin/* /opt/containerd/bin/

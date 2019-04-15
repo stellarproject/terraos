@@ -42,7 +42,7 @@ const (
 	configRWKey = "config-rw"
 )
 
-func applyConfig(ctx context.Context, http bool, store content.Store, sn snapshots.Snapshotter, name string) error {
+func applyConfig(ctx context.Context, http bool, store content.Store, sn snapshots.Snapshotter, name, key string) error {
 	configDesc, err := fetch(ctx, http, store, name)
 	if err != nil {
 		return err
@@ -53,7 +53,7 @@ func applyConfig(ctx context.Context, http bool, store content.Store, sn snapsho
 	}
 	defer os.RemoveAll(tmp)
 
-	mounts, err := sn.Mounts(ctx, configRWKey)
+	mounts, err := sn.Mounts(ctx, key)
 	if err != nil {
 		return err
 	}

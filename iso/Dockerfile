@@ -28,8 +28,9 @@
 ARG KERNEL_VERSION
 
 FROM docker.io/stellarproject/kernel:$KERNEL_VERSION as kernel
-FROM stellarproject/terra:latest as terra
+FROM docker.io/stellarproject/terra:latest as terra
 
+# live boot distro
 FROM alpine:latest as rootfs
 
 RUN mkdir -p /boot /sd
@@ -41,12 +42,10 @@ RUN apk update && \
 	btrfs-progs \
 	grub \
 	dhclient \
-	networkmanager \
-	openrc \
 	openssh \
 	grub-bios
 
-COPY --from=terra /terra /bin/
+COPY --from=terra /usr/local/sbin/terra /bin/
 ADD interfaces /etc/network/interfaces
 RUN rm /sbin/init
 ADD resolv.conf /etc/resolv.conf

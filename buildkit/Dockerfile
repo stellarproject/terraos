@@ -32,4 +32,5 @@ RUN go build
 
 FROM scratch
 
-COPY --from=buildkit /go/src/github.com/moby/buildkit/cmd/buildkitd/buildkitd /bin/
+COPY --from=buildkit /go/src/github.com/moby/buildkit/cmd/buildkitd/buildkitd /usr/local/bin/
+ADD buildkit.service /etc/systemd/system/

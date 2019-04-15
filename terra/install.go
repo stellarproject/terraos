@@ -31,6 +31,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/containerd/containerd/errdefs"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
@@ -88,22 +89,31 @@ var installCommand = cli.Command{
 		if err != nil {
 			return err
 		}
-		// create config layer
-		if _, err := sn.Prepare(ctx, configRWKey, chain); err != nil {
-			return err
-		}
 		configImage := clix.String("config")
 		if configImage != "" {
-			if err := applyConfig(ctx, clix.Bool("http"), store, sn, configImage); err != nil {
+			// create config layer
+			key := fmt.Sprintf("%s.rw", chain)
+			if _, err := sn.Prepare(ctx, key, chain); err != nil {
+				if !errdefs.IsAlreadyExists(err) {
+					return err
+				}
+			}
+			if err := applyConfig(ctx, clix.Bool("http"), store, sn, configImage, key); err != nil {
+				return err
+			}
+			chain = fmt.Sprintf("%s.c", chain)
+			if err := sn.Commit(ctx, chain, key); err != nil {
 				return err
 			}
 		}
-		if err := sn.Commit(ctx, configKey, configRWKey); err != nil {
-			return err
-		}
-		mounts, err := sn.Prepare(ctx, version, configKey)
+		mounts, err := sn.Prepare(ctx, version, chain)
 		if err != nil {
-			return err
+			if !errdefs.IsAlreadyExists(err) {
+				return err
+			}
+			if mounts, err = sn.Mounts(ctx, version); err != nil {
+				return err
+			}
 		}
 		return writeMountOptions(mounts[0].Options)
 	},

@@ -24,21 +24,23 @@
 # THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 REVISION=$(shell git rev-parse HEAD)$(shell if ! git diff --no-ext-diff --quiet --exit-code; then echo .m; fi)
-VERSION=v3
+VERSION=v5
 KERNEL=5.0.7
 
-all:
-	vab build --arg KERNEL_VERSION=${KERNEL} --local -c iso -d iso
+all: iso
+	terra release "${VERSION}.toml"
 
 FORCE:
 
-os: FORCE
-	vab build -c os -d os --arg KERNEL_VERSION=${KERNEL} -p --ref docker.io/stellarproject/terraos:${VERSION}
+iso: terra FORCE
+	cd iso && vab build --local --arg KERNEL_VERSION=${KERNEL}
+	mv iso/terra.iso "terra-${VERSION}.iso"
 
-containerd: FORCE
+containerd-build: FORCE
+	vab build -c containerd-build -d containerd-build -p --ref docker.io/stellarproject/containerd-build:latest
+
+extras: containerd-build FORCE
 	vab build -c containerd -d containerd -p --ref docker.io/stellarproject/containerd:latest
-
-extras: FORCE
 	vab build -c cni -d cni -p --ref docker.io/stellarproject/cni:latest
 	vab build -c node_exporter -d node_exporter -p --ref docker.io/stellarproject/node_exporter:latest
 	vab build -c buildkit -d buildkit -p --ref docker.io/stellarproject/buildkit:latest
@@ -47,8 +49,8 @@ extras: FORCE
 kernel: FORCE
 	vab build --arg KERNEL_VERSION=${KERNEL} -c kernel -d kernel -p --ref docker.io/stellarproject/kernel:${KERNEL}
 
-base: terra FORCE
+base: FORCE
 	vab build -c base -d base -p --ref docker.io/stellarproject/ubuntu:18.10
 
 terra: FORCE
-	vab build -p -d terra --ref docker.io/stellarproject/terra:latest
+	vab build -p -c terra -d terra --ref docker.io/stellarproject/terra:latest

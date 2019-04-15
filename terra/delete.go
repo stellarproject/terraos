@@ -29,30 +29,48 @@ package main
 
 import (
 	"context"
-	"path/filepath"
 
-	"github.com/containerd/containerd/content"
-	"github.com/containerd/containerd/diff/apply"
-	"github.com/containerd/containerd/rootfs"
 	"github.com/containerd/containerd/snapshots"
-	"github.com/containerd/containerd/snapshots/overlay"
-	v1 "github.com/opencontainers/image-spec/specs-go/v1"
+	"github.com/sirupsen/logrus"
+	"github.com/urfave/cli"
 )
 
-func newSnapshotter(root string) (snapshots.Snapshotter, error) {
-	root = filepath.Join(root, "ov")
-	return overlay.NewSnapshotter(root)
-}
+var deleteCommand = cli.Command{
+	Name:   "delete",
+	Usage:  "delete a release",
+	Before: before,
+	After:  after,
+	Action: func(clix *cli.Context) error {
+		version, err := getVersion(clix)
+		if err != nil {
+			return err
+		}
+		logger := logrus.WithField("version", version)
+		ctx := cancelContext()
+		sn, err := newSnapshotter(disk())
+		if err != nil {
+			return err
+		}
+		defer sn.Close()
+		parents := make(map[string]string)
+		if err := sn.Walk(ctx, func(ctx context.Context, info snapshots.Info) error {
+			parents[info.Name] = info.Parent
+			return nil
+		}); err != nil {
+			return err
+		}
+		current := version
+		for {
+			if current == "" {
+				break
+			}
+			logger.Infof("removing %s...", current)
+			if err := sn.Remove(ctx, current); err != nil {
+				return err
+			}
+			current = parents[current]
 
-func unpackSnapshots(ctx context.Context, store content.Store, sn snapshots.Snapshotter, desc *v1.Descriptor) (string, error) {
-	applier := apply.NewFileSystemApplier(store)
-	_, layers, err := getLayers(ctx, store, *desc)
-	if err != nil {
-		return "", err
-	}
-	chain, err := rootfs.ApplyLayers(ctx, layers, sn, applier)
-	if err != nil {
-		return "", err
-	}
-	return chain.String(), nil
+		}
+		return nil
+	},
 }
