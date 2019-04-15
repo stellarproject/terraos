@@ -23,13 +23,35 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH
 # THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-FROM golang:1.12 as builder
+FROM golang:1.12
 
-ADD . /go/src/github.com/stellarproject/terraos
-WORKDIR /go/src/github.com/stellarproject/terraos/terra
+RUN apt update && \
+	apt install -y \
+	rsync \
+	autoconf \
+	automake \
+	g++ \
+	libtool \
+	unzip \
+	btrfs-tools \
+	gcc \
+	git \
+	libseccomp-dev \
+	make \
+	xfsprogs
 
-RUN CGO_ENABLED=0 go build -v -ldflags '-s -w -extldflags "-static"'
+RUN git clone https://github.com/containerd/containerd /go/src/github.com/containerd/containerd
 
-FROM scratch
+WORKDIR /go/src/github.com/containerd/containerd
 
-COPY --from=builder /go/src/github.com/stellarproject/terraos/terra/terra /usr/local/sbin/
+RUN rsync -au /go/src/github.com/containerd/containerd/vendor/ /go/src/ && \
+	rm -rf /go/src/github.com/containerd/containerd/vendor/*
+RUN rm -rf /go/src/github.com/opencontainers/runc && \
+	git clone https://github.com/opencontainers/runc /go/src/github.com/opencontainers/runc
+
+RUN ./script/setup/install-protobuf
+RUN ./script/setup/install-runc
+
+RUN make BUILDTAGS='no_btrfs no_cri no_devmapper'
+
+ADD config.toml /etc/containerd/

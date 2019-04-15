@@ -35,7 +35,10 @@ FORCE:
 os: FORCE
 	vab build -c os -d os --arg KERNEL_VERSION=${KERNEL} -p --ref docker.io/stellarproject/terraos:${VERSION}
 
-containerd: FORCE
+containerd-build: FORCE
+	vab build -c containerd-build -d containerd-build -p --ref docker.io/stellarproject/containerd-build:latest
+
+containerd: containerd-build FORCE
 	vab build -c containerd -d containerd -p --ref docker.io/stellarproject/containerd:latest
 
 extras: FORCE

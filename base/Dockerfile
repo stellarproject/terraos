@@ -39,8 +39,12 @@ COPY --from=debootstrap /terra/ /
 
 # add full apt sources
 ADD sources.list /etc/apt/
+RUN apt update && \
+	apt install -y \
+	openssh-server \
+	apparmor
+
 ADD 01-netcfg.yaml  /etc/netplan
-COPY --from=terra /terra /bin/
 
 RUN rm /etc/fstab
 
@@ -56,5 +60,9 @@ ADD hostname /etc/
 ADD resolv.conf /etc/
 
 RUN chmod 0440 /etc/sudoers
+
+ADD sshd_config /etc/ssh/
+RUN systemctl disable systemd-resolved && \
+	systemctl enable ssh
 
 CMD ["bash"]

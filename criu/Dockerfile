@@ -55,4 +55,4 @@ RUN cd /criu \
 
 FROM scratch
 
-COPY --from=build /usr/local/sbin/criu /bin/
+COPY --from=build /usr/local/sbin/criu /usr/local/bin/

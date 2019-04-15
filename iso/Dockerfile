@@ -46,7 +46,7 @@ RUN apk update && \
 	openssh \
 	grub-bios
 
-COPY --from=terra /terra /bin/
+COPY --from=terra /usr/local/sbin/terra /bin/
 ADD interfaces /etc/network/interfaces
 RUN rm /sbin/init
 ADD resolv.conf /etc/resolv.conf

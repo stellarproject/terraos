@@ -88,20 +88,22 @@ var installCommand = cli.Command{
 		if err != nil {
 			return err
 		}
-		// create config layer
-		if _, err := sn.Prepare(ctx, configRWKey, chain); err != nil {
-			return err
-		}
 		configImage := clix.String("config")
 		if configImage != "" {
-			if err := applyConfig(ctx, clix.Bool("http"), store, sn, configImage); err != nil {
+			// create config layer
+			key := fmt.Sprintf("%s.rw", chain)
+			if _, err := sn.Prepare(ctx, key, chain); err != nil {
 				return err
 			}
+			if err := applyConfig(ctx, clix.Bool("http"), store, sn, configImage, key); err != nil {
+				return err
+			}
+			if err := sn.Commit(ctx, configKey, key); err != nil {
+				return err
+			}
+			chain = key
 		}
-		if err := sn.Commit(ctx, configKey, configRWKey); err != nil {
-			return err
-		}
-		mounts, err := sn.Prepare(ctx, version, configKey)
+		mounts, err := sn.Prepare(ctx, version, chain)
 		if err != nil {
 			return err
 		}
