@@ -2,5 +2,5 @@ network:
   version: 2
   renderer: networkd
   ethernets:
-    eno1:
+    eth0:
       dhcp4: yes

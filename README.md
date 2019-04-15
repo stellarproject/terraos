@@ -16,7 +16,7 @@ Make a bootable USB drive or mount the `iso` to your system and at boot, drop in
 You can install multiple terra os versions.
 
 ```bash
-> terra --device /dev/sda1 install docker.io/stellarproject/terraos:v5
+> terra --device /dev/sda1 install docker.io/stellarproject/terraos:v6
 ```
 
 Now reboot the system, keep the usb drive in the system to manage it after.
@@ -29,7 +29,7 @@ You can customize your install by building images based on the released terra os
 
 
 ```Dockerfile
-FROM docker.io/stellarproject/terraos:v5
+FROM docker.io/stellarproject/terraos:v6
 
 RUN echo "testing" > /etc/hostname
 ```

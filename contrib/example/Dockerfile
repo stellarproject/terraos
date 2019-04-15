@@ -1,6 +1,4 @@
-FROM docker.io/stellarproject/terraos:v5
-
-RUN apt install -y curl ca-certificates
+FROM docker.io/stellarproject/terraos:v6
 
 RUN echo "testing" > /etc/hostname
 ADD hosts /etc/hosts

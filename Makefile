@@ -24,11 +24,11 @@
 # THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 REVISION=$(shell git rev-parse HEAD)$(shell if ! git diff --no-ext-diff --quiet --exit-code; then echo .m; fi)
-VERSION=v5
+VERSION=v6
 KERNEL=5.0.7
 
 all: iso
-	terra release "${VERSION}.toml"
+	terra release "releases/${VERSION}.toml"
 
 FORCE:
 
