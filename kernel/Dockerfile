@@ -73,7 +73,7 @@ WORKDIR /linux
 
 RUN /wireguard/contrib/kernel-tree/create-patch.sh | patch -p1
 
-RUN make -j "$(getconf _NPROCESSORS_ONLN)" KDEB_PKGVERSION=$PKGVERSION INSTALL_MOD_STRIP=1 bindeb-pkg
+RUN make -j "$(getconf _NPROCESSORS_ONLN)" KDEB_PKGVERSION=$PKGVERSION INSTALL_MOD_STRIP=1 deb-pkg
 
 RUN dpkg -i \
 	/linux-headers-$KERNEL_VERSION-terra_$KERNEL_VERSION-terra-1_amd64.deb \
