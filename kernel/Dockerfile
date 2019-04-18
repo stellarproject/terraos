@@ -41,9 +41,10 @@ RUN apt-get update && apt-get install -y \
 	kmod \
 	libssl-dev \
 	git \
+	libmnl-dev \
 	make
 
-ENV WIREGUARD_VERSION=0.0.20190227
+ENV WIREGUARD_VERSION=0.0.20190406
 ENV WIREGUARD_URL=https://git.zx2c4.com/WireGuard/snapshot/WireGuard-${WIREGUARD_VERSION}.tar.xz
 
 ADD https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-${KERNEL_VERSION}.tar.xz linux.tar.xz
@@ -64,9 +65,14 @@ RUN mkdir /wireguard && \
 ADD patches /patches
 RUN bash -c 'cd /linux; for i in $(cd /patches; ls | grep patch); do echo "applying $i"; patch -Np1 -i /patches/$i ; done'
 
+# compile wg(8)
+WORKDIR /wireguard/src
+RUN make tools && make tools-install
+
 WORKDIR /linux
 
 RUN /wireguard/contrib/kernel-tree/create-patch.sh | patch -p1
+
 RUN make -j "$(getconf _NPROCESSORS_ONLN)" KDEB_PKGVERSION=$PKGVERSION INSTALL_MOD_STRIP=1 bindeb-pkg
 
 RUN dpkg -i \
@@ -77,3 +83,4 @@ RUN dpkg -i \
 FROM scratch
 
 COPY --from=builder /*.deb /
+COPY --from=builder /wireguard/src/tools/wg /wg
