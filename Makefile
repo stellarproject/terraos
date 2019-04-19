@@ -24,7 +24,7 @@
 # THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 REVISION=$(shell git rev-parse HEAD)$(shell if ! git diff --no-ext-diff --quiet --exit-code; then echo .m; fi)
-VERSION=v6
+VERSION=v7
 KERNEL=5.0.8
 
 all: iso
