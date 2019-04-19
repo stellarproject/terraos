@@ -1,6 +1,5 @@
-DEFAULT menu.c32
-MENU AUTOBOOT
-  LABEL terra
-    KERNEL memdisk iso
-    INITRD /terra.iso
+DEFAULT terra
+LABEL terra
+  KERNEL memdisk iso
+  INITRD /terra.iso
 
