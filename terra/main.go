@@ -41,7 +41,7 @@ import (
 func main() {
 	app := cli.NewApp()
 	app.Name = "terra"
-	app.Version = "3"
+	app.Version = "4"
 	app.Usage = "Terra OS management"
 	app.Description = `
                                                      ___
@@ -92,7 +92,7 @@ Terra OS management`
 		deleteCommand,
 		installCommand,
 		listCommand,
-		releaseCommand,
+		osCommand,
 	}
 	if err := app.Run(os.Args); err != nil {
 		fmt.Fprintln(os.Stderr, err)

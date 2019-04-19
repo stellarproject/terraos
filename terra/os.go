@@ -39,9 +39,9 @@ import (
 	"github.com/urfave/cli"
 )
 
-var releaseCommand = cli.Command{
-	Name:  "release",
-	Usage: "build a new release",
+var osCommand = cli.Command{
+	Name:  "os",
+	Usage: "build a os new release",
 	Flags: []cli.Flag{
 		cli.StringFlag{
 			Name:  "context,c",
