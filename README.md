@@ -98,6 +98,16 @@ The config is optimized for the KSPP guidelines.
 * vab - image build frontend
 * terra - post install management
 
+## PXE Boot
+
+You can use [PXE](https://wiki.syslinux.org/wiki/index.php?title=PXE_boot_server) to boot Terra.
+
+```bash
+$> make pxe
+```
+
+This will create a `tftp` directory that can then be used with a boot server.
+
 ## License
 
 ```

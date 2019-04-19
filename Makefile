@@ -54,3 +54,8 @@ base: FORCE
 
 terra: FORCE
 	vab build -p -c terra -d terra --ref docker.io/stellarproject/terra:latest
+
+pxe: iso FORCE
+	@cd pxe && vab build --local
+	@mv pxe/tftp tftp
+	@cp terra-${VERSION}.iso tftp/terra.iso
