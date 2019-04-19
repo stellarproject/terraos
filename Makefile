@@ -25,7 +25,7 @@
 
 REVISION=$(shell git rev-parse HEAD)$(shell if ! git diff --no-ext-diff --quiet --exit-code; then echo .m; fi)
 VERSION=v6
-KERNEL=5.0.7
+KERNEL=5.0.8
 
 all: iso
 	terra release "releases/${VERSION}.toml"
