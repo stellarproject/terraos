@@ -1,4 +1,5 @@
 FROM ubuntu:18.10 as ipxe
+
 RUN apt-get update && apt-get install -y --no-install-recommends git \
 	build-essential \
 	ca-certificates \
@@ -10,11 +11,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends git \
 	mtools \
 	genisoimage \
 	syslinux
+
 RUN git clone https://git.ipxe.org/ipxe.git && \
 	cd ipxe/src && \
 	make bin/undionly.kpxe
 
 FROM alpine:latest as pxe
+
 RUN apk add -U syslinux
 RUN mkdir /tftp && \
 	cp /usr/share/syslinux/pxelinux.0 /tftp/ && \
@@ -24,8 +27,10 @@ RUN mkdir /tftp && \
 		/usr/share/syslinux/ldlinux.c32 \
 		/usr/share/syslinux/libutil.c32 /tftp/ && \
 	mkdir /tftp/pxelinux.cfg
+
 ADD default /tftp/pxelinux.cfg/default
 
 FROM scratch
+
 # pxe
 COPY --from=pxe /tftp /tftp

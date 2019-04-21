@@ -41,6 +41,8 @@ ADD sources.list /etc/apt/
 RUN apt update && \
 	apt install -y \
 	openssh-server \
+	curl \
+	ca-certificates \
 	apparmor
 
 ADD 01-netcfg.yaml  /etc/netplan

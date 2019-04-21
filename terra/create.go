@@ -30,43 +30,23 @@ package main
 import (
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"text/template"
 
 	"github.com/BurntSushi/toml"
+	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
 
-const (
-	defaultRepo      = "docker.io/stellarproject"
-	defaultBaseImage = "docker.io/stellarproject/ubuntu:18.10"
-	defaultVersion   = "latest"
-)
-
-type OSContext struct {
-	Base     string
-	Userland string
-	Imports  []*Component
-	Kernel   string
-	Init     string
-	Hostname string
-}
-
-const osTemplate = `# syntax=docker/dockerfile:experimental
+const serverTemplate = `# syntax=docker/dockerfile:experimental
 
 {{range $v := .Imports -}}
 FROM {{imageName $v}} as {{cname $v}}
 {{end}}
 
 FROM {{.Base}}
-
-RUN --mount=type=bind,from=kernel,target=/tmp dpkg -i \
-	/tmp/linux-headers-{{.Kernel}}-terra_{{.Kernel}}-terra-1_amd64.deb \
-	/tmp/linux-image-{{.Kernel}}-terra_{{.Kernel}}-terra-1_amd64.deb \
-	/tmp/linux-libc-dev_{{.Kernel}}-terra-1_amd64.deb && \
-	cp /tmp/wg /usr/local/bin/
 
 {{.Userland}}
 
@@ -76,34 +56,37 @@ COPY --from={{cname $v}} / /
 {{if $v.Systemd}}RUN systemctl enable {{cname $v}}{{end}}{{end}}
 {{end}}
 
+ADD hostname /etc/hostname
+ADD hosts /etc/hosts
+
+RUN mkdir -p /home/terra/.ssh
+ADD keys /home/terra/.ssh/authorized_keys
+RUN chown -R terra:terra /home/terra
+
 {{if .Init}}CMD ["{{.Init}}"]{{end}}
 `
 
-type Component struct {
-	Name    string `toml:"name"`
-	Version string `toml:"version"`
-	Systemd bool   `toml:"systemd"`
-}
-
-type OSConfig struct {
+type ServerConfig struct {
 	Version    string       `toml:"version"`
-	Base       string       `toml:"base"`
-	Kernel     string       `toml:"kernel"`
+	OS         string       `toml:"os"`
+	Hostname   string       `toml:"hostname"`
 	Components []*Component `toml:"components"`
 	Userland   string       `toml:"userland"`
 	Init       string       `toml:"init"`
+	SSH        SSH          `toml:"ssh"`
 }
 
-func loadOSConfig(path string) (*OSConfig, error) {
-	var c OSConfig
+type SSH struct {
+	Github string `toml:"github"`
+}
+
+func loadServerConfig(path string) (*ServerConfig, error) {
+	var c ServerConfig
 	if _, err := toml.DecodeFile(path, &c); err != nil {
 		return nil, err
 	}
-	if c.Base == "" {
-		c.Base = defaultBaseImage
-	}
-	if c.Init == "" {
-		c.Init = "/sbin/init"
+	if c.OS == "" {
+		return nil, errors.New("no os defined")
 	}
 	for _, i := range c.Components {
 		if i.Version == "" {
@@ -113,41 +96,67 @@ func loadOSConfig(path string) (*OSConfig, error) {
 	return &c, nil
 }
 
-func joinImage(i, name, version string) string {
-	return fmt.Sprintf("%s/%s:%s", i, name, version)
-}
+const hostsTemplate = `127.0.0.1       localhost %s
+::1             localhost ip6-localhost ip6-loopback
+ff02::1         ip6-allnodes
+ff02::2         ip6-allrouters`
 
-func cname(c Component) string {
-	return c.Name
-}
-
-func imageName(c Component) string {
-	return joinImage(defaultRepo, c.Name, c.Version)
-}
-
-func render(w io.Writer, tmp string, ctx *OSContext) error {
-	t, err := template.New("dockerfile").Funcs(template.FuncMap{
-		"cname":     cname,
-		"imageName": imageName,
-	}).Parse(tmp)
+func setupHostname(path, hostname string) error {
+	if hostname == "" {
+		hostname = "terra"
+	}
+	f, err := os.Create(filepath.Join(path, "hostname"))
 	if err != nil {
 		return err
 	}
-	return t.Execute(w, ctx)
+	_, err = f.WriteString(hostname)
+	f.Close()
+	if err != nil {
+		return err
+	}
+	if f, err = os.Create(filepath.Join(path, "hosts")); err != nil {
+		return err
+	}
+	_, err = fmt.Fprintf(f, hostsTemplate, hostname)
+	f.Close()
+	return err
 }
 
-var osCommand = cli.Command{
-	Name:  "os",
-	Usage: "build a os new release",
+func setupSSH(path string, ssh SSH) error {
+	if ssh.Github != "" {
+		r, err := http.Get(fmt.Sprintf("https://github.com/%s.keys", ssh.Github))
+		if err != nil {
+			return err
+		}
+		defer r.Body.Close()
+		f, err := os.Create(filepath.Join(path, "keys"))
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+		if _, err := io.Copy(f, r.Body); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+var createCommand = cli.Command{
+	Name:  "create",
+	Usage: "create new server image",
 	Flags: []cli.Flag{
 		cli.StringFlag{
 			Name:  "context,c",
 			Usage: "specify the context path",
 			Value: ".",
 		},
+		cli.StringFlag{
+			Name:  "repo",
+			Usage: "set the image repository",
+		},
 	},
 	Action: func(clix *cli.Context) error {
-		config, err := loadOSConfig(clix.Args().First())
+		config, err := loadServerConfig(clix.Args().First())
 		if err != nil {
 			return err
 		}
@@ -157,29 +166,30 @@ var osCommand = cli.Command{
 		}
 		ctx := cancelContext()
 		osCtx := &OSContext{
-			Kernel:   config.Kernel,
-			Base:     config.Base,
+			Base:     config.OS,
 			Userland: config.Userland,
 			Init:     config.Init,
-			Imports: []*Component{
-				{
-					Name:    "kernel",
-					Version: config.Kernel,
-				},
-			},
+			Hostname: config.Hostname,
 		}
 		for _, c := range config.Components {
 			osCtx.Imports = append(osCtx.Imports, c)
 		}
-		path, err := writeDockerfile(osCtx, osTemplate)
+		path, err := writeDockerfile(osCtx, serverTemplate)
 		if err != nil {
 			return err
 		}
 		defer os.RemoveAll(path)
 
+		if err := setupHostname(abs, config.Hostname); err != nil {
+			return err
+		}
+		if err := setupSSH(abs, config.SSH); err != nil {
+			return err
+		}
+
 		cmd := exec.CommandContext(ctx, "vab", "build",
 			"-c", abs,
-			"--ref", fmt.Sprintf("%s/terraos:%s", defaultRepo, config.Version),
+			"--ref", fmt.Sprintf("%s:%s", clix.String("repo"), config.Version),
 			"--push",
 		)
 		cmd.Stdout = os.Stdout
@@ -195,6 +205,6 @@ var osCommand = cli.Command{
 			io.Copy(os.Stdout, f)
 			return err
 		}
-		return nil
+		return nil // return createISO(ctx, config)
 	},
 }

@@ -8,8 +8,6 @@ RUN apt update && DEBIAN_FRONTEND=noninteractive apt install -y \
 	libnl-3-dev \
 	libnet-dev \
 	libprotobuf-dev \
-	ca-certificates \
-	curl \
 	open-iscsi \
 	nut \
 	pigz

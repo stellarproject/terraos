@@ -31,6 +31,7 @@ import (
 	"archive/tar"
 	"context"
 	"encoding/json"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -61,6 +62,11 @@ var (
 	errNoOS = errors.New("no os version specified")
 	errNoID = errors.New("no id specified")
 )
+
+var directories = []string{
+	"boot",
+	"tmp",
+}
 
 func disk(args ...string) string {
 	return filepath.Join(append([]string{devicePath}, args...)...)
@@ -237,4 +243,29 @@ func writeMountOptions(options []string) error {
 	defer f.Close()
 	_, err = f.WriteString(strings.Join(options, ","))
 	return err
+}
+
+func setupDirectories() error {
+	for _, d := range directories {
+		if err := os.MkdirAll(disk(d), 0755); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func writeDockerfile(ctx *OSContext, tmpl string) (string, error) {
+	tmp, err := ioutil.TempDir("", "osb-")
+	if err != nil {
+		return "", err
+	}
+	f, err := os.Create(filepath.Join(tmp, "Dockerfile"))
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+	if err := render(f, tmpl, ctx); err != nil {
+		return "", err
+	}
+	return tmp, nil
 }

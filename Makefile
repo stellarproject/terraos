@@ -28,7 +28,7 @@ VERSION=v7
 KERNEL=5.0.8
 
 all: iso
-	terra release "releases/${VERSION}.toml"
+	terra os "releases/${VERSION}.toml"
 
 FORCE:
 

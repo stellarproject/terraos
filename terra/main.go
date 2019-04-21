@@ -41,7 +41,7 @@ import (
 func main() {
 	app := cli.NewApp()
 	app.Name = "terra"
-	app.Version = "4"
+	app.Version = "v5"
 	app.Usage = "Terra OS management"
 	app.Description = `
                                                      ___
@@ -71,16 +71,6 @@ Terra OS management`
 			Name:  "debug",
 			Usage: "enable debug output in the logs",
 		},
-		cli.StringFlag{
-			Name:  "device,d",
-			Usage: "select the device terra is installed to",
-			Value: "/dev/sda1",
-		},
-		cli.StringFlag{
-			Name:  "fs-type",
-			Usage: "set the filesystem type",
-			Value: "ext4",
-		},
 	}
 	app.Before = func(clix *cli.Context) error {
 		if clix.GlobalBool("debug") {
@@ -89,9 +79,8 @@ Terra OS management`
 		return nil
 	}
 	app.Commands = []cli.Command{
-		deleteCommand,
+		createCommand,
 		installCommand,
-		listCommand,
 		osCommand,
 	}
 	if err := app.Run(os.Args); err != nil {

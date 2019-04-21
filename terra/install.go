@@ -28,28 +28,32 @@
 package main
 
 import (
-	"os"
-
 	"github.com/containerd/containerd/errdefs"
 	"github.com/containerd/containerd/snapshots"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
 
-var directories = []string{
-	"boot",
-	"tmp",
-}
-
 var installCommand = cli.Command{
-	Name:   "install",
-	Usage:  "install terra on your system",
+	Name:  "install",
+	Usage: "install terra onto a block device",
+
 	Before: before,
 	After:  after,
 	Flags: []cli.Flag{
 		cli.BoolFlag{
 			Name:  "http",
 			Usage: "download via http",
+		},
+		cli.StringFlag{
+			Name:  "device,d",
+			Usage: "select the device terra is installed to",
+			Value: "/dev/sda1",
+		},
+		cli.StringFlag{
+			Name:  "fs-type",
+			Usage: "set the filesystem type",
+			Value: "ext4",
 		},
 	},
 	Action: func(clix *cli.Context) error {
@@ -99,13 +103,4 @@ var installCommand = cli.Command{
 		}
 		return writeMountOptions(mounts[0].Options)
 	},
-}
-
-func setupDirectories() error {
-	for _, d := range directories {
-		if err := os.MkdirAll(disk(d), 0755); err != nil {
-			return err
-		}
-	}
-	return nil
 }
