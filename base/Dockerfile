@@ -63,4 +63,7 @@ ADD sshd_config /etc/ssh/
 RUN systemctl disable systemd-resolved && \
 	systemctl enable ssh
 
+RUN rm -f /etc/machine-id && \
+	rm -f /var/lib/dbus/machine-id
+
 CMD ["bash"]
