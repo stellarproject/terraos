@@ -59,6 +59,7 @@ RUN ssh-keygen -f /etc/ssh/ssh_host_rsa_key -N '' -t rsa && \
 	echo "PermitRootLogin yes" >> /etc/ssh/sshd_config
 RUN echo 'root:root' | chpasswd
 
+# squasher
 FROM ubuntu:18.10 as live
 
 RUN apt update && \
@@ -68,6 +69,7 @@ RUN --mount=type=bind,from=rootfs,target=/rootfs,rw \
 	mkdir -p /rootfs/proc /rootfs/sys /rootfs/run && \
 	mksquashfs /rootfs live.sqsh
 
+# iso build
 FROM ubuntu:18.10 as iso
 ARG KERNEL_VERSION
 

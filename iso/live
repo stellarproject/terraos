@@ -15,6 +15,7 @@ local_mount_root()
 {
 	local_top
 	local_device_setup "${ROOT}" "root file system"
+	configure_networking
 
 	ROOT="${DEV}"
 	local_premount
