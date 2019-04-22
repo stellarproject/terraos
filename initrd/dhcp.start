@@ -1,0 +1,9 @@
+#!/bin/ash
+
+set -x
+
+cd /sys/class/net/
+
+for NIC in *; do
+  ethtool -i "$NIC" && ip link set up dev "$NIC" && udhcpc "$NIC" &
+done
