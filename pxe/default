@@ -1,5 +1,5 @@
 DEFAULT terra
+
 LABEL terra
   KERNEL memdisk iso
   INITRD /terra.iso
-

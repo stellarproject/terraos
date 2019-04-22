@@ -62,6 +62,7 @@ ADD hosts /etc/hosts
 RUN mkdir -p /home/terra/.ssh
 ADD keys /home/terra/.ssh/authorized_keys
 RUN chown -R terra:terra /home/terra
+RUN dbus-uuidgen --ensure=/etc/machine-id && dbus-uuidgen --ensure
 
 {{if .Init}}CMD ["{{.Init}}"]{{end}}
 `

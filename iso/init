@@ -6,8 +6,7 @@ mkdir -p /run/sshd
 ip link set lo up
 
 echo "setting up dhcp..."
-sleep 1
-dhclient || true
+# dhclient || true
 
 rm /dev/console
 ln -s /dev/ttyS0 /dev/console

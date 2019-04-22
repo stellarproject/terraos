@@ -71,7 +71,7 @@ RUN --mount=type=bind,from=rootfs,target=/rootfs,rw \
 FROM ubuntu:18.10 as iso
 ARG KERNEL_VERSION
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get install -y \
 	syslinux \
 	mkisofs \
 	curl \
@@ -79,26 +79,30 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 	xz-utils \
 	xorriso \
 	syslinux-utils \
+	open-iscsi \
+	isc-dhcp-common \
+	isc-dhcp-client \
 	initramfs-tools
-
-RUN curl -sSL https://mirrors.edge.kernel.org/pub/linux/utils/boot/syslinux/syslinux-6.03.tar.xz -o /tmp/syslinux.tar.xz && \
-	tar xf /tmp/syslinux.tar.xz -C /
-
-RUN mkdir -p /boot/syslinux
 
 RUN --mount=type=bind,from=kernel,target=/tmp dpkg -i \
 	/tmp/linux-headers-$KERNEL_VERSION-terra_$KERNEL_VERSION-terra-1_amd64.deb \
 	/tmp/linux-libc-dev_$KERNEL_VERSION-terra-1_amd64.deb \
 	/tmp/linux-image-$KERNEL_VERSION-terra_$KERNEL_VERSION-terra-1_amd64.deb
 
-RUN cp /syslinux-6.03/bios/core/isolinux.bin /boot/syslinux
-RUN cp /syslinux-6.03/bios/mbr/mbr.bin /boot/syslinux
-RUN cp /syslinux-6.03/bios/com32/elflink/ldlinux/ldlinux.c32 /boot/syslinux
-RUN cp /syslinux-6.03/bios/com32/menu/vesamenu.c32 /boot/syslinux/
-RUN cp /syslinux-6.03/bios/com32/menu/menu.c32 /boot/syslinux/
-RUN cp /syslinux-6.03/bios/com32/chain/chain.c32 /boot/syslinux/
-RUN cp /syslinux-6.03/bios/com32/libutil/libutil.c32 /boot/syslinux/
-RUN cp /syslinux-6.03/bios/com32/lib/libcom32.c32 /boot/syslinux/
+RUN curl -sSL https://mirrors.edge.kernel.org/pub/linux/utils/boot/syslinux/syslinux-6.03.tar.xz -o /tmp/syslinux.tar.xz && \
+	tar xf /tmp/syslinux.tar.xz -C /
+
+RUN mkdir -p /boot/syslinux
+
+RUN cp /syslinux-6.03/bios/core/isolinux.bin /boot/syslinux && \
+	cp /syslinux-6.03/bios/mbr/mbr.bin /boot/syslinux && \
+	cp /syslinux-6.03/bios/com32/elflink/ldlinux/ldlinux.c32 /boot/syslinux && \
+	cp /syslinux-6.03/bios/com32/menu/vesamenu.c32 /boot/syslinux/ && \
+	cp /syslinux-6.03/bios/com32/menu/menu.c32 /boot/syslinux/ && \
+	cp /syslinux-6.03/bios/com32/chain/chain.c32 /boot/syslinux/ && \
+	cp /syslinux-6.03/bios/com32/libutil/libutil.c32 /boot/syslinux/ && \
+	cp /syslinux-6.03/bios/com32/lib/libcom32.c32 /boot/syslinux/ && \
+	cp /syslinux-6.03/bios/com32/modules/sanboot.c32 /boot/syslinux/
 
 ADD live /etc/initramfs-tools/scripts/live
 ADD squashhook /etc/initramfs-tools/hooks/squash
@@ -106,6 +110,7 @@ RUN chmod +x /etc/initramfs-tools/hooks/squash
 COPY --from=live /live.sqsh /live.sq
 ADD terra /etc/initramfs-tools/scripts/terra
 ADD modules /etc/initramfs-tools/modules
+RUN touch /etc/iscsi/iscsi.initramfs
 
 RUN update-initramfs -u
 

@@ -8,14 +8,10 @@ RUN apt update && DEBIAN_FRONTEND=noninteractive apt install -y \
 	libnl-3-dev \
 	libnet-dev \
 	libprotobuf-dev \
-	open-iscsi \
 	nut \
 	pigz
 
 RUN systemctl enable serial-getty@ttyS0.service
-
-RUN rm /etc/update-motd.d/*
-ADD os/motd/* /etc/update-motd.d/
 """
 
 [[components]]

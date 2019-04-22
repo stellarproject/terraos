@@ -64,7 +64,6 @@ var (
 )
 
 var directories = []string{
-	"boot",
 	"tmp",
 }
 
@@ -77,7 +76,7 @@ func before(clix *cli.Context) error {
 	if err := os.MkdirAll(devicePath, 0755); err != nil {
 		return err
 	}
-	return syscall.Mount(clix.GlobalString("device"), devicePath, clix.GlobalString("fs-type"), 0, "")
+	return syscall.Mount(clix.String("device"), devicePath, clix.String("fs-type"), 0, "")
 }
 
 // after unmounts the device
@@ -107,7 +106,6 @@ func getRepo(clix *cli.Context) (Repo, error) {
 }
 
 func newContentStore(root string) (content.Store, error) {
-	root = filepath.Join(root, "content")
 	if err := os.MkdirAll(root, 0755); err != nil {
 		return nil, err
 	}
@@ -137,10 +135,7 @@ func fetch(ctx context.Context, http bool, cs content.Store, imageName string) (
 	return &desc, nil
 }
 
-func unpackFlat(ctx context.Context, cs content.Store, desc *v1.Descriptor, dest string) error {
-	if err := os.MkdirAll(dest, 0755); err != nil {
-		return err
-	}
+func unpack(ctx context.Context, cs content.Store, desc *v1.Descriptor, dest string) error {
 	_, layers, err := getLayers(ctx, cs, *desc)
 	if err != nil {
 		return err

@@ -43,6 +43,7 @@ RUN apt update && \
 	openssh-server \
 	curl \
 	ca-certificates \
+	open-iscsi \
 	apparmor
 
 ADD 01-netcfg.yaml  /etc/netplan
@@ -67,5 +68,8 @@ RUN systemctl disable systemd-resolved && \
 
 RUN rm -f /etc/machine-id && \
 	rm -f /var/lib/dbus/machine-id
+
+RUN rm /etc/update-motd.d/*
+ADD motd/* /etc/update-motd.d/
 
 CMD ["bash"]

@@ -19,6 +19,7 @@ local_mount_root()
 	local_device_setup "${ROOT}" "root file system"
 	ROOT="${DEV}"
 
+	# find the disk with the terra label
 	if [ -z "${ROOT}" ]; then
 		ROOT=$(blkid -L terra)
 	fi
@@ -35,24 +36,9 @@ local_mount_root()
 	modprobe ${FSTYPE}
 	checkfs ${ROOT} root "${FSTYPE}"
 
-	mkdir -p /sd
-	# mount the disk to sd
 	if [ "${FSTYPE}" != "unknown" ]; then
-		mount -t ${FSTYPE} ${ROOTFLAGS} ${ROOT} /sd
+		mount -t ${FSTYPE} ${ROOTFLAGS} ${ROOT} ${rootmnt} || rescue_shell
 	else
-		mount ${ROOTFLAGS} ${ROOT} /sd
+		mount ${ROOTFLAGS} ${ROOT} ${rootmnt} || rescue_shell
 	fi
-
-	# create persistent dir for containerd snapshotts
-	mkdir -p /sd/vlc
-
-	# get preset mounting options
-	OPTS="$(cat /sd/odisk)"
-
-	# mount overlay with the preset options by the snapshotter
-	mount -t overlay -o "${OPTS}" overlay ${rootmnt} || rescue_shell
-
-	mkdir -p ${rootmnt}/var/lib/containerd
-	# overlay the ext4 on /var/lib so containerd to create overlay dirs
-	mount --bind /sd/vlc ${rootmnt}/var/lib/containerd || rescue_shell
 }

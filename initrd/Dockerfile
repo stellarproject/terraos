@@ -1,4 +1,5 @@
 FROM alpine:latest as netboot
+
 RUN apk add -U curl squashfs-tools
 RUN cd tmp && curl -sSL http://dl-cdn.alpinelinux.org/alpine/v3.9/releases/x86_64/alpine-netboot-3.9.3-x86_64.tar.gz -o netboot.tar.gz && \
 	tar zxf netboot.tar.gz && \

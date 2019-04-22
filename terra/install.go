@@ -28,16 +28,15 @@
 package main
 
 import (
-	"github.com/containerd/containerd/errdefs"
-	"github.com/containerd/containerd/snapshots"
+	"os"
+
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
 
 var installCommand = cli.Command{
-	Name:  "install",
-	Usage: "install terra onto a block device",
-
+	Name:   "install",
+	Usage:  "install terra onto a block device",
 	Before: before,
 	After:  after,
 	Flags: []cli.Flag{
@@ -68,39 +67,17 @@ var installCommand = cli.Command{
 		}
 
 		logger.Info("creating new content store")
-		store, err := newContentStore(disk())
+		store, err := newContentStore(disk("terra-content"))
 		if err != nil {
 			return err
 		}
+		defer os.RemoveAll(disk("terra-content"))
 
 		ctx := cancelContext()
-		osDesc, err := fetch(ctx, clix.Bool("http"), store, string(repo))
+		desc, err := fetch(ctx, clix.Bool("http"), store, string(repo))
 		if err != nil {
 			return err
 		}
-		// unpack the os as a
-		sn, err := newSnapshotter(disk())
-		if err != nil {
-			return err
-		}
-		defer sn.Close()
-
-		chain, err := unpackSnapshots(ctx, store, sn, osDesc)
-		if err != nil {
-			return err
-		}
-		mounts, err := sn.Prepare(ctx, repo.Version(), chain, snapshots.WithLabels(map[string]string{
-			"repo": string(repo),
-			"os":   "true",
-		}))
-		if err != nil {
-			if !errdefs.IsAlreadyExists(err) {
-				return err
-			}
-			if mounts, err = sn.Mounts(ctx, repo.Version()); err != nil {
-				return err
-			}
-		}
-		return writeMountOptions(mounts[0].Options)
+		return unpack(ctx, store, desc, disk())
 	},
 }
