@@ -10,17 +10,15 @@ To build the iso and pxe targets just type `make`.
 
 ## Install
 
-Format a new partition and format it.  You *MUST* have the `terra` label applied on your partition that will host terra.
+Format a new partition on your disk of choice.
+You *MUST* have the `terra` label applied on your partition that will host terra.
 
 ```bash
 > mkfs.ext4 -L terra /dev/sda1
 ```
 
-Make a bootable USB drive or mount the `iso` to your system and at boot, drop into the live shell.
-You can install multiple terra os versions.
-
 ```bash
-> terra --device /dev/sda1 install docker.io/stellarproject/terraos:v6
+> terra --device /dev/sda1 install <image>
 ```
 
 Now reboot the system, keep the usb drive in the system to manage it after.
@@ -31,12 +29,33 @@ You are good to go with terra now.  Have fun.
 
 You can customize your install by building images based on the released terra os version.
 
+```toml
+id = "cm-02"
+version = "v1"
+repo = "docker.io/crosbymichael"
+os = "docker.io/stellarproject/terraos:v7"
 
-```Dockerfile
-FROM docker.io/stellarproject/terraos:v6
+[ssh]
+	github = "crosbymichael"
 
-RUN echo "testing" > /etc/hostname
+[netplan]
+	interface = "eno1"
+
+userland = "ADD config.toml /etc/containerd/"
+
+[pxe]
+	mac = "xx:xx:xx:xx:xx:xx"
+	target_ip = "xxx.xxx.x.xx"
+	target = "xx"
+	iqn = "iqn.2019-01.xxx.com"
 ```
+
+```bash
+> terra create server.toml
+```
+
+If `[pxe]` is specified, it will output a pxe specific config for the boot server for this image.
+It will setup iscsi targets correctly.
 
 ## Kernel
 
