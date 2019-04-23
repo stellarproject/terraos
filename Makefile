@@ -53,7 +53,7 @@ base: FORCE
 	vab build -c base -d base -p --ref docker.io/stellarproject/ubuntu:18.10
 
 terra: FORCE
-	vab build -p -c terra -d terra --ref docker.io/stellarproject/terra:latest
+	vab build -p -c cmd -d cmd --ref docker.io/stellarproject/terra:latest
 
 pxe: iso FORCE
 	@cd pxe && vab build --local
