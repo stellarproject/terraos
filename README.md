@@ -4,6 +4,10 @@
 
 Modern, minimal operating system (we've heard that before) optimized for containers within the Stellar Project.
 
+## Build
+
+To build the iso and pxe targets just type `make`.
+
 ## Install
 
 Format a new partition and format it.  You *MUST* have the `terra` label applied on your partition that will host terra.
@@ -34,45 +38,6 @@ FROM docker.io/stellarproject/terraos:v6
 RUN echo "testing" > /etc/hostname
 ```
 
-## Filesystem Layout
-
-Terra supports booting from a single partition disk and will layout the terra files as follows:
-
-```
-├── boot
-│   ├── System.map-5.0.7-terra
-│   ├── config-5.0.7-terra
-│   ├── grub
-│   ├── initrd.img-5.0.7-terra
-│   └── vmlinuz-5.0.7-terra
-├── content
-│   ├── blobs
-│   └── ingest
-├── lost+found
-├── odisk
-├── ov
-│   ├── metadata.db
-│   └── snapshots
-├── tmp
-└── vlc
-    ├── io.containerd.content.v1.content
-    ├── io.containerd.metadata.v1.bolt
-    ├── io.containerd.runtime.v1.linux
-    ├── io.containerd.runtime.v2.task
-    ├── io.containerd.snapshotter.v1.native
-    ├── io.containerd.snapshotter.v1.overlayfs
-    ├── stellarproject.io.containerd.store.stellarproject.io
-    └── tmpmounts
-
-```
-
-* boot - grub, initrd, and kernel
-* content - content store
-* odisk - filesystem mounting options
-* ov - overlay snapshotter
-* tmp - tmp directory
-* vlc = `/var/lib/containerd` mount point for overlay mounts
-
 ## Kernel
 
 We use the latest stable kernel with a stripped down config.
@@ -97,16 +62,6 @@ The config is optimized for the KSPP guidelines.
 * cni plugins - networking
 * vab - image build frontend
 * terra - post install management
-
-## PXE Boot
-
-You can use [PXE](https://wiki.syslinux.org/wiki/index.php?title=PXE_boot_server) to boot Terra.
-
-```bash
-$> make pxe
-```
-
-This will create a `tftp` directory that can then be used with a boot server.
 
 ## License
 

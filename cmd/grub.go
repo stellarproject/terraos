@@ -25,7 +25,7 @@
 	THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package grub
+package main
 
 import (
 	"fmt"

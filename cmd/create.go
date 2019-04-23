@@ -81,6 +81,12 @@ type SSH struct {
 	Github string `toml:"github"`
 }
 
+type PXE struct {
+}
+
+type ISCSI struct {
+}
+
 func loadServerConfig(path string) (*ServerConfig, error) {
 	var c ServerConfig
 	if _, err := toml.DecodeFile(path, &c); err != nil {

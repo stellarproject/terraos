@@ -54,6 +54,10 @@ var installCommand = cli.Command{
 			Usage: "set the filesystem type",
 			Value: "ext4",
 		},
+		cli.StringFlag{
+			Name:  "boot",
+			Usage: "boot device to install the bootloader on",
+		},
 	},
 	Action: func(clix *cli.Context) error {
 		repo, err := getRepo(clix)
@@ -78,6 +82,25 @@ var installCommand = cli.Command{
 		if err != nil {
 			return err
 		}
-		return unpack(ctx, store, desc, disk())
+		if err := unpack(ctx, store, desc, disk()); err != nil {
+			return err
+		}
+		if boot := clix.String("boot"); boot != "" {
+			closer, err := overlayBoot()
+			if err != nil {
+				return err
+			}
+			defer closer()
+
+			logger.Info("installing grub")
+			if err := Install(boot); err != nil {
+				return err
+			}
+			logger.Info("making grub config")
+			if err := MkConfig(clix.String("device"), "/boot/grub/grub.cfg"); err != nil {
+				return err
+			}
+		}
+		return nil
 	},
 }
