@@ -27,7 +27,7 @@ REVISION=$(shell git rev-parse HEAD)$(shell if ! git diff --no-ext-diff --quiet 
 VERSION=v7
 KERNEL=5.0.9
 
-all: iso
+all: clean iso
 
 FORCE:
 
@@ -38,6 +38,7 @@ iso: terra FORCE
 	@mkdir -p build
 	@cd iso && vab build --local --arg KERNEL_VERSION=${KERNEL}
 	@mv iso/tftp build/tftp
+	@rm -f build/terra-${VERSION}.iso
 	@ln -s build/tftp/terra.iso build/terra-${VERSION}.iso
 
 containerd-build: FORCE

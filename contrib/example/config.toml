@@ -1,6 +1,0 @@
-version = "example"
-os = "docker.io/stellarproject/terraos:v7"
-hostname = "example"
-
-[ssh]
-	github = "crosbymichael"

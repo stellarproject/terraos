@@ -169,7 +169,7 @@ func setupSSH(path string, ssh SSH) error {
 			return err
 		}
 		defer r.Body.Close()
-		f, err := os.Create(filepath.Join(path, "keys"))
+		f, err := os.OpenFile(filepath.Join(path, "keys"), os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0666)
 		if err != nil {
 			return err
 		}
@@ -177,6 +177,12 @@ func setupSSH(path string, ssh SSH) error {
 		if _, err := io.Copy(f, r.Body); err != nil {
 			return err
 		}
+	} else {
+		f, err := os.OpenFile(filepath.Join(path, "keys"), os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0666)
+		if err != nil {
+			return err
+		}
+		f.Close()
 	}
 	return nil
 }

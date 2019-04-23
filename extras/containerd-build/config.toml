@@ -17,7 +17,7 @@ disabled_plugins = [
   tcp_address = "0.0.0.0:9100"
 
 [debug]
-  level = "debug"
+  level = "info"
 
 [metrics]
   address = "0.0.0.0:9200"
