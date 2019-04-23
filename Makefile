@@ -61,5 +61,8 @@ base: FORCE
 terra: FORCE
 	vab build -p -c cmd -d cmd --ref docker.io/stellarproject/terra:latest
 
+install:
+	@install build/terra /usr/local/sbin/terra
+
 clean:
 	@rm -fr build/

@@ -59,6 +59,7 @@ COPY --from={{cname $v}} / /
 
 ADD hostname /etc/hostname
 ADD hosts /etc/hosts
+ADD 01-netcfg.yaml /etc/netplan/
 
 RUN mkdir -p /home/terra/.ssh
 ADD keys /home/terra/.ssh/authorized_keys
@@ -67,6 +68,13 @@ RUN dbus-uuidgen --ensure=/etc/machine-id && dbus-uuidgen --ensure
 
 {{if .Init}}CMD ["{{.Init}}"]{{end}}
 `
+
+const netplanTemplate = `network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    %s:
+      dhcp4: yes`
 
 type ServerConfig struct {
 	ID         string       `toml:"id"`
@@ -77,10 +85,15 @@ type ServerConfig struct {
 	Init       string       `toml:"init"`
 	SSH        SSH          `toml:"ssh"`
 	PXE        *PXE         `toml:"pxe"`
+	Netplan    Netplan      `toml:"netplan"`
 }
 
 type SSH struct {
 	Github string `toml:"github"`
+}
+
+type Netplan struct {
+	Interface string `toml:"interface"`
 }
 
 type PXE struct {
@@ -130,6 +143,19 @@ func setupHostname(path, hostname string) error {
 		return err
 	}
 	_, err = fmt.Fprintf(f, hostsTemplate, hostname)
+	f.Close()
+	return err
+}
+
+func setupNetplan(path string, n Netplan) error {
+	if n.Interface == "" {
+		n.Interface = "eth0"
+	}
+	f, err := os.Create(filepath.Join(path, "01-netcfg.yaml"))
+	if err != nil {
+		return err
+	}
+	_, err = fmt.Fprintf(f, netplanTemplate, n.Interface)
 	f.Close()
 	return err
 }
@@ -246,6 +272,9 @@ var createCommand = cli.Command{
 			return err
 		}
 		if err := setupSSH(abs, config.SSH); err != nil {
+			return err
+		}
+		if err := setupNetplan(abs, config.Netplan); err != nil {
 			return err
 		}
 
