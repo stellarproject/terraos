@@ -33,6 +33,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"text/template"
 
 	"github.com/BurntSushi/toml"
@@ -121,6 +122,10 @@ func cname(c Component) string {
 	return c.Name
 }
 
+func cmdargs(args []string) string {
+	return strings.Join(args, " ")
+}
+
 func imageName(c Component) string {
 	return joinImage(defaultRepo, c.Name, c.Version)
 }
@@ -129,6 +134,7 @@ func render(w io.Writer, tmp string, ctx *OSContext) error {
 	t, err := template.New("dockerfile").Funcs(template.FuncMap{
 		"cname":     cname,
 		"imageName": imageName,
+		"cmdargs":   cmdargs,
 	}).Parse(tmp)
 	if err != nil {
 		return err

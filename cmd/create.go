@@ -34,6 +34,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"text/template"
 
 	"github.com/BurntSushi/toml"
 	"github.com/pkg/errors"
@@ -68,13 +69,14 @@ RUN dbus-uuidgen --ensure=/etc/machine-id && dbus-uuidgen --ensure
 `
 
 type ServerConfig struct {
+	ID         string       `toml:"id"`
 	Version    string       `toml:"version"`
 	OS         string       `toml:"os"`
-	Hostname   string       `toml:"hostname"`
 	Components []*Component `toml:"components"`
 	Userland   string       `toml:"userland"`
 	Init       string       `toml:"init"`
 	SSH        SSH          `toml:"ssh"`
+	PXE        *PXE         `toml:"pxe"`
 }
 
 type SSH struct {
@@ -82,9 +84,12 @@ type SSH struct {
 }
 
 type PXE struct {
-}
-
-type ISCSI struct {
+	IQN      string `toml:"iqn"`
+	Target   string `toml:"target"`
+	TargetIP string `toml:"target_ip"`
+	Root     string `toml:"root"`
+	IP       string `toml:"ip"`
+	MAC      string `toml:"mac"`
 }
 
 func loadServerConfig(path string) (*ServerConfig, error) {
@@ -148,6 +153,56 @@ func setupSSH(path string, ssh SSH) error {
 	return nil
 }
 
+type PXEContext struct {
+	Append []string
+}
+
+const pxeTemplate = `DEFAULT terra
+
+LABEL terra
+  KERNEL /vmlinuz
+  INITRD /initrd.img
+  APPEND {cmdargs .Append}`
+
+func setupPXE(id string, pxe *PXE) error {
+	if pxe.IP == "" {
+		pxe.IP = "dhcp"
+	}
+	args := []string{
+		fmt.Sprintf("ip=%s", pxe.IP),
+	}
+	if pxe.Root != "" {
+		args = append(args, fmt.Sprintf("root=%s", pxe.Root))
+	}
+	if pxe.IQN != "" {
+		args = append(args, fmt.Sprintf("ISCSI_INITIATOR=%s.%s", pxe.IQN, id))
+	}
+	if pxe.Target != "" {
+		args = append(args,
+			fmt.Sprintf("ISCSI_TARGET_NAME=%s", pxe.Target),
+			fmt.Sprintf("ISCSI_TARGET_IP=%s", pxe.TargetIP),
+		)
+	}
+	ctx := &PXEContext{
+		Append: args,
+	}
+
+	t, err := template.New("pxe").Funcs(template.FuncMap{
+		"cname":     cname,
+		"imageName": imageName,
+		"cmdargs":   cmdargs,
+	}).Parse(pxeTemplate)
+	if err != nil {
+		return err
+	}
+	f, err := os.Create(pxe.MAC)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	return t.Execute(f, ctx)
+}
+
 var createCommand = cli.Command{
 	Name:  "create",
 	Usage: "create new server image",
@@ -176,7 +231,7 @@ var createCommand = cli.Command{
 			Base:     config.OS,
 			Userland: config.Userland,
 			Init:     config.Init,
-			Hostname: config.Hostname,
+			Hostname: config.ID,
 		}
 		for _, c := range config.Components {
 			osCtx.Imports = append(osCtx.Imports, c)
@@ -187,7 +242,7 @@ var createCommand = cli.Command{
 		}
 		defer os.RemoveAll(path)
 
-		if err := setupHostname(abs, config.Hostname); err != nil {
+		if err := setupHostname(abs, config.ID); err != nil {
 			return err
 		}
 		if err := setupSSH(abs, config.SSH); err != nil {
@@ -212,6 +267,9 @@ var createCommand = cli.Command{
 			io.Copy(os.Stdout, f)
 			return err
 		}
-		return nil // return createISO(ctx, config)
+		if config.PXE != nil {
+			return setupPXE(config.ID, config.PXE)
+		}
+		return nil
 	},
 }

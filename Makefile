@@ -40,6 +40,7 @@ iso: terra FORCE
 	@mv iso/terra.iso build/"terra-${VERSION}.iso"
 	@mv iso/tftp build/tftp
 	@cp build/terra-${VERSION}.iso build/tftp/terra.iso
+	@cd cmd && CGO_ENABLED=0 go build -v -ldflags '-s -w -extldflags "-static"' -o ../build/terra
 
 containerd-build: FORCE
 	vab build -c extras/containerd-build -d extras/containerd-build -p --ref docker.io/stellarproject/containerd-build:latest
