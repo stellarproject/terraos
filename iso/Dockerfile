@@ -27,11 +27,12 @@
 
 ARG KERNEL_VERSION
 
+# ------------------ imports ------------------------------ #
 FROM docker.io/stellarproject/kernel:$KERNEL_VERSION as kernel
 FROM docker.io/stellarproject/terra:latest as terra
 
-# live boot distro
-FROM alpine:latest as rootfs
+# ------------------ live liveos -------------------------- #
+FROM alpine:latest as liveos
 
 RUN mkdir -p /boot /sd
 
@@ -59,17 +60,17 @@ RUN ssh-keygen -f /etc/ssh/ssh_host_rsa_key -N '' -t rsa && \
 	echo "PermitRootLogin yes" >> /etc/ssh/sshd_config
 RUN echo 'root:root' | chpasswd
 
-# squasher
-FROM ubuntu:18.10 as live
+# ------------------ squasher ---------------------------- #
+FROM ubuntu:18.10 as squasher
 
 RUN apt update && \
 	apt install -y squashfs-tools
 
-RUN --mount=type=bind,from=rootfs,target=/rootfs,rw \
+RUN --mount=type=bind,from=liveos,target=/rootfs,rw \
 	mkdir -p /rootfs/proc /rootfs/sys /rootfs/run && \
 	mksquashfs /rootfs live.sqsh
 
-# iso build
+# ------------------ iso build --------------------------- #
 FROM ubuntu:18.10 as iso
 ARG KERNEL_VERSION
 
@@ -109,7 +110,7 @@ RUN cp /syslinux-6.03/bios/core/isolinux.bin /boot/syslinux && \
 ADD live /etc/initramfs-tools/scripts/live
 ADD squashhook /etc/initramfs-tools/hooks/squash
 RUN chmod +x /etc/initramfs-tools/hooks/squash
-COPY --from=live /live.sqsh /live.sq
+COPY --from=squasher /live.sqsh /live.sq
 ADD terra /etc/initramfs-tools/scripts/terra
 ADD modules /etc/initramfs-tools/modules
 RUN touch /etc/iscsi/iscsi.initramfs
@@ -129,6 +130,26 @@ RUN mkisofs -o /terra.iso \
 
 RUN isohybrid /terra.iso
 
+# ------------------ pxe ------------------------------ #
+FROM alpine:latest as pxe
+
+RUN apk add -U syslinux
+
+RUN mkdir /tftp && \
+	cp /usr/share/syslinux/pxelinux.0 /tftp/ && \
+	cp -r /usr/share/syslinux/libmenu.c32 \
+		/usr/share/syslinux/menu.c32 \
+		/usr/share/syslinux/sanboot.c32 \
+		/usr/share/syslinux/memdisk \
+		/usr/share/syslinux/ldlinux.c32 \
+		/usr/share/syslinux/libutil.c32 /tftp/ && \
+	mkdir /tftp/pxelinux.cfg
+
+ADD default /tftp/pxelinux.cfg/default
+
+# ------------------ build results --------------------- #
 FROM scratch
 
 COPY --from=iso /terra.iso .
+COPY --from=pxe /tftp /tftp
+# ------------------ build results --------------------- #

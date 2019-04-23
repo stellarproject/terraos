@@ -28,13 +28,18 @@ VERSION=v7
 KERNEL=5.0.8
 
 all: iso
-	terra os "releases/${VERSION}.toml"
 
 FORCE:
 
+os: FORCE
+	terra os "os/${VERSION}.toml"
+
 iso: terra FORCE
-	cd iso && vab build --local --arg KERNEL_VERSION=${KERNEL}
-	mv iso/terra.iso "terra-${VERSION}.iso"
+	@mkdir -p build
+	@cd iso && vab build --local --arg KERNEL_VERSION=${KERNEL}
+	@mv iso/terra.iso build/"terra-${VERSION}.iso"
+	@mv iso/tftp build/tftp
+	@cp build/terra-${VERSION}.iso build/tftp/terra.iso
 
 containerd-build: FORCE
 	vab build -c extras/containerd-build -d extras/containerd-build -p --ref docker.io/stellarproject/containerd-build:latest
@@ -54,8 +59,3 @@ base: FORCE
 
 terra: FORCE
 	vab build -p -c cmd -d cmd --ref docker.io/stellarproject/terra:latest
-
-pxe: iso FORCE
-	@cd pxe && vab build --local
-	@mv pxe/tftp tftp
-	@cp terra-${VERSION}.iso tftp/terra.iso
