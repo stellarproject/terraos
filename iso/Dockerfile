@@ -150,10 +150,8 @@ ADD default /tftp/pxelinux.cfg/default
 # ------------------ build results --------------------- #
 FROM scratch
 
-COPY --from=iso /terra.iso .
-
 COPY --from=pxe /tftp /tftp
+COPY --from=iso /terra.iso /tftp/
 COPY --from=iso /boot/vmlinuz /tftp/
 COPY --from=iso /boot/initrd.img /tftp/
-
 # ------------------ build results --------------------- #
