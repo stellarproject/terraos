@@ -42,6 +42,8 @@ RUN apt-get update && apt-get install -y \
 	libssl-dev \
 	git \
 	libmnl-dev \
+	btrfs-progs \
+	btrfs-tools \
 	make
 
 ENV WIREGUARD_VERSION=0.0.20190406

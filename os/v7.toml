@@ -1,6 +1,6 @@
 version = "v7"
 base = "docker.io/stellarproject/ubuntu:18.10"
-kernel = "5.0.8"
+kernel = "5.0.9"
 init = "/sbin/init"
 
 userland = """

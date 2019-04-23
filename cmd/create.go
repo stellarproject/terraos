@@ -34,6 +34,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"text/template"
 
 	"github.com/BurntSushi/toml"
@@ -79,6 +80,7 @@ const netplanTemplate = `network:
 type ServerConfig struct {
 	ID         string       `toml:"id"`
 	Version    string       `toml:"version"`
+	Repo       string       `toml:"repo"`
 	OS         string       `toml:"os"`
 	Components []*Component `toml:"components"`
 	Userland   string       `toml:"userland"`
@@ -188,13 +190,14 @@ const pxeTemplate = `DEFAULT terra
 LABEL terra
   KERNEL /vmlinuz
   INITRD /initrd.img
-  APPEND {cmdargs .Append}`
+  APPEND {{cmdargs .Append}}`
 
 func setupPXE(id string, pxe *PXE) error {
 	if pxe.IP == "" {
 		pxe.IP = "dhcp"
 	}
 	args := []string{
+		"boot=terra",
 		fmt.Sprintf("ip=%s", pxe.IP),
 	}
 	if pxe.Root != "" {
@@ -205,7 +208,7 @@ func setupPXE(id string, pxe *PXE) error {
 	}
 	if pxe.Target != "" {
 		args = append(args,
-			fmt.Sprintf("ISCSI_TARGET_NAME=%s", pxe.Target),
+			fmt.Sprintf("ISCSI_TARGET_NAME=%s:%s.%s", pxe.IQN, pxe.Target, id),
 			fmt.Sprintf("ISCSI_TARGET_IP=%s", pxe.TargetIP),
 		)
 	}
@@ -221,7 +224,7 @@ func setupPXE(id string, pxe *PXE) error {
 	if err != nil {
 		return err
 	}
-	f, err := os.Create(pxe.MAC)
+	f, err := os.OpenFile(fmt.Sprintf("01-%s", strings.Replace(pxe.MAC, ":", "-", -1)), os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0666)
 	if err != nil {
 		return err
 	}
@@ -237,10 +240,6 @@ var createCommand = cli.Command{
 			Name:  "context,c",
 			Usage: "specify the context path",
 			Value: ".",
-		},
-		cli.StringFlag{
-			Name:  "repo",
-			Usage: "set the image repository",
 		},
 	},
 	Action: func(clix *cli.Context) error {
@@ -280,7 +279,7 @@ var createCommand = cli.Command{
 
 		cmd := exec.CommandContext(ctx, "vab", "build",
 			"-c", abs,
-			"--ref", fmt.Sprintf("%s:%s", clix.String("repo"), config.Version),
+			"--ref", fmt.Sprintf("%s/%s:%s", config.Repo, config.ID, config.Version),
 			"--push",
 		)
 		cmd.Stdout = os.Stdout

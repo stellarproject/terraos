@@ -25,7 +25,7 @@
 
 REVISION=$(shell git rev-parse HEAD)$(shell if ! git diff --no-ext-diff --quiet --exit-code; then echo .m; fi)
 VERSION=v7
-KERNEL=5.0.8
+KERNEL=5.0.9
 
 all: iso
 
@@ -40,7 +40,6 @@ iso: terra FORCE
 	@mv iso/terra.iso build/"terra-${VERSION}.iso"
 	@mv iso/tftp build/tftp
 	@cp build/terra-${VERSION}.iso build/tftp/terra.iso
-	@cd cmd && CGO_ENABLED=0 go build -v -ldflags '-s -w -extldflags "-static"' -o ../build/terra
 
 containerd-build: FORCE
 	vab build -c extras/containerd-build -d extras/containerd-build -p --ref docker.io/stellarproject/containerd-build:latest
@@ -59,6 +58,7 @@ base: FORCE
 	vab build -c base -d base -p --ref docker.io/stellarproject/ubuntu:18.10
 
 terra: FORCE
+	@cd cmd && CGO_ENABLED=0 go build -v -ldflags '-s -w -extldflags "-static"' -o ../build/terra
 	vab build -p -c cmd -d cmd --ref docker.io/stellarproject/terra:latest
 
 install:
