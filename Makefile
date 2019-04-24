@@ -38,8 +38,8 @@ iso: terra FORCE
 	@mkdir -p build
 	@cd iso && vab build --local --arg KERNEL_VERSION=${KERNEL}
 	@mv iso/tftp build/tftp
-	@rm -f build/terra-${VERSION}.iso
-	@ln -s build/tftp/terra.iso build/terra-${VERSION}.iso
+	@rm -f ./build/terra-${VERSION}.iso
+	@cd ./build && ln -s ./tftp/terra.iso terra-${VERSION}.iso
 
 containerd-build: FORCE
 	vab build -c extras/containerd-build -d extras/containerd-build -p --ref docker.io/stellarproject/containerd-build:latest
