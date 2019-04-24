@@ -18,7 +18,7 @@ You *MUST* have the `terra` label applied on your partition that will host terra
 ```
 
 ```bash
-> terra --device /dev/sda1 install <image>
+> terra install --device /dev/sda1 <image>
 ```
 
 Now reboot the system, keep the usb drive in the system to manage it after.
