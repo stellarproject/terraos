@@ -126,7 +126,7 @@ func fetch(ctx context.Context, http bool, cs content.Store, imageName string) (
 	if err != nil {
 		return nil, err
 	}
-	logrus.Infof("fetching os %s", imageName)
+	logrus.Infof("fetching image %s", imageName)
 	childrenHandler := images.ChildrenHandler(cs)
 	h := images.Handlers(remotes.FetchHandler(cs, fetcher), childrenHandler)
 	if err := images.Dispatch(ctx, h, nil, desc); err != nil {
@@ -140,7 +140,7 @@ func unpack(ctx context.Context, cs content.Store, desc *v1.Descriptor, dest str
 	if err != nil {
 		return err
 	}
-	logrus.Infof("unpacking os to %q", dest)
+	logrus.Infof("unpacking image to %q", dest)
 	for _, layer := range layers {
 		if err := extract(ctx, cs, layer, dest); err != nil {
 			return err
