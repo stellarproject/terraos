@@ -74,8 +74,10 @@ const netplanTemplate = `network:
   version: 2
   renderer: networkd
   ethernets:
-    %s:
-      dhcp4: yes`
+    {{ .Interface }}:
+      {{if .Addresses}}addresses: [{{addresses .Addresses}}]{{else}}dhcp4: yes{{end}}
+      {{if ne .Gateway ""}}gateway4: {{.Gateway}}{{end}}
+      {{if .Nameservers}}nameservers: [{{nameservers .Nameservers}}]{{end}}`
 
 type ServerConfig struct {
 	ID         string       `toml:"id"`
@@ -95,7 +97,10 @@ type SSH struct {
 }
 
 type Netplan struct {
-	Interface string `toml:"interface"`
+	Interface   string   `toml:"interface"`
+	Addresses   []string `toml:"addresses"`
+	Gateway     string   `toml:"gateway"`
+	Nameservers []string `toml:"nameservers"`
 }
 
 type PXE struct {
@@ -153,13 +158,19 @@ func setupNetplan(path string, n Netplan) error {
 	if n.Interface == "" {
 		n.Interface = "eth0"
 	}
-	f, err := os.Create(filepath.Join(path, "01-netcfg.yaml"))
+	t, err := template.New("netplan").Funcs(template.FuncMap{
+		"addresses":   addresses,
+		"nameservers": nameservers,
+	}).Parse(netplanTemplate)
 	if err != nil {
 		return err
 	}
-	_, err = fmt.Fprintf(f, netplanTemplate, n.Interface)
-	f.Close()
-	return err
+	f, err := os.OpenFile(filepath.Join(path, "01-netcfg.yaml"), os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0664)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	return t.Execute(f, n)
 }
 
 func setupSSH(path string, ssh SSH) error {
@@ -306,4 +317,12 @@ var createCommand = cli.Command{
 		}
 		return nil
 	},
+}
+
+func addresses(v []string) string {
+	return strings.Join(v, ",")
+}
+
+func nameservers(v []string) string {
+	return strings.Join(v, ",")
 }
