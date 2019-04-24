@@ -76,8 +76,7 @@ const netplanTemplate = `network:
   ethernets:
     {{ .Interface }}:
       {{if .Addresses}}addresses: [{{addresses .Addresses}}]{{else}}dhcp4: yes{{end}}
-      {{if ne .Gateway ""}}gateway4: {{.Gateway}}{{end}}
-      {{if .Nameservers}}nameservers: [{{nameservers .Nameservers}}]{{end}}`
+      {{if ne .Gateway ""}}gateway4: {{.Gateway}}{{end}}`
 
 type ServerConfig struct {
 	ID         string       `toml:"id"`
@@ -97,10 +96,9 @@ type SSH struct {
 }
 
 type Netplan struct {
-	Interface   string   `toml:"interface"`
-	Addresses   []string `toml:"addresses"`
-	Gateway     string   `toml:"gateway"`
-	Nameservers []string `toml:"nameservers"`
+	Interface string   `toml:"interface"`
+	Addresses []string `toml:"addresses"`
+	Gateway   string   `toml:"gateway"`
 }
 
 type PXE struct {
