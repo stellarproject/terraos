@@ -23,13 +23,13 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH
 # THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-FROM ubuntu:18.10 as debootstrap
+FROM ubuntu:19.04 as debootstrap
 
 RUN apt update && \
 	apt install -y \
 	debootstrap
 
-RUN debootstrap --arch amd64 cosmic /terra/ http://archive.ubuntu.com/ubuntu
+RUN debootstrap --arch amd64 disco /terra/ http://archive.ubuntu.com/ubuntu
 
 # base image
 FROM scratch

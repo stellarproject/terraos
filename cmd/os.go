@@ -28,6 +28,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -43,7 +44,6 @@ import (
 const (
 	defaultRepo      = "docker.io/stellarproject"
 	defaultBaseImage = "docker.io/stellarproject/ubuntu:18.10"
-	defaultVersion   = "latest"
 )
 
 type OSContext struct {
@@ -100,6 +100,9 @@ func loadOSConfig(path string) (*OSConfig, error) {
 	if _, err := toml.DecodeFile(path, &c); err != nil {
 		return nil, err
 	}
+	if c.Version == "" {
+		return nil, errors.New("no version specified")
+	}
 	if c.Base == "" {
 		c.Base = defaultBaseImage
 	}
@@ -108,7 +111,7 @@ func loadOSConfig(path string) (*OSConfig, error) {
 	}
 	for _, i := range c.Components {
 		if i.Version == "" {
-			i.Version = defaultVersion
+			i.Version = c.Version
 		}
 	}
 	return &c, nil

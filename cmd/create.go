@@ -69,7 +69,6 @@ RUN dbus-uuidgen --ensure=/etc/machine-id && dbus-uuidgen --ensure
 
 {{if .Init}}CMD ["{{.Init}}"]{{end}}
 `
-
 const netplanTemplate = `network:
   version: 2
   renderer: networkd
@@ -115,12 +114,15 @@ func loadServerConfig(path string) (*ServerConfig, error) {
 	if _, err := toml.DecodeFile(path, &c); err != nil {
 		return nil, err
 	}
+	if c.Version == "" {
+		return nil, errors.New("no version specified")
+	}
 	if c.OS == "" {
 		return nil, errors.New("no os defined")
 	}
 	for _, i := range c.Components {
 		if i.Version == "" {
-			i.Version = defaultVersion
+			i.Version = c.Version
 		}
 	}
 	return &c, nil

@@ -1,0 +1,35 @@
+version = "v8"
+base = "docker.io/stellarproject/ubuntu:v8"
+kernel = "5.0.9"
+init = "/sbin/init"
+
+userland = """
+RUN apt update && DEBIAN_FRONTEND=noninteractive apt install -y \
+	libnl-3-dev \
+	libnet-dev \
+	libprotobuf-dev \
+	nut \
+	pigz
+"""
+
+[[components]]
+	name = "node_exporter"
+	systemd = true
+[[components]]
+	name = "criu"
+[[components]]
+	name = "cni"
+[[components]]
+	name = "buildkit"
+	systemd = true
+[[components]]
+	name = "vab"
+[[components]]
+	name = "containerd"
+	systemd = true
+[[components]]
+	name = "orbit"
+[[components]]
+	name = "terra"
+[[components]]
+	name = "ion"

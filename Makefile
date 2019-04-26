@@ -24,7 +24,7 @@
 # THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 REVISION=$(shell git rev-parse HEAD)$(shell if ! git diff --no-ext-diff --quiet --exit-code; then echo .m; fi)
-VERSION=v7
+VERSION=v8
 KERNEL=5.0.9
 
 all: clean iso
@@ -42,24 +42,24 @@ iso: terra FORCE
 	@cd ./build && ln -s ./tftp/terra.iso terra-${VERSION}.iso
 
 containerd-build: FORCE
-	vab build -c extras/containerd-build -d extras/containerd-build -p --ref docker.io/stellarproject/containerd-build:latest
+	vab build -c extras/containerd-build -d extras/containerd-build -p --ref docker.io/stellarproject/containerd-build:${VERSION}
 
 extras: containerd-build FORCE
-	vab build -c extras/containerd -d extras/containerd -p --ref docker.io/stellarproject/containerd:latest
-	vab build -c extras/cni -d extras/cni -p --ref docker.io/stellarproject/cni:latest
-	vab build -c extras/node_exporter -d extras/node_exporter -p --ref docker.io/stellarproject/node_exporter:latest
-	vab build -c extras/buildkit -d extras/buildkit -p --ref docker.io/stellarproject/buildkit:latest
-	vab build -d extras/criu -c extras/criu -p --ref docker.io/stellarproject/criu:latest
+	vab build -c extras/containerd -d extras/containerd -p --ref docker.io/stellarproject/containerd:${VERSION}
+	vab build -c extras/cni -d extras/cni -p --ref docker.io/stellarproject/cni:${VERSION}
+	vab build -c extras/node_exporter -d extras/node_exporter -p --ref docker.io/stellarproject/node_exporter:${VERSION}
+	vab build -c extras/buildkit -d extras/buildkit -p --ref docker.io/stellarproject/buildkit:${VERSION}
+	vab build -d extras/criu -c extras/criu -p --ref docker.io/stellarproject/criu:${VERSION}
 
 kernel: FORCE
 	vab build --arg KERNEL_VERSION=${KERNEL} -c kernel -d kernel -p --ref docker.io/stellarproject/kernel:${KERNEL}
 
 base: FORCE
-	vab build -c base -d base -p --ref docker.io/stellarproject/ubuntu:18.10
+	vab build -c base -d base -p --ref docker.io/stellarproject/ubuntu:${VERSION}
 
 terra: FORCE
 	@cd cmd && CGO_ENABLED=0 go build -v -ldflags '-s -w -extldflags "-static"' -o ../build/terra
-	vab build -p -c cmd -d cmd --ref docker.io/stellarproject/terra:latest
+	vab build -p -c cmd -d cmd --ref docker.io/stellarproject/terra:${VERSION}
 
 install:
 	@install build/terra /usr/local/sbin/terra
