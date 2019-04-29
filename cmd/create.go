@@ -50,8 +50,6 @@ FROM {{imageName $v}} as {{cname $v}}
 
 FROM {{.Base}}
 
-{{.Userland}}
-
 {{range $v := .Imports -}}
 {{if ne $v.Name "kernel"}}
 COPY --from={{cname $v}} / /
@@ -66,6 +64,8 @@ RUN mkdir -p /home/terra/.ssh
 ADD keys /home/terra/.ssh/authorized_keys
 RUN chown -R terra:terra /home/terra
 RUN dbus-uuidgen --ensure=/etc/machine-id && dbus-uuidgen --ensure
+
+{{.Userland}}
 
 {{if .Init}}CMD ["{{.Init}}"]{{end}}
 `
