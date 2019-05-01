@@ -14,21 +14,19 @@ RUN apt update && DEBIAN_FRONTEND=noninteractive apt install -y \
 
 [[components]]
 	name = "node_exporter"
-	systemd = true
+	systemd = ["node_exporter"]
 [[components]]
 	name = "criu"
 [[components]]
 	name = "cni"
 [[components]]
 	name = "buildkit"
-	systemd = true
+	systemd = ["buildkit"]
 [[components]]
 	name = "vab"
 [[components]]
-	name = "containerd"
-	systemd = true
-[[components]]
 	name = "orbit"
+	systemd = ["containerd"]
 [[components]]
 	name = "terra"
 [[components]]

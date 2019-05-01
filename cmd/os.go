@@ -74,16 +74,18 @@ RUN --mount=type=bind,from=kernel,target=/tmp dpkg -i \
 {{range $v := .Imports -}}
 {{if ne $v.Name "kernel"}}
 COPY --from={{cname $v}} / /
-{{if $v.Systemd}}RUN systemctl enable {{cname $v}}{{end}}{{end}}
+{{range $s := $v.Systemd}}
+RUN systemctl enable {{$s}}{{end}}
+{{end}}
 {{end}}
 
 {{if .Init}}CMD ["{{.Init}}"]{{end}}
 `
 
 type Component struct {
-	Name    string `toml:"name"`
-	Version string `toml:"version"`
-	Systemd bool   `toml:"systemd"`
+	Name    string   `toml:"name"`
+	Version string   `toml:"version"`
+	Systemd []string `toml:"systemd"`
 }
 
 type OSConfig struct {

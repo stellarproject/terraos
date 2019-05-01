@@ -41,11 +41,7 @@ iso: terra FORCE
 	@rm -f ./build/terra-${VERSION}.iso
 	@cd ./build && ln -s ./tftp/terra.iso terra-${VERSION}.iso
 
-containerd-build: FORCE
-	vab build -c extras/containerd-build -d extras/containerd-build -p --ref docker.io/stellarproject/containerd-build:${VERSION}
-
-extras: containerd-build FORCE
-	vab build -c extras/containerd -d extras/containerd -p --ref docker.io/stellarproject/containerd:${VERSION} --arg VERSION=${VERSION}
+extras: FORCE
 	vab build -c extras/cni -d extras/cni -p --ref docker.io/stellarproject/cni:${VERSION}
 	vab build -c extras/node_exporter -d extras/node_exporter -p --ref docker.io/stellarproject/node_exporter:${VERSION}
 	vab build -c extras/buildkit -d extras/buildkit -p --ref docker.io/stellarproject/buildkit:${VERSION}
