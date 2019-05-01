@@ -1,4 +1,6 @@
-FROM stellarproject/containerd-build:latest as containerd
+ARG VERSION
+
+FROM docker.io/stellarproject/containerd-build:${VERSION} as containerd
 
 FROM scratch
 
