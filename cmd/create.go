@@ -42,6 +42,21 @@ import (
 	"github.com/urfave/cli"
 )
 
+type Component struct {
+	Name    string   `toml:"name"`
+	Version string   `toml:"version"`
+	Systemd []string `toml:"systemd"`
+}
+
+type OSContext struct {
+	Base     string
+	Userland string
+	Imports  []*Component
+	Kernel   string
+	Init     string
+	Hostname string
+}
+
 const serverTemplate = `# syntax=docker/dockerfile:experimental
 
 {{range $v := .Imports -}}

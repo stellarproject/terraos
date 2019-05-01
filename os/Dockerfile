@@ -1,3 +1,5 @@
+# syntax=docker/dockerfile:experimental
+
 # Copyright (c) 2019 Stellar Project
 
 # Permission is hereby granted, free of charge, to any person
@@ -23,6 +25,20 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH
 # THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+ARG VERSION
+ARG KERNEL_VERSION
+
+FROM docker.io/stellarproject/kernel:${KERNEL_VERSION} as kernel
+FROM docker.io/stellarproject/node_exporter:${VERSION} as node_exporter
+FROM docker.io/stellarproject/criu:${VERSION} as criu
+FROM docker.io/stellarproject/cni:${VERSION} as cni
+FROM docker.io/stellarproject/buildkit:${VERSION} as buildkit
+FROM docker.io/stellarproject/vab:${VERSION} as vab
+FROM docker.io/stellarproject/orbit:${VERSION} as orbit
+FROM docker.io/stellarproject/terra:${VERSION} as terra
+FROM docker.io/stellarproject/ion:${VERSION} as ion
+
+
 FROM ubuntu:19.04 as debootstrap
 
 RUN apt update && \
@@ -31,20 +47,33 @@ RUN apt update && \
 
 RUN debootstrap --arch amd64 disco /terra/ http://archive.ubuntu.com/ubuntu
 
-# base image
+# main OS image
 FROM scratch
+ARG KERNEL_VERSION
 
 COPY --from=debootstrap /terra/ /
 
 # add full apt sources
 ADD sources.list /etc/apt/
-RUN apt update && \
-	apt install -y \
+
+RUN apt update && apt upgrade -y && \
+	DEBIAN_FRONTEND=noninteractive apt install -y \
 	openssh-server \
 	curl \
 	ca-certificates \
 	open-iscsi \
-	apparmor
+	apparmor \
+	libnl-3-dev \
+	libnet-dev \
+	libprotobuf-dev \
+	nut \
+	pigz
+
+RUN --mount=type=bind,from=kernel,target=/tmp dpkg -i \
+        /tmp/linux-headers-${KERNEL_VERSION}-terra_${KERNEL_VERSION}-terra-1_amd64.deb \
+        /tmp/linux-image-${KERNEL_VERSION}-terra_${KERNEL_VERSION}-terra-1_amd64.deb \
+        /tmp/linux-libc-dev_${KERNEL_VERSION}-terra-1_amd64.deb && \
+        cp /tmp/wg /usr/local/bin/
 
 ADD 01-netcfg.yaml  /etc/netplan
 
@@ -63,8 +92,7 @@ ADD resolv.conf /etc/
 RUN chmod 0440 /etc/sudoers
 
 ADD sshd_config /etc/ssh/
-RUN systemctl disable systemd-resolved && \
-	systemctl enable ssh
+RUN systemctl disable systemd-resolved
 
 RUN rm -f /etc/machine-id && \
 	rm -f /var/lib/dbus/machine-id
@@ -72,4 +100,15 @@ RUN rm -f /etc/machine-id && \
 RUN rm /etc/update-motd.d/*
 ADD motd/* /etc/update-motd.d/
 
-CMD ["bash"]
+COPY --from=node_exporter / /
+COPY --from=criu / /
+COPY --from=cni / /
+COPY --from=buildkit / /
+COPY --from=vab / /
+COPY --from=orbit / /
+COPY --from=terra / /
+COPY --from=ion / /
+
+RUN systemctl enable containerd buildkit node_exporter ssh
+
+CMD ["/sbin/init"]

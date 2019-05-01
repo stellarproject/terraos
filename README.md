@@ -4,9 +4,43 @@
 
 Modern, minimal operating system (we've heard that before) optimized for containers within the Stellar Project.
 
-## Build
+## User Build
 
 To build the iso and pxe targets just type `make`.
+This will provide you the pxe files and iso to boot a machine to install the terra os of your choice.
+
+### Custom OS Image
+
+You can customize your install by building images based on the released terra os version.
+
+```toml
+id = "example"
+version = "v1"
+repo = "docker.io/crosbymichael"
+os = "docker.io/stellarproject/terraos:v8"
+
+[ssh]
+	github = "crosbymichael"
+
+[netplan]
+	interface = "eth0"
+
+userland = "ADD config.toml /etc/containerd/"
+
+[pxe]
+	mac = "xx:xx:xx:xx:xx:xx"
+	target_ip = "xxx.xxx.x.xx"
+	target = "xx"
+	iqn = "iqn.2019-01.xxx.com"
+```
+
+```bash
+> terra create server.toml
+```
+
+If `[pxe]` is specified, it will output a pxe specific config for the boot server for this image.
+It will setup iscsi targets correctly.
+
 
 ## Install
 
@@ -25,44 +59,15 @@ Now reboot the system, keep the usb drive in the system to manage it after.
 
 You are good to go with terra now.  Have fun.
 
-## OS Customizations
 
-You can customize your install by building images based on the released terra os version.
+## Admin
 
-```toml
-id = "cm-02"
-version = "v1"
-repo = "docker.io/crosbymichael"
-os = "docker.io/stellarproject/terraos:v7"
-
-[ssh]
-	github = "crosbymichael"
-
-[netplan]
-	interface = "eno1"
-
-userland = "ADD config.toml /etc/containerd/"
-
-[pxe]
-	mac = "xx:xx:xx:xx:xx:xx"
-	target_ip = "xxx.xxx.x.xx"
-	target = "xx"
-	iqn = "iqn.2019-01.xxx.com"
-```
-
-```bash
-> terra create server.toml
-```
-
-If `[pxe]` is specified, it will output a pxe specific config for the boot server for this image.
-It will setup iscsi targets correctly.
-
-## Kernel
+### Kernel
 
 We use the latest stable kernel with a stripped down config.
 The config is optimized for the KSPP guidelines.
 
-### Kernel Patches
+#### Kernel Patches
 
 * wireguard
 
@@ -75,7 +80,7 @@ The config is optimized for the KSPP guidelines.
 * buildkit - image builder
 * Prometheus Node Exporter - node metrics
 
-### Binaries
+#### Binaries
 
 * criu - checkpoint and restore
 * cni plugins - networking

@@ -82,7 +82,6 @@ Terra OS management`
 		createCommand,
 		installCommand,
 		updateCommand,
-		osCommand,
 	}
 	if err := app.Run(os.Args); err != nil {
 		fmt.Fprintln(os.Stderr, err)

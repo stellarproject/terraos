@@ -27,19 +27,14 @@ REVISION=$(shell git rev-parse HEAD)$(shell if ! git diff --no-ext-diff --quiet 
 VERSION=v8
 KERNEL=5.0.9
 
-all: clean iso
-
-FORCE:
-
-os: terra FORCE
-	./build/terra os "os/${VERSION}.toml"
-
-iso: terra FORCE
+all: clean terra
 	@mkdir -p build
 	@cd iso && vab build --local --arg KERNEL_VERSION=${KERNEL}
 	@mv iso/tftp build/tftp
 	@rm -f ./build/terra-${VERSION}.iso
 	@cd ./build && ln -s ./tftp/terra.iso terra-${VERSION}.iso
+
+FORCE:
 
 extras: FORCE
 	vab build -c extras/cni -d extras/cni -p --ref docker.io/stellarproject/cni:${VERSION}
@@ -50,8 +45,8 @@ extras: FORCE
 kernel: FORCE
 	vab build --arg KERNEL_VERSION=${KERNEL} -c kernel -d kernel -p --ref docker.io/stellarproject/kernel:${KERNEL}
 
-base: FORCE
-	vab build -c base -d base -p --ref docker.io/stellarproject/ubuntu:${VERSION}
+os: FORCE
+	vab build -c os -d os -p --ref docker.io/stellarproject/terraos:${VERSION} --arg KERNEL_VERSION=${KERNEL} --arg VERSION=${VERSION}
 
 terra: FORCE
 	@cd cmd && CGO_ENABLED=0 go build -v -ldflags '-s -w -extldflags "-static"' -o ../build/terra

@@ -28,96 +28,15 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"io"
-	"os"
-	"os/exec"
-	"path/filepath"
 	"strings"
 	"text/template"
-
-	"github.com/BurntSushi/toml"
-	"github.com/urfave/cli"
 )
 
 const (
-	defaultRepo      = "docker.io/stellarproject"
-	defaultBaseImage = "docker.io/stellarproject/ubuntu:18.10"
+	defaultRepo = "docker.io/stellarproject"
 )
-
-type OSContext struct {
-	Base     string
-	Userland string
-	Imports  []*Component
-	Kernel   string
-	Init     string
-	Hostname string
-}
-
-const osTemplate = `# syntax=docker/dockerfile:experimental
-
-{{range $v := .Imports -}}
-FROM {{imageName $v}} as {{cname $v}}
-{{end}}
-
-FROM {{.Base}}
-
-RUN --mount=type=bind,from=kernel,target=/tmp dpkg -i \
-	/tmp/linux-headers-{{.Kernel}}-terra_{{.Kernel}}-terra-1_amd64.deb \
-	/tmp/linux-image-{{.Kernel}}-terra_{{.Kernel}}-terra-1_amd64.deb \
-	/tmp/linux-libc-dev_{{.Kernel}}-terra-1_amd64.deb && \
-	cp /tmp/wg /usr/local/bin/
-
-{{.Userland}}
-
-{{range $v := .Imports -}}
-{{if ne $v.Name "kernel"}}
-COPY --from={{cname $v}} / /
-{{range $s := $v.Systemd}}
-RUN systemctl enable {{$s}}{{end}}
-{{end}}
-{{end}}
-
-{{if .Init}}CMD ["{{.Init}}"]{{end}}
-`
-
-type Component struct {
-	Name    string   `toml:"name"`
-	Version string   `toml:"version"`
-	Systemd []string `toml:"systemd"`
-}
-
-type OSConfig struct {
-	Version    string       `toml:"version"`
-	Base       string       `toml:"base"`
-	Kernel     string       `toml:"kernel"`
-	Components []*Component `toml:"components"`
-	Userland   string       `toml:"userland"`
-	Init       string       `toml:"init"`
-}
-
-func loadOSConfig(path string) (*OSConfig, error) {
-	var c OSConfig
-	if _, err := toml.DecodeFile(path, &c); err != nil {
-		return nil, err
-	}
-	if c.Version == "" {
-		return nil, errors.New("no version specified")
-	}
-	if c.Base == "" {
-		c.Base = defaultBaseImage
-	}
-	if c.Init == "" {
-		c.Init = "/sbin/init"
-	}
-	for _, i := range c.Components {
-		if i.Version == "" {
-			i.Version = c.Version
-		}
-	}
-	return &c, nil
-}
 
 func joinImage(i, name, version string) string {
 	return fmt.Sprintf("%s/%s:%s", i, name, version)
@@ -145,67 +64,4 @@ func render(w io.Writer, tmp string, ctx *OSContext) error {
 		return err
 	}
 	return t.Execute(w, ctx)
-}
-
-var osCommand = cli.Command{
-	Name:  "os",
-	Usage: "build a os new release",
-	Flags: []cli.Flag{
-		cli.StringFlag{
-			Name:  "context,c",
-			Usage: "specify the context path",
-			Value: ".",
-		},
-	},
-	Action: func(clix *cli.Context) error {
-		config, err := loadOSConfig(clix.Args().First())
-		if err != nil {
-			return err
-		}
-		abs, err := filepath.Abs(clix.String("context"))
-		if err != nil {
-			return err
-		}
-		ctx := cancelContext()
-		osCtx := &OSContext{
-			Kernel:   config.Kernel,
-			Base:     config.Base,
-			Userland: config.Userland,
-			Init:     config.Init,
-			Imports: []*Component{
-				{
-					Name:    "kernel",
-					Version: config.Kernel,
-				},
-			},
-		}
-		for _, c := range config.Components {
-			osCtx.Imports = append(osCtx.Imports, c)
-		}
-		path, err := writeDockerfile(osCtx, osTemplate)
-		if err != nil {
-			return err
-		}
-		defer os.RemoveAll(path)
-
-		cmd := exec.CommandContext(ctx, "vab", "build",
-			"-c", abs,
-			"--ref", fmt.Sprintf("%s/terraos:%s", defaultRepo, config.Version),
-			"--push",
-		)
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		cmd.Dir = path
-
-		if err := cmd.Run(); err != nil {
-			f, ferr := os.Open(filepath.Join(path, "Dockerfile"))
-			if ferr != nil {
-				return ferr
-			}
-			defer f.Close()
-			io.Copy(os.Stdout, f)
-			return err
-		}
-		return nil
-	},
 }
