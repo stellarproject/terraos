@@ -24,8 +24,8 @@
 # THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 REVISION=$(shell git rev-parse HEAD)$(shell if ! git diff --no-ext-diff --quiet --exit-code; then echo .m; fi)
-VERSION=v8
-KERNEL=5.0.9
+VERSION=v9
+KERNEL=5.0.10
 
 all: clean terra
 	@mkdir -p build

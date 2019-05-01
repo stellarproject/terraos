@@ -4,88 +4,29 @@
 
 Modern, minimal operating system (we've heard that before) optimized for containers within the Stellar Project.
 
-## User Build
 
-To build the iso and pxe targets just type `make`.
-This will provide you the pxe files and iso to boot a machine to install the terra os of your choice.
+## Build your own OS
 
-### Custom OS Image
+Terra is a toolkit for building your own OS for your servers.
+Each server can be created as an image that can be run via Docker or containerd to test the install and functionality.
 
-You can customize your install by building images based on the released terra os version.
+To create a new server image, create a toml file with an id and any other information needed.
 
 ```toml
 id = "example"
 version = "v1"
-repo = "docker.io/crosbymichael"
-os = "docker.io/stellarproject/terraos:v8"
-
-[ssh]
-	github = "crosbymichael"
-
-[netplan]
-	interface = "eth0"
-
-userland = "ADD config.toml /etc/containerd/"
-
-[pxe]
-	mac = "xx:xx:xx:xx:xx:xx"
-	target_ip = "xxx.xxx.x.xx"
-	target = "xx"
-	iqn = "iqn.2019-01.xxx.com"
+os = "docker.io/stellarproject/terraos:v9"
+repo = "docker.io/stellarproject"
+userland = "RUN echo 'terra:terra' | chpasswd"
 ```
+
+After you have your toml file created with the settings that you want for your OS just run:
 
 ```bash
-> terra create server.toml
+> terra create <my.toml>
 ```
 
-If `[pxe]` is specified, it will output a pxe specific config for the boot server for this image.
-It will setup iscsi targets correctly.
-
-
-## Install
-
-Format a new partition on your disk of choice.
-You *MUST* have the `terra` label applied on your partition that will host terra.
-
-```bash
-> mkfs.ext4 -L terra /dev/sda1
-```
-
-```bash
-> terra install --device /dev/sda1 <image>
-```
-
-Now reboot the system, keep the usb drive in the system to manage it after.
-
-You are good to go with terra now.  Have fun.
-
-
-## Admin
-
-### Kernel
-
-We use the latest stable kernel with a stripped down config.
-The config is optimized for the KSPP guidelines.
-
-#### Kernel Patches
-
-* wireguard
-
-### Services
-
-* containerd - runtime
-	* orbit
-	* stellar store
-	* stellar dns
-* buildkit - image builder
-* Prometheus Node Exporter - node metrics
-
-#### Binaries
-
-* criu - checkpoint and restore
-* cni plugins - networking
-* vab - image build frontend
-* terra - post install management
+If you want to push your resulting image to a registry then use the `--push` flag on the create command.
 
 ## License
 

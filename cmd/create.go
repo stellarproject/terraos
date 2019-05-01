@@ -34,6 +34,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"text/template"
 
@@ -148,7 +149,7 @@ const hostsTemplate = `127.0.0.1       localhost %s
 ff02::1         ip6-allnodes
 ff02::2         ip6-allrouters`
 
-func setupHostname(path, hostname string) error {
+func setupHostname(path, hostname string, paths *[]string) error {
 	if hostname == "" {
 		hostname = "terra"
 	}
@@ -156,6 +157,7 @@ func setupHostname(path, hostname string) error {
 	if err != nil {
 		return err
 	}
+	*paths = append(*paths, f.Name())
 	_, err = f.WriteString(hostname)
 	f.Close()
 	if err != nil {
@@ -164,12 +166,13 @@ func setupHostname(path, hostname string) error {
 	if f, err = os.Create(filepath.Join(path, "hosts")); err != nil {
 		return err
 	}
+	*paths = append(*paths, f.Name())
 	_, err = fmt.Fprintf(f, hostsTemplate, hostname)
 	f.Close()
 	return err
 }
 
-func setupNetplan(path string, n Netplan) error {
+func setupNetplan(path string, n Netplan, paths *[]string) error {
 	if n.Interface == "" {
 		n.Interface = "eth0"
 	}
@@ -184,11 +187,12 @@ func setupNetplan(path string, n Netplan) error {
 	if err != nil {
 		return err
 	}
+	*paths = append(*paths, f.Name())
 	defer f.Close()
 	return t.Execute(f, n)
 }
 
-func setupSSH(path string, ssh SSH) error {
+func setupSSH(path string, ssh SSH, paths *[]string) error {
 	if ssh.Github != "" {
 		r, err := http.Get(fmt.Sprintf("https://github.com/%s.keys", ssh.Github))
 		if err != nil {
@@ -200,6 +204,7 @@ func setupSSH(path string, ssh SSH) error {
 			return err
 		}
 		defer f.Close()
+		*paths = append(*paths, f.Name())
 		if _, err := io.Copy(f, r.Body); err != nil {
 			return err
 		}
@@ -256,7 +261,8 @@ func setupPXE(id string, pxe *PXE) error {
 	if err != nil {
 		return err
 	}
-	f, err := os.OpenFile(fmt.Sprintf("01-%s", strings.Replace(pxe.MAC, ":", "-", -1)), os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0666)
+	path := fmt.Sprintf("01-%s", strings.Replace(pxe.MAC, ":", "-", -1))
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0666)
 	if err != nil {
 		return err
 	}
@@ -273,6 +279,10 @@ var createCommand = cli.Command{
 			Usage: "specify the context path",
 			Value: ".",
 		},
+		cli.BoolFlag{
+			Name:  "push",
+			Usage: "push the resulting image",
+		},
 	},
 	Action: func(clix *cli.Context) error {
 		config, err := loadServerConfig(clix.Args().First())
@@ -283,13 +293,21 @@ var createCommand = cli.Command{
 		if err != nil {
 			return err
 		}
-		ctx := cancelContext()
+		var (
+			paths []string
+			ctx   = cancelContext()
+		)
 		osCtx := &OSContext{
 			Base:     config.OS,
 			Userland: config.Userland,
 			Init:     config.Init,
 			Hostname: config.ID,
 		}
+		defer func() {
+			for _, p := range paths {
+				os.Remove(p)
+			}
+		}()
 		for _, c := range config.Components {
 			osCtx.Imports = append(osCtx.Imports, c)
 		}
@@ -299,20 +317,20 @@ var createCommand = cli.Command{
 		}
 		defer os.RemoveAll(path)
 
-		if err := setupHostname(abs, config.ID); err != nil {
+		if err := setupHostname(abs, config.ID, &paths); err != nil {
 			return err
 		}
-		if err := setupSSH(abs, config.SSH); err != nil {
+		if err := setupSSH(abs, config.SSH, &paths); err != nil {
 			return err
 		}
-		if err := setupNetplan(abs, config.Netplan); err != nil {
+		if err := setupNetplan(abs, config.Netplan, &paths); err != nil {
 			return err
 		}
 
 		cmd := exec.CommandContext(ctx, "vab", "build",
 			"-c", abs,
 			"--ref", fmt.Sprintf("%s/%s:%s", config.Repo, config.ID, config.Version),
-			"--push",
+			"--push="+strconv.FormatBool(clix.Bool("push")),
 		)
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr

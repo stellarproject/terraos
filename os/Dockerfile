@@ -32,8 +32,6 @@ FROM docker.io/stellarproject/kernel:${KERNEL_VERSION} as kernel
 FROM docker.io/stellarproject/node_exporter:${VERSION} as node_exporter
 FROM docker.io/stellarproject/criu:${VERSION} as criu
 FROM docker.io/stellarproject/cni:${VERSION} as cni
-FROM docker.io/stellarproject/buildkit:${VERSION} as buildkit
-FROM docker.io/stellarproject/vab:${VERSION} as vab
 FROM docker.io/stellarproject/orbit:${VERSION} as orbit
 FROM docker.io/stellarproject/terra:${VERSION} as terra
 FROM docker.io/stellarproject/ion:${VERSION} as ion
@@ -58,17 +56,16 @@ ADD sources.list /etc/apt/
 
 RUN apt update && apt upgrade -y && \
 	DEBIAN_FRONTEND=noninteractive apt install -y \
+	ca-certificates \
 	openssh-server \
 	curl \
-	ca-certificates \
-	open-iscsi \
+	pigz \
+	git \
 	apparmor \
 	libnl-3-dev \
 	libnet-dev \
 	libprotobuf-dev \
-	haveged \
-	nut \
-	pigz
+	haveged
 
 RUN --mount=type=bind,from=kernel,target=/tmp dpkg -i \
         /tmp/linux-headers-${KERNEL_VERSION}-terra_${KERNEL_VERSION}-terra-1_amd64.deb \
@@ -101,15 +98,13 @@ RUN rm -f /etc/machine-id && \
 RUN rm /etc/update-motd.d/*
 ADD motd/* /etc/update-motd.d/
 
-COPY --from=node_exporter / /
-COPY --from=criu / /
-COPY --from=cni / /
-COPY --from=buildkit / /
-COPY --from=vab / /
-COPY --from=orbit / /
 COPY --from=terra / /
+COPY --from=node_exporter / /
+COPY --from=cni / /
 COPY --from=ion / /
+COPY --from=orbit / /
+COPY --from=criu / /
 
-RUN systemctl enable containerd buildkit node_exporter ssh
+RUN systemctl enable containerd node_exporter ssh
 
 CMD ["/sbin/init"]
