@@ -35,13 +35,14 @@ import (
 	"syscall"
 
 	"github.com/sirupsen/logrus"
+	"github.com/stellarproject/terraos/version"
 	"github.com/urfave/cli"
 )
 
 func main() {
 	app := cli.NewApp()
 	app.Name = "terra"
-	app.Version = "v5"
+	app.Version = version.Version
 	app.Usage = "Terra OS management"
 	app.Description = `
                                                      ___

@@ -5,13 +5,14 @@ import (
 	"os"
 
 	"github.com/sirupsen/logrus"
+	"github.com/stellarproject/terraos/version"
 	"github.com/urfave/cli"
 )
 
 func main() {
 	app := cli.NewApp()
 	app.Name = "vab"
-	app.Version = "4"
+	app.Version = version.Version
 	app.Usage = "container assembly builder"
 	app.Description = `
         _..-.._
