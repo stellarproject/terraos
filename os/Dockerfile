@@ -35,7 +35,7 @@ FROM docker.io/stellarproject/ion:v8 as ion
 FROM stellarproject/node_exporter:${VERSION} as node_exporter
 FROM stellarproject/criu:${VERSION} as criu
 FROM stellarproject/cni:${VERSION} as cni
-FROM stellarproject/terra:${VERSION} as terra
+FROM stellarproject/terracmd:${VERSION} as terra
 
 FROM ubuntu:19.04 as debootstrap
 

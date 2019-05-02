@@ -26,10 +26,11 @@
 # THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 ARG KERNEL_VERSION
+ARG VERSION
 
 # ------------------ imports ------------------------------ #
 FROM docker.io/stellarproject/kernel:$KERNEL_VERSION as kernel
-FROM docker.io/stellarproject/terra:latest as terra
+FROM docker.io/stellarproject/terracmd:$VERSION as terra
 
 # ------------------ live liveos -------------------------- #
 FROM alpine:latest as liveos

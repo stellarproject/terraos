@@ -30,7 +30,7 @@ KERNEL=5.0.10
 
 all: clean local
 	@mkdir -p build
-	@cd iso && vab build --local --arg KERNEL_VERSION=${KERNEL}
+	@cd iso && vab build --local --arg KERNEL_VERSION=${KERNEL} --arg VERSION=${VERSION}
 	@mv iso/tftp build/tftp
 	@rm -f ./build/terra-${VERSION}.iso
 	@cd ./build && ln -s ./tftp/terra.iso terra-${VERSION}.iso
