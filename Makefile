@@ -23,11 +23,12 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH
 # THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-REVISION=$(shell git rev-parse HEAD)$(shell if ! git diff --no-ext-diff --quiet --exit-code; then echo .m; fi)
+REVISION=$(shell git rev-parse HEAD)
 VERSION=v9
+GO_LDFLAGS=-s -w -X github.com/stellarproject/terraos/version.Version=$(VERSION) -X github.com/stellarproject/terraos/version.Revision=$(REVISION)
 KERNEL=5.0.10
 
-all: clean terra
+all: clean local
 	@mkdir -p build
 	@cd iso && vab build --local --arg KERNEL_VERSION=${KERNEL}
 	@mv iso/tftp build/tftp
@@ -48,12 +49,17 @@ kernel: FORCE
 os: FORCE
 	vab build -c os -d os --ref stellarproject/terraos:${VERSION} --arg KERNEL_VERSION=${KERNEL} --arg VERSION=${VERSION}
 
-terra: FORCE
-	@cd cmd && CGO_ENABLED=0 go build -v -ldflags '-s -w -extldflags "-static"' -o ../build/terra
-	vab build -c cmd -d cmd --ref stellarproject/terra:${VERSION}
+
+local: FORCE
+	@cd cmd/terra && CGO_ENABLED=0 go build -v -ldflags '${GO_LDFLAGS}' -o ../../build/terra
+	@cd cmd/vab && CGO_ENABLED=0 go build -v -ldflags '${GO_LDFLAGS}' -o ../../build/vab
+
+cmd: FORCE
+	vab build -d cmd --ref stellarproject/terracmd:${VERSION}
 
 install:
 	@install build/terra /usr/local/sbin/terra
+	@install build/vab /usr/local/bin/vab
 
 clean:
 	@rm -fr build/
