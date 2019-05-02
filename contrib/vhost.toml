@@ -1,5 +1,5 @@
 id = "terra"
-image = "docker.io/stellarproject/terra:1"
+image = "docker.io/stellarproject/terra:2"
 
 uid = 0
 gid = 0
@@ -9,6 +9,7 @@ privileged = true
 	type = "bridge"
 	name = "orbit0"
 	bridge = "ob0"
+	master = "enp3s0"
 	[network.ipam]
 		type = "host-local"
 		subnet = "10.10.0.0/24"

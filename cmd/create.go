@@ -69,7 +69,10 @@ FROM {{.Base}}
 {{range $v := .Imports -}}
 {{if ne $v.Name "kernel"}}
 COPY --from={{cname $v}} / /
-{{if $v.Systemd}}RUN systemctl enable {{cname $v}}{{end}}{{end}}
+{{range $s := $v.Systemd}}
+RUN systemctl enable {{$s}}
+{{end}}
+{{end}}
 {{end}}
 
 ADD hostname /etc/hostname
@@ -193,18 +196,19 @@ func setupNetplan(path string, n Netplan, paths *[]string) error {
 }
 
 func setupSSH(path string, ssh SSH, paths *[]string) error {
+	p := filepath.Join(path, "keys")
+	*paths = append(*paths, p)
 	if ssh.Github != "" {
 		r, err := http.Get(fmt.Sprintf("https://github.com/%s.keys", ssh.Github))
 		if err != nil {
 			return err
 		}
 		defer r.Body.Close()
-		f, err := os.OpenFile(filepath.Join(path, "keys"), os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0666)
+		f, err := os.OpenFile(p, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0666)
 		if err != nil {
 			return err
 		}
 		defer f.Close()
-		*paths = append(*paths, f.Name())
 		if _, err := io.Copy(f, r.Body); err != nil {
 			return err
 		}

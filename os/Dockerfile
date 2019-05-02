@@ -29,13 +29,13 @@ ARG VERSION
 ARG KERNEL_VERSION
 
 FROM docker.io/stellarproject/kernel:${KERNEL_VERSION} as kernel
-FROM docker.io/stellarproject/node_exporter:${VERSION} as node_exporter
-FROM docker.io/stellarproject/criu:${VERSION} as criu
-FROM docker.io/stellarproject/cni:${VERSION} as cni
 FROM docker.io/stellarproject/orbit:${VERSION} as orbit
-FROM docker.io/stellarproject/terra:${VERSION} as terra
 FROM docker.io/stellarproject/ion:v8 as ion
 
+FROM stellarproject/node_exporter:${VERSION} as node_exporter
+FROM stellarproject/criu:${VERSION} as criu
+FROM stellarproject/cni:${VERSION} as cni
+FROM stellarproject/terra:${VERSION} as terra
 
 FROM ubuntu:19.04 as debootstrap
 

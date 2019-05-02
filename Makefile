@@ -37,20 +37,20 @@ all: clean terra
 FORCE:
 
 extras: FORCE
-	vab build -c extras/cni -d extras/cni -p --ref docker.io/stellarproject/cni:${VERSION}
-	vab build -c extras/node_exporter -d extras/node_exporter -p --ref docker.io/stellarproject/node_exporter:${VERSION}
-	vab build -c extras/buildkit -d extras/buildkit -p --ref docker.io/stellarproject/buildkit:${VERSION}
-	vab build -d extras/criu -c extras/criu -p --ref docker.io/stellarproject/criu:${VERSION}
+	vab build -c extras/cni -d extras/cni --ref stellarproject/cni:${VERSION}
+	vab build -c extras/node_exporter -d extras/node_exporter --ref stellarproject/node_exporter:${VERSION}
+	vab build -c extras/buildkit -d extras/buildkit --ref stellarproject/buildkit:${VERSION}
+	vab build -d extras/criu -c extras/criu --ref stellarproject/criu:${VERSION}
 
 kernel: FORCE
 	vab build --arg KERNEL_VERSION=${KERNEL} -c kernel -d kernel -p --ref docker.io/stellarproject/kernel:${KERNEL}
 
 os: FORCE
-	vab build -c os -d os -p --ref docker.io/stellarproject/terraos:${VERSION} --arg KERNEL_VERSION=${KERNEL} --arg VERSION=${VERSION}
+	vab build -c os -d os --ref stellarproject/terraos:${VERSION} --arg KERNEL_VERSION=${KERNEL} --arg VERSION=${VERSION}
 
 terra: FORCE
 	@cd cmd && CGO_ENABLED=0 go build -v -ldflags '-s -w -extldflags "-static"' -o ../build/terra
-	vab build -p -c cmd -d cmd --ref docker.io/stellarproject/terra:${VERSION}
+	vab build -c cmd -d cmd --ref stellarproject/terra:${VERSION}
 
 install:
 	@install build/terra /usr/local/sbin/terra

@@ -1,5 +1,7 @@
 id = "example"
-version = "v7"
-os = "docker.io/stellarproject/terraos:v9"
+version = "2"
+os = "docker.io/stellarproject/terraos:v8"
 repo = "docker.io/stellarproject"
-userland = "RUN echo 'terra:terra' | chpasswd"
+userland = """
+RUN echo 'terra:terra' | chpasswd
+"""

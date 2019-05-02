@@ -35,7 +35,7 @@ import (
 )
 
 const (
-	defaultRepo = "docker.io/stellarproject"
+	defaultRepo = "stellarproject"
 )
 
 func joinImage(i, name, version string) string {
