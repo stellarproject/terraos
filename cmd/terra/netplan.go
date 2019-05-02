@@ -28,56 +28,50 @@
 package main
 
 import (
-	"fmt"
 	"os"
-	"os/exec"
-	"syscall"
-
-	"github.com/pkg/errors"
+	"path/filepath"
+	"strings"
+	"text/template"
 )
 
-const (
-	tmpGrub  = "/run/grub.c"
-	grubFile = `GRUB_DEFAULT=0
-GRUB_TIMEOUT_STYLE=hidden
-GRUB_TIMEOUT=2
-GRUB_DISTRIBUTOR="Stellar Project"
-GRUB_CMDLINE_LINUX_DEFAULT=""
-GRUB_CMDLINE_LINUX="root=%s boot=terra quiet nosplash console=ttyS0 console=tty0"`
-)
+const netplanTemplate = `network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    {{ .Interface }}:
+      {{if .Addresses}}addresses: [{{addresses .Addresses}}]{{else}}dhcp4: yes{{end}}
+      {{if ne .Gateway ""}}gateway4: {{.Gateway}}{{end}}`
 
-// Install grub to the provided device
-func Install(device string) error {
-	out, err := exec.Command("grub-install", device).CombinedOutput()
-	if err != nil {
-		return errors.Wrapf(err, "%s", out)
-	}
-	return nil
+type Netplan struct {
+	Interface string   `toml:"interface"`
+	Addresses []string `toml:"addresses"`
+	Gateway   string   `toml:"gateway"`
 }
 
-// MkConfig updates the grub config
-func MkConfig(root string, path string) error {
-	if err := writeGrub(root); err != nil {
-		return err
+func setupNetplan(path string, n Netplan, paths *[]string) error {
+	if n.Interface == "" {
+		n.Interface = "eth0"
 	}
-	if err := syscall.Mount(tmpGrub, "/etc/default/grub", "none", syscall.MS_BIND, ""); err != nil {
-		return err
-	}
-	defer syscall.Unmount("/etc/default/grub", 0)
-
-	out, err := exec.Command("grub-mkconfig", "-o", path).CombinedOutput()
-	if err != nil {
-		return errors.Wrapf(err, "%s", out)
-	}
-	return nil
-}
-
-func writeGrub(root string) error {
-	f, err := os.OpenFile(tmpGrub, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0666)
+	t, err := template.New("netplan").Funcs(template.FuncMap{
+		"addresses":   addresses,
+		"nameservers": nameservers,
+	}).Parse(netplanTemplate)
 	if err != nil {
 		return err
 	}
+	f, err := os.OpenFile(filepath.Join(path, "01-netcfg.yaml"), os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0664)
+	if err != nil {
+		return err
+	}
+	*paths = append(*paths, f.Name())
 	defer f.Close()
-	_, err = fmt.Fprintf(f, grubFile, root)
-	return err
+	return t.Execute(f, n)
+}
+
+func addresses(v []string) string {
+	return strings.Join(v, ",")
+}
+
+func nameservers(v []string) string {
+	return strings.Join(v, ",")
 }

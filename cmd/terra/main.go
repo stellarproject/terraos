@@ -82,6 +82,7 @@ Terra OS management`
 	app.Commands = []cli.Command{
 		createCommand,
 		installCommand,
+		provisionCommand,
 		updateCommand,
 	}
 	if err := app.Run(os.Args); err != nil {

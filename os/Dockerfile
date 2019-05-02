@@ -32,10 +32,10 @@ FROM docker.io/stellarproject/kernel:${KERNEL_VERSION} as kernel
 FROM docker.io/stellarproject/orbit:${VERSION} as orbit
 FROM docker.io/stellarproject/ion:v8 as ion
 
+FROM stellarproject/terracmd:${VERSION} as terra
 FROM stellarproject/node_exporter:${VERSION} as node_exporter
 FROM stellarproject/criu:${VERSION} as criu
 FROM stellarproject/cni:${VERSION} as cni
-FROM stellarproject/terracmd:${VERSION} as terra
 
 FROM ubuntu:19.04 as debootstrap
 
@@ -65,7 +65,8 @@ RUN apt update && apt upgrade -y && \
 	libnl-3-dev \
 	libnet-dev \
 	libprotobuf-dev \
-	haveged
+	haveged && \
+	rm -rf /var/lib/apt/lists/*
 
 RUN --mount=type=bind,from=kernel,target=/tmp dpkg -i \
         /tmp/linux-headers-${KERNEL_VERSION}-terra_${KERNEL_VERSION}-terra-1_amd64.deb \

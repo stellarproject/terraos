@@ -28,40 +28,41 @@
 package main
 
 import (
-	"fmt"
-	"io"
-	"strings"
-	"text/template"
+	"github.com/pkg/errors"
+	"github.com/stellarproject/terraos/pkg/mkfs"
+	"github.com/urfave/cli"
 )
 
-const (
-	defaultRepo = "stellarproject"
-)
-
-func joinImage(i, name, version string) string {
-	return fmt.Sprintf("%s/%s:%s", i, name, version)
-}
-
-func cname(c Component) string {
-	return c.Name
-}
-
-func cmdargs(args []string) string {
-	return strings.Join(args, " ")
-}
-
-func imageName(c Component) string {
-	return joinImage(defaultRepo, c.Name, c.Version)
-}
-
-func render(w io.Writer, tmp string, ctx *OSContext) error {
-	t, err := template.New("dockerfile").Funcs(template.FuncMap{
-		"cname":     cname,
-		"imageName": imageName,
-		"cmdargs":   cmdargs,
-	}).Parse(tmp)
-	if err != nil {
-		return err
-	}
-	return t.Execute(w, ctx)
+var provisionCommand = cli.Command{
+	Name:  "provision,p",
+	Usage: "provision a disk for terra",
+	Flags: []cli.Flag{
+		cli.StringFlag{
+			Name:  "device,d",
+			Usage: "select the device terra is installed to",
+			Value: "/dev/sda1",
+		},
+		cli.StringFlag{
+			Name:  "fs-type",
+			Usage: "set the filesystem type",
+			Value: "ext4",
+		},
+	},
+	Action: func(clix *cli.Context) error {
+		var (
+			t      = clix.String("fs-type")
+			device = clix.String("device")
+		)
+		switch t {
+		case "ext4":
+			return mkfs.Init(t, device, "terra")
+		case "btrfs":
+			if err := mkfs.Init(t, device, "terra"); err != nil {
+				return err
+			}
+		default:
+			return errors.New("unknown fs type")
+		}
+		return nil
+	},
 }

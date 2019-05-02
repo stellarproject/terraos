@@ -28,6 +28,13 @@ After you have your toml file created with the settings that you want for your O
 
 If you want to push your resulting image to a registry then use the `--push` flag on the create command.
 
+## Global Images
+
+Terra OS publishes two global images for use.
+
+* `stellarproject/kernel:<version>` - Kernel build for terra
+* `stellarproject/terraos:<version>` - Terra userland of the distro
+
 ## License
 
 ```

@@ -44,18 +44,17 @@ extras: FORCE
 	vab build -d extras/criu -c extras/criu --ref stellarproject/criu:${VERSION}
 
 kernel: FORCE
-	vab build --arg KERNEL_VERSION=${KERNEL} -c kernel -d kernel -p --ref docker.io/stellarproject/kernel:${KERNEL}
+	vab build --arg KERNEL_VERSION=${KERNEL} -c kernel -d kernel --push --ref docker.io/stellarproject/kernel:${KERNEL}
 
 os: FORCE
-	vab build -c os -d os --ref stellarproject/terraos:${VERSION} --arg KERNEL_VERSION=${KERNEL} --arg VERSION=${VERSION}
-
+	vab build -c os -d os --push --ref docker.io/stellarproject/terraos:${VERSION} --arg KERNEL_VERSION=${KERNEL} --arg VERSION=${VERSION}
 
 local: FORCE
 	@cd cmd/terra && CGO_ENABLED=0 go build -v -ldflags '${GO_LDFLAGS}' -o ../../build/terra
 	@cd cmd/vab && CGO_ENABLED=0 go build -v -ldflags '${GO_LDFLAGS}' -o ../../build/vab
 
 cmd: FORCE
-	vab build -d cmd --ref stellarproject/terracmd:${VERSION}
+	vab build --push -d cmd --ref stellarproject/terracmd:${VERSION}
 
 install:
 	@install build/terra /usr/local/sbin/terra

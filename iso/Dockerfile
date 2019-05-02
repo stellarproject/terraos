@@ -29,8 +29,8 @@ ARG KERNEL_VERSION
 ARG VERSION
 
 # ------------------ imports ------------------------------ #
+FROM stellarproject/terracmd:$VERSION as terra
 FROM docker.io/stellarproject/kernel:$KERNEL_VERSION as kernel
-FROM docker.io/stellarproject/terracmd:$VERSION as terra
 
 # ------------------ live liveos -------------------------- #
 FROM alpine:latest as liveos
@@ -62,7 +62,8 @@ RUN ssh-keygen -f /etc/ssh/ssh_host_rsa_key -N '' -t rsa && \
 RUN echo 'root:root' | chpasswd
 
 # ------------------ squasher ---------------------------- #
-FROM ubuntu:18.10 as squasher
+FROM ubuntu:19.04 as squasher
+ARG KERNEL_VERSION
 
 RUN apt update && \
 	apt install -y squashfs-tools
@@ -72,7 +73,7 @@ RUN --mount=type=bind,from=liveos,target=/rootfs,rw \
 	mksquashfs /rootfs live.sqsh
 
 # ------------------ iso build --------------------------- #
-FROM ubuntu:18.10 as iso
+FROM ubuntu:19.04 as iso
 ARG KERNEL_VERSION
 
 RUN apt-get update && apt-get install -y \

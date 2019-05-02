@@ -31,6 +31,7 @@ import (
 	"os"
 
 	"github.com/sirupsen/logrus"
+	"github.com/stellarproject/terraos/pkg/grub"
 	"github.com/urfave/cli"
 )
 
@@ -93,11 +94,11 @@ var installCommand = cli.Command{
 			defer closer()
 
 			logger.Info("installing grub")
-			if err := Install(boot); err != nil {
+			if err := grub.Install(boot); err != nil {
 				return err
 			}
 			logger.Info("making grub config")
-			if err := MkConfig(clix.String("device"), "/boot/grub/grub.cfg"); err != nil {
+			if err := grub.MkConfig(clix.String("device"), "/boot/grub/grub.cfg"); err != nil {
 				return err
 			}
 		}

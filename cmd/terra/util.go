@@ -54,7 +54,6 @@ import (
 
 const (
 	terraRepoFormat = "docker.io/stellarproject/terraos:%s"
-	bootRepoFormat  = "docker.io/stellarproject/boot:%s"
 	devicePath      = "/sd"
 )
 
