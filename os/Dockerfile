@@ -66,6 +66,7 @@ RUN apt update && apt upgrade -y && \
 	libnl-3-dev \
 	libnet-dev \
 	libprotobuf-dev \
+	haveged \
 	nut \
 	pigz
 
