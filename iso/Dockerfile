@@ -62,7 +62,7 @@ RUN ssh-keygen -f /etc/ssh/ssh_host_rsa_key -N '' -t rsa && \
 RUN echo 'root:root' | chpasswd
 
 # ------------------ squasher ---------------------------- #
-FROM ubuntu:19.04 as squasher
+FROM ubuntu:18.10 as squasher
 ARG KERNEL_VERSION
 
 RUN apt update && \
@@ -73,7 +73,7 @@ RUN --mount=type=bind,from=liveos,target=/rootfs,rw \
 	mksquashfs /rootfs live.sqsh
 
 # ------------------ iso build --------------------------- #
-FROM ubuntu:19.04 as iso
+FROM ubuntu:18.10 as iso
 ARG KERNEL_VERSION
 
 RUN apt-get update && apt-get install -y \
