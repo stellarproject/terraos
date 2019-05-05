@@ -68,8 +68,13 @@ ARG KERNEL_VERSION
 RUN apt update && \
 	apt install -y squashfs-tools
 
+RUN --mount=type=bind,from=kernel,target=/tmp dpkg -i \
+	/tmp/linux-headers-$KERNEL_VERSION-terra_$KERNEL_VERSION-terra-1_amd64.deb \
+	/tmp/linux-image-$KERNEL_VERSION-terra_$KERNEL_VERSION-terra-1_amd64.deb
+
 RUN --mount=type=bind,from=liveos,target=/rootfs,rw \
 	mkdir -p /rootfs/proc /rootfs/sys /rootfs/run && \
+	cp -R /lib/modules /rootfs/lib/ && \
 	mksquashfs /rootfs live.sqsh
 
 # ------------------ iso build --------------------------- #
