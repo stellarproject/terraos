@@ -26,7 +26,7 @@
 REVISION=$(shell git rev-parse HEAD)
 VERSION=v9
 GO_LDFLAGS=-s -w -X github.com/stellarproject/terraos/version.Version=$(VERSION) -X github.com/stellarproject/terraos/version.Revision=$(REVISION)
-KERNEL=5.0.10
+KERNEL=5.0.12
 
 all: clean local
 	@mkdir -p build
