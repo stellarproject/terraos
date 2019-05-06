@@ -25,6 +25,8 @@
 
 FROM golang:1.12 as builder
 
+RUN apt update && apt install -y btrfs-tools
+
 ADD . /go/src/github.com/stellarproject/terraos
 WORKDIR /go/src/github.com/stellarproject/terraos
 

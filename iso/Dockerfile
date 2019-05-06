@@ -119,6 +119,7 @@ ADD squashhook /etc/initramfs-tools/hooks/squash
 RUN chmod +x /etc/initramfs-tools/hooks/squash
 COPY --from=squasher /live.sqsh /live.sq
 ADD terra /etc/initramfs-tools/scripts/terra
+ADD btrfs /etc/initramfs-tools/scripts/btrfs
 ADD modules /etc/initramfs-tools/modules
 RUN touch /etc/iscsi/iscsi.initramfs
 

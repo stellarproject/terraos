@@ -1,6 +1,6 @@
 id = "example"
 version = "2"
-os = "docker.io/stellarproject/terraos:v8"
+os = "docker.io/stellarproject/terraos:v9"
 repo = "docker.io/stellarproject"
 userland = """
 RUN echo 'terra:terra' | chpasswd

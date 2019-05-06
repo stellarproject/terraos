@@ -29,7 +29,9 @@ package main
 
 import (
 	"os"
+	"syscall"
 
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/stellarproject/terraos/pkg/grub"
 	"github.com/urfave/cli"
@@ -65,25 +67,42 @@ var installCommand = cli.Command{
 		if err != nil {
 			return err
 		}
+		version := repo.Version()
 		logger := logrus.WithField("repo", repo)
 		logger.Info("setup directories")
 		if err := setupDirectories(); err != nil {
-			return err
+			return errors.Wrap(err, "setup directories")
+		}
+		unpackTo := disk()
+		if clix.String("fs-type") == "btrfs" {
+			if err := createSubvolumes(version); err != nil {
+				return errors.Wrap(err, "create subvolumes")
+			}
+			unpackTo = disk("submount")
+			paths, err := mountSubvolumes(clix.String("device"), version, unpackTo)
+			if err != nil {
+				return errors.Wrap(err, "mount subvolumes")
+			}
+			defer func() {
+				for _, p := range paths {
+					syscall.Unmount(p, 0)
+				}
+			}()
 		}
 
 		logger.Info("creating new content store")
 		store, err := newContentStore(disk("terra-content"))
 		if err != nil {
-			return err
+			return errors.Wrap(err, "new content store")
 		}
 		defer os.RemoveAll(disk("terra-content"))
 
 		ctx := cancelContext()
 		desc, err := fetch(ctx, clix.Bool("http"), store, string(repo))
 		if err != nil {
-			return err
+			return errors.Wrap(err, "fetch OS image")
 		}
-		if err := unpack(ctx, store, desc, disk()); err != nil {
+		if err := unpack(ctx, store, desc, unpackTo); err != nil {
 			return err
 		}
 		if boot := clix.String("boot"); boot != "" {

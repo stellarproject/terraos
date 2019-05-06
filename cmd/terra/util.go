@@ -31,8 +31,10 @@ import (
 	"archive/tar"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"syscall"
@@ -52,10 +54,7 @@ import (
 	"github.com/urfave/cli"
 )
 
-const (
-	terraRepoFormat = "docker.io/stellarproject/terraos:%s"
-	devicePath      = "/sd"
-)
+const devicePath = "/sd"
 
 var (
 	errNoOS = errors.New("no os version specified")
@@ -64,6 +63,13 @@ var (
 
 var directories = []string{
 	"tmp",
+	"submount",
+}
+
+var subvolumes = map[string]string{
+	"home":       "/home",
+	"containerd": "/var/lib/containerd",
+	"log":        "/var/log",
 }
 
 func disk(args ...string) string {
@@ -262,4 +268,48 @@ func writeDockerfile(ctx *OSContext, tmpl string) (string, error) {
 		return "", err
 	}
 	return tmp, nil
+}
+
+func createSubvolumes(version string) error {
+	for d := range subvolumes {
+		path := disk(d)
+		if err := btrfs("subvolume", "create", path); err != nil {
+			return err
+		}
+	}
+	path := disk(version)
+	return btrfs("subvolume", "create", path)
+}
+
+func mountSubvolumes(device, version, path string) (paths []string, err error) {
+	defer func() {
+		if err != nil {
+			for _, p := range paths {
+				syscall.Unmount(p, 0)
+			}
+		}
+	}()
+	if err := syscall.Mount(device, path, "btrfs", 0, fmt.Sprintf("subvol=%s", version)); err != nil {
+		return nil, err
+	}
+	for k, v := range subvolumes {
+		subPath := filepath.Join(path, v)
+		if err := os.MkdirAll(subPath, 0755); err != nil {
+			return nil, err
+		}
+		if err := syscall.Mount(device, subPath, "btrfs", 0, fmt.Sprintf("subvol=%s", k)); err != nil {
+			return nil, errors.Wrapf(err, "mount %s:%s", k, subPath)
+		}
+		paths = append(paths, subPath)
+	}
+	paths = append(paths, path)
+	return paths, nil
+}
+
+func btrfs(args ...string) error {
+	out, err := exec.Command("btrfs", args...).CombinedOutput()
+	if err != nil {
+		return errors.Wrapf(err, "%s", out)
+	}
+	return nil
 }
