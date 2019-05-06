@@ -63,9 +63,10 @@ RUN systemctl enable {{$s}}
 
 ADD hostname /etc/hostname
 ADD hosts /etc/hosts
+ADD fstab /etc/fstab
 ADD 01-netcfg.yaml /etc/netplan/
 
-RUN mkdir -p /home/terra/.ssh
+RUN mkdir -p /home/terra/.ssh /var/log /var/lib/containerd
 ADD keys /home/terra/.ssh/authorized_keys
 RUN chown -R terra:terra /home/terra
 RUN dbus-uuidgen --ensure=/etc/machine-id && dbus-uuidgen --ensure
@@ -113,8 +114,7 @@ type SSH struct {
 }
 
 type FS struct {
-	Type   string   `toml:"type"`
-	RWDirs []string `toml:"rw_dirs"`
+	Type string `toml:"type"`
 }
 
 func joinImage(i, name, version string) string {

@@ -54,12 +54,16 @@ LABEL terra
   INITRD /initrd.img
   APPEND {{cmdargs .Append}}`
 
-func setupPXE(id string, pxe *PXE) error {
+func setupPXE(id, version string, fs FS, pxe *PXE) error {
 	if pxe.IP == "" {
 		pxe.IP = "dhcp"
 	}
+	boot := "terra"
+	if fs.Type == "btrfs" {
+		boot = "btrfs"
+	}
 	args := []string{
-		"boot=terra",
+		fmt.Sprintf("boot=%s", boot),
 		fmt.Sprintf("ip=%s", pxe.IP),
 	}
 	if pxe.Root != "" {
@@ -74,10 +78,10 @@ func setupPXE(id string, pxe *PXE) error {
 			fmt.Sprintf("ISCSI_TARGET_IP=%s", pxe.TargetIP),
 		)
 	}
+	args = append(args, "version="+version)
 	ctx := &PXEContext{
 		Append: args,
 	}
-
 	t, err := template.New("pxe").Funcs(template.FuncMap{
 		"cname":     cname,
 		"imageName": imageName,

@@ -27,5 +27,38 @@
 
 package fstab
 
+import (
+	"fmt"
+	"io"
+	"strings"
+	"text/tabwriter"
+)
+
 type Entry struct {
+	Device  string
+	Path    string
+	Type    string
+	Options []string
+	Dump    bool
+	Pass    int
+}
+
+func Write(w io.Writer, entries []*Entry) error {
+	tw := tabwriter.NewWriter(w, 10, 1, 3, '	', 0)
+	const tfmt = "%s\t%s\t%s\t%s\t%d\t%d\n"
+	for _, e := range entries {
+		dump := 0
+		if e.Dump {
+			dump = 1
+		}
+		fmt.Fprintf(tw, tfmt,
+			e.Device,
+			e.Path,
+			e.Type,
+			strings.Join(e.Options, ","),
+			dump,
+			e.Pass,
+		)
+	}
+	return tw.Flush()
 }

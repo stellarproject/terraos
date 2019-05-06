@@ -35,6 +35,7 @@ import (
 	"path/filepath"
 	"strconv"
 
+	"github.com/stellarproject/terraos/pkg/fstab"
 	"github.com/urfave/cli"
 )
 
@@ -94,6 +95,9 @@ var createCommand = cli.Command{
 		if err := setupNetplan(abs, config.Netplan, &paths); err != nil {
 			return err
 		}
+		if err := setupFstab(abs, config.FS, &paths); err != nil {
+			return err
+		}
 
 		cmd := exec.CommandContext(ctx, "vab", "build",
 			"-c", abs,
@@ -114,8 +118,50 @@ var createCommand = cli.Command{
 			return err
 		}
 		if config.PXE != nil {
-			return setupPXE(config.ID, config.PXE)
+			return setupPXE(config.ID, config.Version, config.FS, config.PXE)
 		}
 		return nil
 	},
+}
+
+func setupFstab(path string, fs FS, paths *[]string) error {
+	f, err := os.Create(filepath.Join(path, "fstab"))
+	if err != nil {
+		return err
+	}
+	*paths = append(*paths, f.Name())
+	defer f.Close()
+	if fs.Type != "btrfs" {
+		return nil
+	}
+	entries := []*fstab.Entry{
+		{
+			Device: "LABEL=terra",
+			Path:   "/home",
+			Type:   "btrfs",
+			Options: []string{
+				"subvol=/home",
+			},
+			Pass: 2,
+		},
+		{
+			Device: "LABEL=terra",
+			Path:   "/var/log",
+			Type:   "btrfs",
+			Options: []string{
+				"subvol=/log",
+			},
+			Pass: 2,
+		},
+		{
+			Device: "LABEL=terra",
+			Path:   "/var/lib/containerd",
+			Type:   "btrfs",
+			Options: []string{
+				"subvol=/containerd",
+			},
+			Pass: 2,
+		},
+	}
+	return fstab.Write(f, entries)
 }

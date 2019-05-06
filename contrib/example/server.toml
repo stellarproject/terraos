@@ -5,3 +5,5 @@ repo = "docker.io/stellarproject"
 userland = """
 RUN echo 'terra:terra' | chpasswd
 """
+[fs]
+	type = "btrfs"
