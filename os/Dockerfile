@@ -30,6 +30,7 @@ ARG KERNEL_VERSION
 
 FROM docker.io/stellarproject/kernel:${KERNEL_VERSION} as kernel
 FROM docker.io/stellarproject/orbit:${VERSION} as orbit
+FROM docker.io/stellarproject/containerd:${VERSION} as containerd
 FROM docker.io/stellarproject/ion:v8 as ion
 
 FROM stellarproject/terracmd:${VERSION} as terra
@@ -104,6 +105,7 @@ COPY --from=node_exporter / /
 COPY --from=cni / /
 COPY --from=ion / /
 COPY --from=orbit / /
+COPY --from=containerd / /
 COPY --from=criu / /
 
 RUN systemctl enable containerd node_exporter ssh
