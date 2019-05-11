@@ -35,6 +35,7 @@ import (
 	"path/filepath"
 	"strconv"
 
+	"github.com/stellarproject/terraos/cmd"
 	"github.com/stellarproject/terraos/pkg/fstab"
 	"github.com/urfave/cli"
 )
@@ -64,7 +65,7 @@ var createCommand = cli.Command{
 		}
 		var (
 			paths []string
-			ctx   = cancelContext()
+			ctx   = cmd.CancelContext()
 		)
 		osCtx := &OSContext{
 			Base:     config.OS,

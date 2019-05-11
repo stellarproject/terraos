@@ -25,53 +25,11 @@
 	THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package main
+package cmd
 
-import (
-	"io/ioutil"
-	"os"
+import "errors"
 
-	"github.com/sirupsen/logrus"
-	"github.com/stellarproject/terraos/cmd"
-	"github.com/urfave/cli"
+var (
+	ErrNoOS = errors.New("no os version specified")
+	ErrNoID = errors.New("no id specified")
 )
-
-var updateCommand = cli.Command{
-	Name:  "update",
-	Usage: "update terra components",
-	Flags: []cli.Flag{
-		cli.BoolFlag{
-			Name:  "http",
-			Usage: "download via http",
-		},
-		cli.StringFlag{
-			Name:  "dest",
-			Usage: "destination directory for component",
-			Value: "/",
-		},
-	},
-	Action: func(clix *cli.Context) error {
-		component := clix.Args().First()
-		r := "docker.io/stellarproject/" + component + ":latest"
-		logger := logrus.WithField("repo", r)
-		repo := cmd.Repo(r)
-
-		logger.Info("creating new content store")
-		csDir, err := ioutil.TempDir("", "terra-")
-		if err != nil {
-			return err
-		}
-		defer os.RemoveAll(csDir)
-		store, err := cmd.NewContentStore(csDir)
-		if err != nil {
-			return err
-		}
-
-		ctx := cmd.CancelContext()
-		desc, err := cmd.Fetch(ctx, clix.Bool("http"), store, string(repo))
-		if err != nil {
-			return err
-		}
-		return cmd.Unpack(ctx, store, desc, clix.String("dest"))
-	},
-}

@@ -25,53 +25,25 @@
 	THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package main
+package cmd
 
 import (
-	"io/ioutil"
-	"os"
+	"strings"
 
-	"github.com/sirupsen/logrus"
-	"github.com/stellarproject/terraos/cmd"
 	"github.com/urfave/cli"
 )
 
-var updateCommand = cli.Command{
-	Name:  "update",
-	Usage: "update terra components",
-	Flags: []cli.Flag{
-		cli.BoolFlag{
-			Name:  "http",
-			Usage: "download via http",
-		},
-		cli.StringFlag{
-			Name:  "dest",
-			Usage: "destination directory for component",
-			Value: "/",
-		},
-	},
-	Action: func(clix *cli.Context) error {
-		component := clix.Args().First()
-		r := "docker.io/stellarproject/" + component + ":latest"
-		logger := logrus.WithField("repo", r)
-		repo := cmd.Repo(r)
+type Repo string
 
-		logger.Info("creating new content store")
-		csDir, err := ioutil.TempDir("", "terra-")
-		if err != nil {
-			return err
-		}
-		defer os.RemoveAll(csDir)
-		store, err := cmd.NewContentStore(csDir)
-		if err != nil {
-			return err
-		}
+func (r Repo) Version() string {
+	parts := strings.Split(string(r), ":")
+	return parts[len(parts)-1]
+}
 
-		ctx := cmd.CancelContext()
-		desc, err := cmd.Fetch(ctx, clix.Bool("http"), store, string(repo))
-		if err != nil {
-			return err
-		}
-		return cmd.Unpack(ctx, store, desc, clix.String("dest"))
-	},
+func GetRepo(clix *cli.Context) (Repo, error) {
+	repo := clix.Args().First()
+	if repo == "" {
+		return "", ErrNoOS
+	}
+	return Repo(repo), nil
 }

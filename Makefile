@@ -52,6 +52,7 @@ os: FORCE
 
 local: FORCE
 	@cd cmd/terra && CGO_ENABLED=0 go build -v -ldflags '${GO_LDFLAGS}' -o ../../build/terra
+	@cd cmd/terra-install && CGO_ENABLED=0 go build -v -ldflags '${GO_LDFLAGS}' -o ../../build/terra-install
 	@cd cmd/vab && CGO_ENABLED=0 go build -v -ldflags '${GO_LDFLAGS}' -o ../../build/vab
 	@cd cmd/rdns && CGO_ENABLED=0 go build -v -ldflags '${GO_LDFLAGS}' -o ../../build/rdns
 
@@ -59,7 +60,7 @@ cmd: FORCE
 	vab build --push -d cmd --ref stellarproject/terracmd:${VERSION}
 
 install:
-	@install build/terra /usr/local/sbin/terra
+	@install build/terra* /usr/local/sbin/
 	@install build/vab /usr/local/bin/vab
 
 clean:
