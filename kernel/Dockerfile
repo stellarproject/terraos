@@ -49,7 +49,7 @@ RUN apt-get update && apt-get install -y \
 ENV WIREGUARD_VERSION=0.0.20190406
 ENV WIREGUARD_URL=https://git.zx2c4.com/WireGuard/snapshot/WireGuard-${WIREGUARD_VERSION}.tar.xz
 
-ADD https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-${KERNEL_VERSION}.tar.xz linux.tar.xz
+RUN curl -SsL -o linux.tar.xz https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.1.tar.xz
 
 RUN mkdir /linux && \
 	tar --strip-components=1 -xpf linux.tar.xz -C /linux
@@ -76,11 +76,6 @@ WORKDIR /linux
 RUN /wireguard/contrib/kernel-tree/create-patch.sh | patch -p1
 
 RUN make -j "$(getconf _NPROCESSORS_ONLN)" KDEB_PKGVERSION=$PKGVERSION INSTALL_MOD_STRIP=1 deb-pkg
-
-RUN dpkg -i \
-	/linux-headers-$KERNEL_VERSION-terra_$KERNEL_VERSION-terra-1_amd64.deb \
-	/linux-libc-dev_$KERNEL_VERSION-terra-1_amd64.deb \
-	/linux-image-$KERNEL_VERSION-terra_$KERNEL_VERSION-terra-1_amd64.deb
 
 FROM scratch
 

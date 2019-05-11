@@ -24,9 +24,9 @@
 # THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 REVISION=$(shell git rev-parse HEAD)
-VERSION=v9
+VERSION=v10
 GO_LDFLAGS=-s -w -X github.com/stellarproject/terraos/version.Version=$(VERSION) -X github.com/stellarproject/terraos/version.Revision=$(REVISION)
-KERNEL=5.0.12
+KERNEL=5.1.0
 
 all: clean local
 	@mkdir -p build
@@ -38,6 +38,7 @@ all: clean local
 FORCE:
 
 extras: FORCE
+	vab build -c extras/containerd -d extras/containerd --ref stellarproject/containerd:${VERSION}
 	vab build -c extras/cni -d extras/cni --ref stellarproject/cni:${VERSION}
 	vab build -c extras/node_exporter -d extras/node_exporter --ref stellarproject/node_exporter:${VERSION}
 	vab build -c extras/buildkit -d extras/buildkit --ref stellarproject/buildkit:${VERSION}
