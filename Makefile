@@ -23,13 +23,14 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH
 # THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-REVISION=$(shell git rev-parse HEAD)$(shell if ! git diff --no-ext-diff --quiet --exit-code; then echo .m; fi)
-VERSION=v8
-KERNEL=5.0.9
+REVISION=$(shell git rev-parse HEAD)
+VERSION=v9
+GO_LDFLAGS=-s -w -X github.com/stellarproject/terraos/version.Version=$(VERSION) -X github.com/stellarproject/terraos/version.Revision=$(REVISION)
+KERNEL=5.0.12
 
-all: clean terra
+all: clean local
 	@mkdir -p build
-	@cd iso && vab build --local --arg KERNEL_VERSION=${KERNEL}
+	@cd iso && vab build --local --arg KERNEL_VERSION=${KERNEL} --arg VERSION=${VERSION}
 	@mv iso/tftp build/tftp
 	@rm -f ./build/terra-${VERSION}.iso
 	@cd ./build && ln -s ./tftp/terra.iso terra-${VERSION}.iso
@@ -37,23 +38,27 @@ all: clean terra
 FORCE:
 
 extras: FORCE
-	vab build -c extras/cni -d extras/cni -p --ref docker.io/stellarproject/cni:${VERSION}
-	vab build -c extras/node_exporter -d extras/node_exporter -p --ref docker.io/stellarproject/node_exporter:${VERSION}
-	vab build -c extras/buildkit -d extras/buildkit -p --ref docker.io/stellarproject/buildkit:${VERSION}
-	vab build -d extras/criu -c extras/criu -p --ref docker.io/stellarproject/criu:${VERSION}
+	vab build -c extras/cni -d extras/cni --ref stellarproject/cni:${VERSION}
+	vab build -c extras/node_exporter -d extras/node_exporter --ref stellarproject/node_exporter:${VERSION}
+	vab build -c extras/buildkit -d extras/buildkit --ref stellarproject/buildkit:${VERSION}
+	vab build -d extras/criu -c extras/criu --ref stellarproject/criu:${VERSION}
 
 kernel: FORCE
-	vab build --arg KERNEL_VERSION=${KERNEL} -c kernel -d kernel -p --ref docker.io/stellarproject/kernel:${KERNEL}
+	vab build --arg KERNEL_VERSION=${KERNEL} -c kernel -d kernel --push --ref docker.io/stellarproject/kernel:${KERNEL}
 
 os: FORCE
-	vab build -c os -d os -p --ref docker.io/stellarproject/terraos:${VERSION} --arg KERNEL_VERSION=${KERNEL} --arg VERSION=${VERSION}
+	vab build -c os -d os --push --ref docker.io/stellarproject/terraos:${VERSION} --arg KERNEL_VERSION=${KERNEL} --arg VERSION=${VERSION}
 
-terra: FORCE
-	@cd cmd && CGO_ENABLED=0 go build -v -ldflags '-s -w -extldflags "-static"' -o ../build/terra
-	vab build -p -c cmd -d cmd --ref docker.io/stellarproject/terra:${VERSION}
+local: FORCE
+	@cd cmd/terra && CGO_ENABLED=0 go build -v -ldflags '${GO_LDFLAGS}' -o ../../build/terra
+	@cd cmd/vab && CGO_ENABLED=0 go build -v -ldflags '${GO_LDFLAGS}' -o ../../build/vab
+
+cmd: FORCE
+	vab build --push -d cmd --ref stellarproject/terracmd:${VERSION}
 
 install:
 	@install build/terra /usr/local/sbin/terra
+	@install build/vab /usr/local/bin/vab
 
 clean:
 	@rm -fr build/

@@ -26,10 +26,11 @@
 # THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 ARG KERNEL_VERSION
+ARG VERSION
 
 # ------------------ imports ------------------------------ #
+FROM stellarproject/terracmd:$VERSION as terra
 FROM docker.io/stellarproject/kernel:$KERNEL_VERSION as kernel
-FROM docker.io/stellarproject/terra:latest as terra
 
 # ------------------ live liveos -------------------------- #
 FROM alpine:latest as liveos
@@ -62,12 +63,18 @@ RUN echo 'root:root' | chpasswd
 
 # ------------------ squasher ---------------------------- #
 FROM ubuntu:18.10 as squasher
+ARG KERNEL_VERSION
 
 RUN apt update && \
 	apt install -y squashfs-tools
 
+RUN --mount=type=bind,from=kernel,target=/tmp dpkg -i \
+	/tmp/linux-headers-$KERNEL_VERSION-terra_$KERNEL_VERSION-terra-1_amd64.deb \
+	/tmp/linux-image-$KERNEL_VERSION-terra_$KERNEL_VERSION-terra-1_amd64.deb
+
 RUN --mount=type=bind,from=liveos,target=/rootfs,rw \
 	mkdir -p /rootfs/proc /rootfs/sys /rootfs/run && \
+	cp -R /lib/modules /rootfs/lib/ && \
 	mksquashfs /rootfs live.sqsh
 
 # ------------------ iso build --------------------------- #
@@ -112,6 +119,7 @@ ADD squashhook /etc/initramfs-tools/hooks/squash
 RUN chmod +x /etc/initramfs-tools/hooks/squash
 COPY --from=squasher /live.sqsh /live.sq
 ADD terra /etc/initramfs-tools/scripts/terra
+ADD btrfs /etc/initramfs-tools/scripts/btrfs
 ADD modules /etc/initramfs-tools/modules
 RUN touch /etc/iscsi/iscsi.initramfs
 

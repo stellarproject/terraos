@@ -25,11 +25,14 @@
 
 FROM golang:1.12 as builder
 
-ADD . /go/src/github.com/stellarproject/terra
-WORKDIR /go/src/github.com/stellarproject/terra
+RUN apt update && apt install -y btrfs-tools
 
-RUN CGO_ENABLED=0 go build -v -ldflags '-s -w -extldflags "-static"'
+ADD . /go/src/github.com/stellarproject/terraos
+WORKDIR /go/src/github.com/stellarproject/terraos
+
+RUN make local
 
 FROM scratch
 
-COPY --from=builder /go/src/github.com/stellarproject/terra/terra /usr/local/sbin/
+COPY --from=builder /go/src/github.com/stellarproject/terraos/build/terra /usr/local/sbin/
+COPY --from=builder /go/src/github.com/stellarproject/terraos/build/vab /usr/local/bin/
