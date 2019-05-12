@@ -28,7 +28,6 @@
 package main
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"syscall"
@@ -61,20 +60,4 @@ func after(clix *cli.Context) error {
 		time.Sleep(300 * time.Millisecond)
 	}
 	return errors.New("unable to remove mount")
-}
-
-func writeDockerfile(ctx *OSContext, tmpl string) (string, error) {
-	tmp, err := ioutil.TempDir("", "osb-")
-	if err != nil {
-		return "", err
-	}
-	f, err := os.Create(filepath.Join(tmp, "Dockerfile"))
-	if err != nil {
-		return "", err
-	}
-	defer f.Close()
-	if err := render(f, tmpl, ctx); err != nil {
-		return "", err
-	}
-	return tmp, nil
 }
