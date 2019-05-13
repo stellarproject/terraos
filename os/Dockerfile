@@ -73,7 +73,7 @@ RUN --mount=type=bind,from=kernel,target=/tmp dpkg -i \
         /tmp/linux-headers-${KERNEL_VERSION}-terra_${KERNEL_VERSION}-terra-1_amd64.deb \
         /tmp/linux-image-${KERNEL_VERSION}-terra_${KERNEL_VERSION}-terra-1_amd64.deb \
         /tmp/linux-libc-dev_${KERNEL_VERSION}-terra-1_amd64.deb && \
-        cp /tmp/wg /usr/local/bin/
+        cp /tmp/wg* /usr/local/bin/
 
 ADD 01-netcfg.yaml  /etc/netplan
 
@@ -108,6 +108,6 @@ COPY --from=orbit / /
 COPY --from=containerd / /
 COPY --from=criu / /
 
-RUN systemctl enable containerd node_exporter ssh
+RUN systemctl enable containerd node_exporter ssh orbit
 
 CMD ["/sbin/init"]
