@@ -48,7 +48,7 @@ RUN apk update && \
 	ca-certificates \
 	grub-bios
 
-COPY --from=terra /usr/local/sbin/terra /bin/
+COPY --from=terra / /
 ADD interfaces /etc/network/interfaces
 RUN rm /sbin/init
 ADD resolv.conf /etc/resolv.conf

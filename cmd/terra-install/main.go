@@ -75,6 +75,11 @@ Terra OS management`
 			Usage: "enable debug output in the logs",
 		},
 		cli.StringFlag{
+			Name:  "device",
+			Usage: "device name",
+			Value: "/dev/sda1",
+		},
+		cli.StringFlag{
 			Name:  "fs-type",
 			Usage: "set the filesystem type",
 			Value: "ext4",
@@ -94,14 +99,19 @@ Terra OS management`
 		var (
 			version  = repo.Version()
 			logger   = logrus.WithField("repo", repo)
-			unpackTo = clix.Args().Get(1)
+			unpackTo = "/sd"
 		)
+		if err := syscall.Mount(clix.GlobalString("device"), unpackTo, clix.GlobalString("fs-type"), 0, ""); err != nil {
+			return errors.Wrap(err, "mount device")
+		}
+		defer syscall.Unmount("/sd", 0)
+
 		if clix.GlobalString("fs-type") == "btrfs" {
 			unpackTo = filepath.Join(unpackTo, "submount")
 			if err := os.MkdirAll(unpackTo, 0755); err != nil {
 				return errors.Wrap(err, "mkdir submount")
 			}
-			if err := createSubvolumes(version, clix.Args().Get(1)); err != nil {
+			if err := createSubvolumes(version, "/sd"); err != nil {
 				return errors.Wrap(err, "create subvolumes")
 			}
 			paths, err := mountSubvolumes(clix.String("device"), version, unpackTo)
@@ -116,12 +126,13 @@ Terra OS management`
 		}
 
 		logger.Info("creating new content store")
-		storePath := filepath.Join(clix.Args().Get(1), "terra-content")
+		storePath := filepath.Join("/sd", "terra-content")
 		store, err := cmd.NewContentStore(storePath)
 		if err != nil {
 			return errors.Wrap(err, "new content store")
 		}
-		defer os.RemoveAll(storePath)
+		// we will keep the content store for faster lookups
+		// TODO: add content purge command to this binary
 
 		ctx := cmd.CancelContext()
 		desc, err := cmd.Fetch(ctx, clix.Bool("http"), store, string(repo))
@@ -145,11 +156,18 @@ var subvolumes = map[string]string{
 func createSubvolumes(version, path string) error {
 	for d := range subvolumes {
 		sv := filepath.Join(path, d)
+		if _, err := os.Stat(sv); err == nil {
+			continue
+		}
 		if err := btrfs("subvolume", "create", sv); err != nil {
 			return err
 		}
 	}
 	vp := filepath.Join(path, version)
+	if _, err := os.Stat(vp); err == nil {
+		return errors.New("version already installed")
+	}
+
 	return btrfs("subvolume", "create", vp)
 }
 

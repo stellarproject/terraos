@@ -1,9 +1,10 @@
 id = "example"
-version = "2"
-os = "docker.io/stellarproject/terraos:v9"
+version = "4"
+os = "docker.io/stellarproject/terraos:v10"
 repo = "docker.io/stellarproject"
 userland = """
 RUN echo 'terra:terra' | chpasswd
 """
+
 [fs]
 	type = "btrfs"

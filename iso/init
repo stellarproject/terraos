@@ -33,4 +33,5 @@ ip link set lo up
 rm /dev/console
 ln -s /dev/ttyS0 /dev/console
 
+export PATH=$PATH:/usr/local/bin:/usr/local/sbin
 exec /bin/sh
