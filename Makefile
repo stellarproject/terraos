@@ -38,11 +38,11 @@ all: clean local
 FORCE:
 
 extras: FORCE
-	vab build -c extras/containerd -d extras/containerd --ref stellarproject/containerd:${VERSION}
-	vab build -c extras/cni -d extras/cni --ref stellarproject/cni:${VERSION}
-	vab build -c extras/node_exporter -d extras/node_exporter --ref stellarproject/node_exporter:${VERSION}
-	vab build -c extras/buildkit -d extras/buildkit --ref stellarproject/buildkit:${VERSION}
-	vab build -d extras/criu -c extras/criu --ref stellarproject/criu:${VERSION}
+	vab build -p -c extras/containerd -d extras/containerd --ref stellarproject/containerd:${VERSION}
+	vab build -p -c extras/cni -d extras/cni --ref stellarproject/cni:${VERSION}
+	vab build -p -c extras/node_exporter -d extras/node_exporter --ref stellarproject/node_exporter:${VERSION}
+	vab build -p -c extras/buildkit -d extras/buildkit --ref stellarproject/buildkit:${VERSION}
+	vab build -p -d extras/criu -c extras/criu --ref stellarproject/criu:${VERSION}
 
 kernel: FORCE
 	vab build --arg KERNEL_VERSION=${KERNEL} -c kernel -d kernel --push --ref docker.io/stellarproject/kernel:${KERNEL}
