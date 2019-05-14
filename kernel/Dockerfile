@@ -49,7 +49,7 @@ RUN apt-get update && apt-get install -y \
 ENV WIREGUARD_VERSION=0.0.20190406
 ENV WIREGUARD_URL=https://git.zx2c4.com/WireGuard/snapshot/WireGuard-${WIREGUARD_VERSION}.tar.xz
 
-RUN curl -SsL -o linux.tar.xz https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.1.tar.xz
+RUN curl -SsL -o linux.tar.xz https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-${KERNEL_VERSION}.tar.xz
 
 RUN mkdir /linux && \
 	tar --strip-components=1 -xpf linux.tar.xz -C /linux

@@ -28,49 +28,50 @@
 package main
 
 import (
-	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+	"strconv"
 
-	"github.com/gomodule/redigo/redis"
 	"github.com/pkg/errors"
-)
-
-const (
-	dnsFormat     = "stellarproject.io/dns.%s"
-	serviceFormat = "stellarproject.io/container.%s"
 )
 
 type service struct {
 	Name string
 	IP   string
-	Port int64
+	Port int
 }
 
-func fetchServices(pool *redis.Pool, id string) ([]service, error) {
-	conn := pool.Get()
-	defer conn.Close()
-
-	values, err := redis.Strings(conn.Do("SMEMBERS", fmt.Sprintf(dnsFormat, id)))
+func fetchServices(id string) ([]service, error) {
+	path := filepath.Join("/cluster/service", id, "containers")
+	containers, err := ioutil.ReadDir(path)
 	if err != nil {
-		return nil, err
+		if os.IsNotExist(err) {
+			return nil, errors.Errorf("service %q does not exist", id)
+		}
+		return nil, errors.Wrapf(err, "read %s", path)
 	}
-	if len(values) == 0 {
-		return nil, errors.Errorf("service %q does not exist", id)
+	rport, err := ioutil.ReadFile(filepath.Join("/cluster/service", id, "port"))
+	if err != nil {
+		return nil, errors.Wrap(err, "read port")
+	}
+	port, err := strconv.Atoi(string(rport))
+	if err != nil {
+		return nil, errors.Wrap(err, "convert port to int")
 	}
 	var out []service
-	for _, name := range values {
-		key := fmt.Sprintf(serviceFormat, id)
-		ip, err := redis.String(conn.Do("HGET", key, "ip"))
+	for _, i := range containers {
+		name := i.Name()
+		ipp := filepath.Join(path, name, "ip")
+
+		ip, err := ioutil.ReadFile(ipp)
 		if err != nil {
-			return nil, err
-		}
-		port, err := redis.Int64(conn.Do("HGET", key, fmt.Sprintf("service:%s", name)))
-		if err != nil {
-			return nil, err
+			return nil, errors.Wrapf(err, "read ip from %s", ipp)
 		}
 		out = append(out, service{
 			Name: name,
 			Port: port,
-			IP:   ip,
+			IP:   string(ip),
 		})
 	}
 	return out, nil

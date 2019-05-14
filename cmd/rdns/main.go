@@ -36,7 +36,6 @@ import (
 	"time"
 
 	"github.com/getsentry/raven-go"
-	"github.com/gomodule/redigo/redis"
 	"github.com/sirupsen/logrus"
 	"github.com/stellarproject/terraos/version"
 	"github.com/urfave/cli"
@@ -46,7 +45,7 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "rdns"
 	app.Version = version.Version
-	app.Usage = "redis backed dns server"
+	app.Usage = "dns server"
 	app.Flags = []cli.Flag{
 		cli.BoolFlag{
 			Name:  "debug",
@@ -90,11 +89,6 @@ func main() {
 				"8.8.4.4:53",
 			},
 		},
-		cli.StringFlag{
-			Name:  "redis,r",
-			Usage: "redis address",
-			Value: "127.0.0.1:9300",
-		},
 	}
 	app.Before = func(clix *cli.Context) error {
 		if clix.GlobalBool("debug") {
@@ -107,11 +101,7 @@ func main() {
 		return nil
 	}
 	app.Action = func(clix *cli.Context) error {
-		pool := redis.NewPool(func() (redis.Conn, error) {
-			return redis.Dial("tcp", clix.GlobalString("redis"))
-		}, 5)
-
-		srv := New(pool)
+		srv := New()
 
 		srv.IP = clix.GlobalString("address")
 		srv.Port = clix.GlobalInt("port")

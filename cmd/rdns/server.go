@@ -33,12 +33,11 @@ import (
 	"net"
 	"time"
 
-	"github.com/gomodule/redigo/redis"
 	mdns "github.com/miekg/dns"
 	"github.com/sirupsen/logrus"
 )
 
-func New(pool *redis.Pool) *Server {
+func New() *Server {
 	return &Server{
 		IP:      "0.0.0.0",
 		Port:    53,
@@ -49,7 +48,6 @@ func New(pool *redis.Pool) *Server {
 			"8.8.8.8:53",
 			"8.8.4.4:53",
 		},
-		pool: pool,
 	}
 }
 
@@ -61,8 +59,6 @@ type Server struct {
 	TTL         uint32
 	Nameservers []string
 	Domain      string
-
-	pool *redis.Pool
 }
 
 func (s *Server) Serve(ctx context.Context) error {
@@ -81,10 +77,8 @@ func (s *Server) Serve(ctx context.Context) error {
 	}()
 	select {
 	case err := <-errCh:
-		s.pool.Close()
 		return err
 	case <-ctx.Done():
-		s.pool.Close()
 		return ctx.Err()
 	}
 }
@@ -105,7 +99,7 @@ func (s *Server) ServeDNS(w mdns.ResponseWriter, req *mdns.Msg) {
 	}
 
 	m.SetReply(req)
-	services, err := fetchServices(s.pool, key.Name)
+	services, err := fetchServices(key.Name)
 	if err != nil {
 		logrus.WithError(err).Error("dns: fetch service")
 		m.SetRcode(req, mdns.RcodeNameError)
