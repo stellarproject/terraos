@@ -25,7 +25,7 @@
 
 FROM golang:1.12 as cni
 
-RUN go get -d github.com/containernetworking/plugins || true
+RUN git clone https://github.com/crosbymichael/plugins /go/src/github.com/containernetworking/plugins
 WORKDIR /go/src/github.com/containernetworking/plugins
 
 RUN ./build_linux.sh
