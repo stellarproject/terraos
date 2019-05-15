@@ -64,6 +64,7 @@ RUN systemctl enable {{$s}}
 ADD hostname /etc/hostname
 ADD hosts /etc/hosts
 ADD fstab /etc/fstab
+{{if .ResolvConf}}ADD resolv.conf /etc/resolv.conf{{end}}
 ADD 01-netcfg.yaml /etc/netplan/
 
 RUN mkdir -p /home/terra/.ssh /var/log /var/lib/containerd
@@ -87,26 +88,28 @@ type Component struct {
 }
 
 type OSContext struct {
-	Base     string
-	Userland string
-	Imports  []*Component
-	Kernel   string
-	Init     string
-	Hostname string
+	Base       string
+	Userland   string
+	Imports    []*Component
+	Kernel     string
+	Init       string
+	Hostname   string
+	ResolvConf bool
 }
 
 type ServerConfig struct {
-	ID         string       `toml:"id"`
-	Version    string       `toml:"version"`
-	Repo       string       `toml:"repo"`
-	OS         string       `toml:"os"`
-	Components []*Component `toml:"components"`
-	Userland   string       `toml:"userland"`
-	Init       string       `toml:"init"`
-	SSH        SSH          `toml:"ssh"`
-	PXE        *PXE         `toml:"pxe"`
-	Netplan    Netplan      `toml:"netplan"`
-	FS         FS           `toml:"fs"`
+	ID          string       `toml:"id"`
+	Version     string       `toml:"version"`
+	Repo        string       `toml:"repo"`
+	OS          string       `toml:"os"`
+	Components  []*Component `toml:"components"`
+	Userland    string       `toml:"userland"`
+	Init        string       `toml:"init"`
+	SSH         SSH          `toml:"ssh"`
+	PXE         *PXE         `toml:"pxe"`
+	Netplan     Netplan      `toml:"netplan"`
+	FS          FS           `toml:"fs"`
+	Nameservers []string     `toml:"nameservers"`
 }
 
 type SSH struct {
@@ -210,6 +213,26 @@ func setupSSH(path string, ssh SSH, paths *[]string) error {
 			return err
 		}
 		f.Close()
+	}
+	return nil
+}
+
+func setupResolvConf(path string, nameservers []string, paths *[]string) error {
+	p := filepath.Join(path, "resolv.conf")
+	f, err := os.Create(p)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	*paths = append(*paths, p)
+
+	if nameservers == nil {
+		return nil
+	}
+	for _, ns := range nameservers {
+		if _, err := fmt.Fprintf(f, "nameserver %s\n", ns); err != nil {
+			return err
+		}
 	}
 	return nil
 }

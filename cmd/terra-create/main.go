@@ -106,10 +106,11 @@ Terra OS management`
 			ctx   = cmd.CancelContext()
 		)
 		osCtx := &OSContext{
-			Base:     config.OS,
-			Userland: config.Userland,
-			Init:     config.Init,
-			Hostname: config.ID,
+			Base:       config.OS,
+			Userland:   config.Userland,
+			Init:       config.Init,
+			Hostname:   config.ID,
+			ResolvConf: len(config.Nameservers) > 0,
 		}
 		defer func() {
 			for _, p := range paths {
@@ -137,7 +138,9 @@ Terra OS management`
 		if err := setupFstab(abs, config.FS, &paths); err != nil {
 			return err
 		}
-
+		if err := setupResolvConf(abs, config.Nameservers, &paths); err != nil {
+			return err
+		}
 		cmd := exec.CommandContext(ctx, "vab", "build",
 			"-c", abs,
 			"--ref", fmt.Sprintf("%s/%s:%s", config.Repo, config.ID, config.Version),

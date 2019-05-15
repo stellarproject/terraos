@@ -101,6 +101,9 @@ Terra OS management`
 			logger   = logrus.WithField("repo", repo)
 			unpackTo = "/sd"
 		)
+		if err := os.MkdirAll("/sd", 0755); err != nil {
+			return errors.Wrap(err, "create /sd")
+		}
 		if err := syscall.Mount(clix.GlobalString("device"), unpackTo, clix.GlobalString("fs-type"), 0, ""); err != nil {
 			return errors.Wrap(err, "mount device")
 		}
