@@ -85,6 +85,10 @@ Terra OS management`
 			Name:  "push",
 			Usage: "push the resulting image",
 		},
+		cli.StringFlag{
+			Name:  "userland,u",
+			Usage: "userland file path",
+		},
 	}
 	app.Before = func(clix *cli.Context) error {
 		if clix.GlobalBool("debug") {
@@ -111,6 +115,13 @@ Terra OS management`
 			Init:       config.Init,
 			Hostname:   config.ID,
 			ResolvConf: len(config.Nameservers) > 0,
+		}
+		if userland := clix.GlobalString("userland"); userland != "" {
+			data, err := ioutil.ReadFile(userland)
+			if err != nil {
+				return err
+			}
+			osCtx.Userland = string(data)
 		}
 		defer func() {
 			for _, p := range paths {
