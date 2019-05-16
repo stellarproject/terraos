@@ -62,8 +62,6 @@ RUN apt update && apt upgrade -y && \
 	curl \
 	pigz \
 	git \
-	htop \
-	tmux \
 	apparmor \
 	libnl-3-dev \
 	libnet-dev \
