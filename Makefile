@@ -27,10 +27,11 @@ REVISION=$(shell git rev-parse HEAD)
 VERSION=v10
 GO_LDFLAGS=-s -w -X github.com/stellarproject/terraos/version.Version=$(VERSION) -X github.com/stellarproject/terraos/version.Revision=$(REVISION)
 KERNEL=5.1.0
+REPO=stellarproject
 
 all: clean local
 	@mkdir -p build
-	@cd iso && vab build --local --arg KERNEL_VERSION=${KERNEL} --arg VERSION=${VERSION}
+	@cd iso && vab build --local --arg KERNEL_VERSION=${KERNEL} --arg VERSION=${VERSION} --arg REPO=${REPO}
 	@mv iso/tftp build/tftp
 	@rm -f ./build/terra-${VERSION}.iso
 	@cd ./build && ln -s ./tftp/terra.iso terra-${VERSION}.iso
@@ -38,17 +39,17 @@ all: clean local
 FORCE:
 
 extras: FORCE
-	vab build -p -c extras/containerd -d extras/containerd --ref stellarproject/containerd:${VERSION}
-	vab build -p -c extras/cni -d extras/cni --ref stellarproject/cni:${VERSION}
-	vab build -p -c extras/node_exporter -d extras/node_exporter --ref stellarproject/node_exporter:${VERSION}
-	vab build -p -c extras/buildkit -d extras/buildkit --ref stellarproject/buildkit:${VERSION}
-	vab build -p -d extras/criu -c extras/criu --ref stellarproject/criu:${VERSION}
+	vab build -p -c extras/containerd -d extras/containerd --ref ${REPO}/containerd:${VERSION}
+	vab build -p -c extras/cni -d extras/cni --ref ${REPO}/cni:${VERSION}
+	vab build -p -c extras/node_exporter -d extras/node_exporter --ref ${REPO}/node_exporter:${VERSION}
+	vab build -p -c extras/buildkit -d extras/buildkit --ref ${REPO}/buildkit:${VERSION}
+	vab build -p -d extras/criu -c extras/criu --ref ${REPO}/criu:${VERSION}
 
 kernel: FORCE
-	vab build --arg KERNEL_VERSION=${KERNEL} -c kernel -d kernel --push --ref docker.io/stellarproject/kernel:${KERNEL}
+	vab build --arg KERNEL_VERSION=${KERNEL} -c kernel -d kernel --push --ref ${REPO}/kernel:${KERNEL}
 
 os: FORCE
-	vab build -c os -d os --push --ref docker.io/stellarproject/terraos:${VERSION} --arg KERNEL_VERSION=${KERNEL} --arg VERSION=${VERSION}
+	vab build -c os -d os --push --ref ${REPO}/terraos:${VERSION} --arg KERNEL_VERSION=${KERNEL} --arg VERSION=${VERSION} --arg REPO=${REPO}
 
 local: FORCE
 	@cd cmd/terra && CGO_ENABLED=0 go build -v -ldflags '${GO_LDFLAGS}' -o ../../build/terra
@@ -58,7 +59,7 @@ local: FORCE
 	@cd cmd/rdns && CGO_ENABLED=0 go build -v -ldflags '${GO_LDFLAGS}' -o ../../build/rdns
 
 cmd: FORCE
-	vab build --push -d cmd --ref stellarproject/terracmd:${VERSION}
+	vab build --push -d cmd --ref ${REPO}/terracmd:${VERSION}
 
 install:
 	@install build/terra* /usr/local/sbin/

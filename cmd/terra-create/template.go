@@ -28,6 +28,8 @@
 package main
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"net/http"
@@ -38,10 +40,6 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/pkg/errors"
-)
-
-const (
-	defaultRepo = "stellarproject"
 )
 
 const serverTemplate = `# syntax=docker/dockerfile:experimental
@@ -82,8 +80,7 @@ ff02::1         ip6-allnodes
 ff02::2         ip6-allrouters`
 
 type Component struct {
-	Name    string   `toml:"name"`
-	Version string   `toml:"version"`
+	Image   string   `toml:"image"`
 	Systemd []string `toml:"systemd"`
 }
 
@@ -120,12 +117,10 @@ type FS struct {
 	Type string `toml:"type"`
 }
 
-func joinImage(i, name, version string) string {
-	return fmt.Sprintf("%s/%s:%s", i, name, version)
-}
-
 func cname(c Component) string {
-	return c.Name
+	h := md5.New()
+	h.Write([]byte(c.Image))
+	return hex.EncodeToString(h.Sum(nil))
 }
 
 func cmdargs(args []string) string {
@@ -133,7 +128,7 @@ func cmdargs(args []string) string {
 }
 
 func imageName(c Component) string {
-	return joinImage(defaultRepo, c.Name, c.Version)
+	return c.Image
 }
 
 func render(w io.Writer, tmp string, ctx *OSContext) error {
@@ -158,11 +153,6 @@ func loadServerConfig(path string) (*ServerConfig, error) {
 	}
 	if c.OS == "" {
 		return nil, errors.New("no os defined")
-	}
-	for _, i := range c.Components {
-		if i.Version == "" {
-			i.Version = c.Version
-		}
 	}
 	return &c, nil
 }

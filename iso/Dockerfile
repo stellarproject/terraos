@@ -27,10 +27,11 @@
 
 ARG KERNEL_VERSION
 ARG VERSION
+ARG REPO
 
 # ------------------ imports ------------------------------ #
-FROM stellarproject/terracmd:$VERSION as terra
-FROM docker.io/stellarproject/kernel:$KERNEL_VERSION as kernel
+FROM $REPO/terracmd:$VERSION as terra
+FROM $REPO/kernel:$KERNEL_VERSION as kernel
 
 # ------------------ live liveos -------------------------- #
 FROM alpine:latest as liveos
