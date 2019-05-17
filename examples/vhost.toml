@@ -1,0 +1,28 @@
+id = "terra"
+image = "docker.io/stellarproject/terra:18.10"
+
+uid = 0
+gid = 0
+privileged = true
+
+[network]
+	type = "bridge"
+	name = "orbit0"
+	bridge = "ob0"
+	[network.ipam]
+		type = "host-local"
+		subnet = "10.10.0.0/24"
+
+[volumes]
+	[volumes.lib]
+	rw = true
+	destination = "/var/lib/containerd"
+
+[services]
+	[services.ssh]
+		port = 22
+		labels = ["dev"]
+
+[resources]
+	cpu = 1.0
+	memory = 128
