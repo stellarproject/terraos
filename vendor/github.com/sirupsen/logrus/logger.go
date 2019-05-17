@@ -200,7 +200,7 @@ func (logger *Logger) Info(args ...interface{}) {
 
 func (logger *Logger) Print(args ...interface{}) {
 	entry := logger.newEntry()
-	entry.Print(args...)
+	entry.Info(args...)
 	logger.releaseEntry(entry)
 }
 
@@ -256,7 +256,7 @@ func (logger *Logger) Warnln(args ...interface{}) {
 }
 
 func (logger *Logger) Warningln(args ...interface{}) {
-	logger.Warnln(args...)
+	logger.Warn(args...)
 }
 
 func (logger *Logger) Errorln(args ...interface{}) {

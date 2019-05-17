@@ -23,6 +23,7 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH
 # THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+PACKAGES=$(shell go list ./... | grep -v /vendor/)
 REVISION=$(shell git rev-parse HEAD)
 VERSION=v10
 GO_LDFLAGS=-s -w -X github.com/stellarproject/terraos/version.Version=$(VERSION) -X github.com/stellarproject/terraos/version.Revision=$(REVISION)
@@ -64,6 +65,25 @@ cmd: FORCE
 install:
 	@install build/terra* /usr/local/sbin/
 	@install build/vab /usr/local/bin/vab
+	@install build/ob /usr/local/bin/
+	@install build/orbit-log /usr/local/bin/
+	@install build/orbit-server /usr/local/bin/
+	@install build/orbit-network /usr/local/bin/
 
 clean:
 	@rm -fr build/
+
+protos:
+	protobuild --quiet ${PACKAGES}
+
+orbit-release: FORCE
+	vab build -p --ref docker.io/stellarproject/orbit:v10
+
+orbit-latest: FORCE
+	vab build -p --ref docker.io/stellarproject/orbit:latest
+
+orbit:
+	go build -o build/orbit-server -v -ldflags '${GO_LDFLAGS}' github.com/stellarproject/terraos/cmd/orbit-server
+	go build -o build/ob -v -ldflags '${GO_LDFLAGS}' github.com/stellarproject/terraos/cmd/ob
+	go build -o build/orbit-log -v -ldflags '${GO_LDFLAGS}' github.com/stellarproject/terraos/cmd/orbit-log
+	gcc -static -o build/orbit-network cmd/orbit-network/main.c

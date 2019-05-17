@@ -30,14 +30,9 @@ $ ltag -t ./license-templates
 
 The above will add the appropriate licenses to Go files. New templates will
 need to be added if other kinds of files are added. Please consult the
-documentation at https://github.com/kunalkushwaha/ltag
+documentation at https://github.com/
 
-## Project details
+# License
 
-btrfs is a containerd sub-project, licensed under the [Apache 2.0 license](./LICENSE).
-As a containerd sub-project, you will find the:
- * [Project governance](https://github.com/containerd/project/blob/master/GOVERNANCE.md),
- * [Maintainers](https://github.com/containerd/project/blob/master/MAINTAINERS),
- * and [Contributing guidelines](https://github.com/containerd/project/blob/master/CONTRIBUTING.md)
-
-information in our [`containerd/project`](https://github.com/containerd/project) repository.
+The copyright to this repository is held by the The containerd Authors and the
+codebase is released under the [Apache 2.0 license](LICENSE).

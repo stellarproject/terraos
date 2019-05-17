@@ -1,0 +1,216 @@
+syntax = "proto3";
+
+package io.orbit.v1;
+
+import weak "gogoproto/gogo.proto";
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/any.proto";
+
+option go_package = "github.com/stellarproject/terraos/api/v1;v1";
+
+service Agent {
+	rpc Create(CreateRequest) returns (google.protobuf.Empty);
+	rpc Delete(DeleteRequest) returns (google.protobuf.Empty);
+	rpc Get(GetRequest) returns (GetResponse);
+	rpc Kill(KillRequest) returns (google.protobuf.Empty);
+	rpc List(ListRequest) returns (ListResponse);
+	rpc Start(StartRequest) returns (google.protobuf.Empty);
+	rpc Stop(StopRequest) returns (google.protobuf.Empty);
+
+	rpc Update(UpdateRequest) returns (UpdateResponse);
+	rpc Rollback(RollbackRequest) returns (RollbackResponse);
+
+	rpc Push(PushRequest) returns (google.protobuf.Empty);
+
+	rpc Checkpoint(CheckpointRequest) returns (CheckpointResponse);
+	rpc Restore(RestoreRequest) returns (RestoreResponse);
+	rpc Migrate(MigrateRequest) returns (MigrateResponse);
+}
+
+message CreateRequest {
+	Container container = 1;
+	bool update = 2;
+}
+
+message DeleteRequest {
+	string id = 1 [(gogoproto.customname) = "ID"];
+}
+
+message GetRequest {
+	string id = 1 [(gogoproto.customname) = "ID"];
+}
+
+message GetResponse {
+	ContainerInfo container = 1;
+}
+
+message KillRequest {
+	string id = 1 [(gogoproto.customname) = "ID"];
+	uint32 signal = 2;
+}
+
+message ListRequest {
+
+}
+
+message ListResponse {
+	repeated ContainerInfo containers = 1;
+}
+
+message ContainerInfo {
+	string id = 1 [(gogoproto.customname) = "ID"];
+	string image = 2;
+	string status = 3;
+	repeated string services = 4;
+	uint64 cpu = 5;
+	double memory_usage = 6;
+	double memory_limit = 7;
+	uint64 pid_usage = 8;
+	uint64 pid_limit = 9;
+	int64 fs_size = 10;
+	Container config = 11;
+	repeated Snapshot snapshots = 12;
+	string ip = 13 [(gogoproto.customname) = "IP"];
+}
+
+message Snapshot {
+	string id = 1 [(gogoproto.customname) = "ID"];
+	google.protobuf.Timestamp created = 2 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
+	string previous = 3;
+	int64 fs_size = 4;
+}
+
+message RollbackRequest {
+	string id = 1 [(gogoproto.customname) = "ID"];
+}
+
+message RollbackResponse {
+	Container container = 1;
+}
+
+message StartRequest {
+	string id = 1 [(gogoproto.customname) = "ID"];
+}
+
+message StopRequest {
+	string id = 1 [(gogoproto.customname) = "ID"];
+}
+
+message UpdateRequest {
+	Container container = 1;
+}
+
+message UpdateResponse {
+	Container container = 1;
+}
+
+message PushRequest {
+	string ref = 1;
+}
+
+
+message CheckpointRequest {
+	string id = 1 [(gogoproto.customname) = "ID"];
+	string ref = 2;
+	bool live = 3;
+	bool exit = 4;
+}
+
+message CheckpointResponse {
+
+}
+
+message RestoreRequest {
+	string ref = 1;
+	bool live = 2;
+}
+
+message RestoreResponse {
+}
+
+message MigrateRequest {
+	string id = 1 [(gogoproto.customname) = "ID"];
+	string ref = 2;
+	bool live = 3;
+	bool stop = 4;
+	string to = 5;
+	bool delete = 6;
+}
+
+message MigrateResponse {
+}
+
+message HostNetwork {
+
+}
+
+message CNIIPAM {
+	string type = 1;
+	string Subnet = 2;
+	string gateway = 3;
+	string subnet_range = 4;
+}
+
+message CNINetwork {
+	string type = 1;
+	string name = 2;
+	CNIIPAM ipam =3 [(gogoproto.customname) = "IPAM"];
+	string master = 4;
+	string bridge = 5;
+}
+
+message Security {
+	bool privileged = 1;
+	repeated string capabilities = 2;
+}
+
+message Container {
+	string id = 1 [(gogoproto.customname) = "ID"];
+	string image = 2;
+	repeated google.protobuf.Any networks = 3;
+	Process process = 4;
+	repeated Mount mounts = 5;
+	Resources resources = 6;
+	GPUs gpus = 7;
+	repeated string services = 8;
+	repeated ConfigFile configs = 9;
+	bool readonly = 10;
+	Security security = 11;
+}
+
+message ConfigFile {
+	string id = 1 [(gogoproto.customname) = "ID"];
+	string path = 2;
+}
+
+message GPUs {
+	repeated int64 devices = 1;
+	repeated string capabilities = 2;
+}
+
+message Resources {
+	double cpus = 1;
+	int64 memory = 2;
+	int64 score = 3;
+	uint64 no_file = 4;
+}
+
+message Mount {
+	string type = 1;
+	string source = 2;
+	string destination = 3;
+	repeated string options = 4;
+}
+
+message Process {
+	User user = 1;
+	repeated string args = 2;
+	repeated string env = 3;
+	bool pty = 4;
+}
+
+message User {
+	uint32 uid = 1;
+	uint32 gid = 2;
+}
