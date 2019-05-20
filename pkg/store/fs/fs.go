@@ -28,6 +28,7 @@
 package fs
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -69,10 +70,12 @@ func (f *FS) Get(key string) (store.Item, error) {
 
 func (f *FS) GetOrCreate(key string) (store.Item, error) {
 	p := f.resolveKey(key)
+	fmt.Println("------", p)
 	if _, err := os.Stat(p); err != nil {
 		if !os.IsNotExist(err) {
 			return nil, err
 		}
+		fmt.Println("create", p)
 		f, err := os.Create(p)
 		if err != nil {
 			return nil, err

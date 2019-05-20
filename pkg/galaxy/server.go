@@ -155,8 +155,9 @@ func (s *Server) Serve9P(session *styx.Session) {
 		r := session.Request()
 		_, f, err := s.router.handle(r.Path(), r)
 		if err != nil {
-			r.Rerror(err.Error())
-			continue
+			fmt.Println("---", r.Path(), err)
+			// r.Rerror(err.Error())
+			// continue
 		}
 		var fi os.FileInfo
 		switch v := f.(type) {
@@ -164,6 +165,8 @@ func (s *Server) Serve9P(session *styx.Session) {
 			fi = v
 		case *file:
 			fi = v
+		case nil:
+			fi = nil
 		default:
 			r.Rerror("unknown type received %T", v)
 			continue
@@ -171,11 +174,19 @@ func (s *Server) Serve9P(session *styx.Session) {
 		switch t := r.(type) {
 		case styx.Twalk:
 			fmt.Println("Twalk")
-			t.Rwalk(fi, nil)
+			if fi != nil {
+				t.Rwalk(fi, nil)
+			} else {
+				t.Rwalk(nil, os.ErrNotExist)
+			}
 		case styx.Tstat:
 			fmt.Println("Tstat")
 			fmt.Printf("Tstat fi %T\n", fi)
-			t.Rstat(fi, nil)
+			if fi != nil {
+				t.Rstat(fi, nil)
+			} else {
+				t.Rstat(nil, os.ErrNotExist)
+			}
 		case styx.Topen:
 			fmt.Println("Topen")
 			switch v := fi.(type) {
@@ -192,7 +203,7 @@ func (s *Server) Serve9P(session *styx.Session) {
 				if t.Mode.IsDir() {
 					t.Rcreate(&dir{}, nil)
 				} else {
-					f, err := s.backend.GetOrCreate(t.Path())
+					f, err := s.backend.GetOrCreate(t.Name)
 					if err != nil {
 						t.Rerror(err.Error())
 						continue
