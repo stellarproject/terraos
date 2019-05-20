@@ -57,6 +57,7 @@ local: FORCE
 	@cd cmd/terra-create && CGO_ENABLED=0 go build -v -ldflags '${GO_LDFLAGS}' -o ../../build/terra-create
 	@cd cmd/vab && CGO_ENABLED=0 go build -v -ldflags '${GO_LDFLAGS}' -o ../../build/vab
 	@cd cmd/rdns && CGO_ENABLED=0 go build -v -ldflags '${GO_LDFLAGS}' -o ../../build/rdns
+	@cd cmd/galaxy && CGO_ENABLED=0 go build -v -ldflags '${GO_LDFLAGS}' -o ../../build/galaxy
 
 cmd: FORCE
 	vab build --push -d cmd --ref ${REPO}/terracmd:${VERSION}
