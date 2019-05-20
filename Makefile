@@ -51,6 +51,7 @@ local: orbit
 	@cd cmd/terra && CGO_ENABLED=0 go build -v -ldflags '${GO_LDFLAGS}' -o ../../build/terra
 	@cd cmd/terra-install && CGO_ENABLED=0 go build -v -ldflags '${GO_LDFLAGS}' -o ../../build/terra-install
 	@cd cmd/rdns && CGO_ENABLED=0 go build -v -ldflags '${GO_LDFLAGS}' -o ../../build/rdns
+	@cd cmd/galaxy && CGO_ENABLED=0 go build -v -ldflags '${GO_LDFLAGS}' -o ../../build/galaxy
 
 install:
 	@install build/terra* /usr/local/sbin/
