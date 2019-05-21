@@ -76,9 +76,8 @@ func NewTarget(ctx context.Context, iqn IQN, tid int) (*Target, error) {
 type Target struct {
 	mu sync.Mutex
 
-	iqn  IQN
-	tid  int
-	luns []*Lun
+	iqn IQN
+	tid int
 }
 
 func (t *Target) IQN() IQN {
@@ -102,22 +101,20 @@ func (t *Target) AcceptAllInitiators(ctx context.Context) error {
 }
 
 // Attach a lun to the target
-func (t *Target) Attach(ctx context.Context, l *Lun) error {
+func (t *Target) Attach(ctx context.Context, l *Lun, lunID int) error {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-
-	l.lid = len(t.luns) + 1
 
 	if out, err := iscsi(ctx,
 		"--op", "new",
 		"--mode", "logicalunit",
 		"--tid", strconv.Itoa(t.tid),
-		"--lun", strconv.Itoa(l.lid),
+		"--lun", strconv.Itoa(lunID),
 		"-b", l.path,
 	); err != nil {
 		return errors.Wrapf(err, "%s", out)
 	}
-	t.luns = append(t.luns, l)
+	l.lid = lunID
 	return nil
 }
 

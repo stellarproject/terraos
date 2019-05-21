@@ -106,6 +106,84 @@ func (m *ProvisionNodeResponse) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_ProvisionNodeResponse proto.InternalMessageInfo
 
+type GetNodeRequest struct {
+	Hostname             string   `protobuf:"bytes,1,opt,name=hostname,proto3" json:"hostname,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *GetNodeRequest) Reset()      { *m = GetNodeRequest{} }
+func (*GetNodeRequest) ProtoMessage() {}
+func (*GetNodeRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_e56f073de834a377, []int{2}
+}
+func (m *GetNodeRequest) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *GetNodeRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_GetNodeRequest.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalTo(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *GetNodeRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GetNodeRequest.Merge(m, src)
+}
+func (m *GetNodeRequest) XXX_Size() int {
+	return m.Size()
+}
+func (m *GetNodeRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_GetNodeRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_GetNodeRequest proto.InternalMessageInfo
+
+type GetNodeResponse struct {
+	Node                 *Node    `protobuf:"bytes,1,opt,name=node,proto3" json:"node,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *GetNodeResponse) Reset()      { *m = GetNodeResponse{} }
+func (*GetNodeResponse) ProtoMessage() {}
+func (*GetNodeResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_e56f073de834a377, []int{3}
+}
+func (m *GetNodeResponse) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *GetNodeResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_GetNodeResponse.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalTo(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *GetNodeResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GetNodeResponse.Merge(m, src)
+}
+func (m *GetNodeResponse) XXX_Size() int {
+	return m.Size()
+}
+func (m *GetNodeResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_GetNodeResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_GetNodeResponse proto.InternalMessageInfo
+
 type Node struct {
 	Hostname             string      `protobuf:"bytes,1,opt,name=hostname,proto3" json:"hostname,omitempty"`
 	Mac                  string      `protobuf:"bytes,2,opt,name=mac,proto3" json:"mac,omitempty"`
@@ -121,7 +199,7 @@ type Node struct {
 func (m *Node) Reset()      { *m = Node{} }
 func (*Node) ProtoMessage() {}
 func (*Node) Descriptor() ([]byte, []int) {
-	return fileDescriptor_e56f073de834a377, []int{2}
+	return fileDescriptor_e56f073de834a377, []int{4}
 }
 func (m *Node) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -162,7 +240,7 @@ type Filesystem struct {
 func (m *Filesystem) Reset()      { *m = Filesystem{} }
 func (*Filesystem) ProtoMessage() {}
 func (*Filesystem) Descriptor() ([]byte, []int) {
-	return fileDescriptor_e56f073de834a377, []int{3}
+	return fileDescriptor_e56f073de834a377, []int{5}
 }
 func (m *Filesystem) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -202,7 +280,7 @@ type Subvolume struct {
 func (m *Subvolume) Reset()      { *m = Subvolume{} }
 func (*Subvolume) ProtoMessage() {}
 func (*Subvolume) Descriptor() ([]byte, []int) {
-	return fileDescriptor_e56f073de834a377, []int{4}
+	return fileDescriptor_e56f073de834a377, []int{6}
 }
 func (m *Subvolume) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -234,6 +312,8 @@ var xxx_messageInfo_Subvolume proto.InternalMessageInfo
 func init() {
 	proto.RegisterType((*ProvisionNodeRequest)(nil), "io.stellarproject.v1.ProvisionNodeRequest")
 	proto.RegisterType((*ProvisionNodeResponse)(nil), "io.stellarproject.v1.ProvisionNodeResponse")
+	proto.RegisterType((*GetNodeRequest)(nil), "io.stellarproject.v1.GetNodeRequest")
+	proto.RegisterType((*GetNodeResponse)(nil), "io.stellarproject.v1.GetNodeResponse")
 	proto.RegisterType((*Node)(nil), "io.stellarproject.v1.Node")
 	proto.RegisterType((*Filesystem)(nil), "io.stellarproject.v1.Filesystem")
 	proto.RegisterType((*Subvolume)(nil), "io.stellarproject.v1.Subvolume")
@@ -244,36 +324,39 @@ func init() {
 }
 
 var fileDescriptor_e56f073de834a377 = []byte{
-	// 460 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x53, 0x41, 0x8b, 0xd3, 0x40,
-	0x14, 0xee, 0xb4, 0xd9, 0x6a, 0x5f, 0x55, 0x64, 0xa8, 0x18, 0x0a, 0x66, 0x4b, 0xbc, 0x14, 0x17,
-	0x12, 0xdb, 0x3d, 0x8a, 0x08, 0x82, 0xca, 0x5e, 0x44, 0xb2, 0x08, 0xe2, 0xa5, 0x4c, 0xd3, 0x49,
-	0x3a, 0xda, 0xcc, 0xa4, 0xf3, 0x26, 0x01, 0xf7, 0xe4, 0xcd, 0x8b, 0x3f, 0xca, 0xe3, 0x1e, 0x3d,
-	0x7a, 0x74, 0xfb, 0x4b, 0x24, 0x93, 0xda, 0xed, 0x4a, 0x0e, 0xf5, 0xf6, 0xde, 0x37, 0xdf, 0x0b,
-	0xdf, 0xf7, 0xe5, 0x3d, 0x78, 0x9e, 0x0a, 0xb3, 0x2c, 0xe6, 0x41, 0xac, 0xb2, 0x10, 0x0d, 0x5f,
-	0xad, 0x98, 0xce, 0xb5, 0xfa, 0xc4, 0x63, 0x13, 0x1a, 0xae, 0x35, 0x53, 0x18, 0xb2, 0x5c, 0x84,
-	0xe5, 0x24, 0x14, 0x32, 0xd1, 0x0c, 0x8d, 0x2e, 0x62, 0x53, 0x68, 0x1e, 0xe4, 0x5a, 0x19, 0x45,
-	0x07, 0x42, 0x05, 0x37, 0xc7, 0x82, 0x72, 0x32, 0x1c, 0xa4, 0x2a, 0x55, 0x96, 0x10, 0x56, 0x55,
-	0xcd, 0xf5, 0xbf, 0x13, 0x18, 0xbc, 0xd3, 0xaa, 0x14, 0x28, 0x94, 0x7c, 0xab, 0x16, 0x3c, 0xe2,
-	0xeb, 0x82, 0xa3, 0xa1, 0x43, 0xb8, 0xbd, 0x54, 0x68, 0x24, 0xcb, 0xb8, 0x4b, 0x46, 0x64, 0xdc,
-	0x8b, 0x76, 0x3d, 0xbd, 0x0f, 0x9d, 0x8c, 0xc5, 0x6e, 0xdb, 0xc2, 0x55, 0x49, 0x07, 0x70, 0x24,
-	0x32, 0x96, 0x72, 0xb7, 0x63, 0xb1, 0xba, 0xa1, 0x4f, 0xa1, 0x9d, 0xa0, 0xeb, 0x8c, 0xc8, 0xb8,
-	0x3f, 0x1d, 0x05, 0x4d, 0xaa, 0x82, 0xd7, 0x62, 0xc5, 0xf1, 0x0b, 0x1a, 0x9e, 0x45, 0xed, 0x04,
-	0xfd, 0x37, 0xf0, 0xe0, 0x1f, 0x35, 0x98, 0x2b, 0x89, 0x9c, 0x06, 0xe0, 0x48, 0xb5, 0xa8, 0xa5,
-	0xf4, 0xa7, 0xc3, 0xe6, 0x8f, 0xd9, 0x09, 0xcb, 0xf3, 0x7f, 0x10, 0x70, 0xaa, 0xf6, 0x3f, 0x7d,
-	0x3c, 0x86, 0xbb, 0x42, 0x0a, 0x23, 0x98, 0x51, 0x7a, 0x26, 0xd6, 0x72, 0xeb, 0xe7, 0xce, 0x0e,
-	0x3c, 0x5b, 0x4b, 0xfa, 0x08, 0xc0, 0x30, 0x9d, 0x72, 0x63, 0x19, 0x8e, 0x65, 0xf4, 0x6a, 0xa4,
-	0x7a, 0xae, 0x5d, 0x1f, 0x1d, 0xee, 0xfa, 0x3a, 0xbd, 0xee, 0x5e, 0x7a, 0xfe, 0x37, 0x02, 0x70,
-	0x4d, 0xa4, 0xc7, 0xd0, 0x9f, 0xb3, 0xf8, 0xb3, 0x90, 0xe9, 0xac, 0xd0, 0x62, 0xeb, 0x05, 0xb6,
-	0xd0, 0x7b, 0x2d, 0xe8, 0x43, 0xb8, 0x95, 0xe0, 0x0c, 0xc5, 0x05, 0xb7, 0x8e, 0x3a, 0x51, 0x37,
-	0xc1, 0x73, 0x71, 0xc1, 0xe9, 0x0b, 0x00, 0x2c, 0xe6, 0xa5, 0x5a, 0x15, 0x19, 0x47, 0xb7, 0x33,
-	0xea, 0x8c, 0xfb, 0xd3, 0xe3, 0x66, 0x61, 0xe7, 0x7f, 0x79, 0xd1, 0xde, 0x88, 0x7f, 0x0a, 0xbd,
-	0xdd, 0x03, 0xa5, 0xe0, 0xec, 0x85, 0x69, 0xeb, 0x0a, 0xcb, 0x99, 0x59, 0x6e, 0x93, 0xb4, 0xf5,
-	0xb4, 0x84, 0x7b, 0x67, 0x37, 0xb6, 0x93, 0x2e, 0xa0, 0xb7, 0xfb, 0xb9, 0xf4, 0x49, 0xb3, 0x80,
-	0xa6, 0x5d, 0x1c, 0x9e, 0x1c, 0xc4, 0xad, 0x37, 0xe5, 0xe5, 0xab, 0xcb, 0x2b, 0xaf, 0xf5, 0xeb,
-	0xca, 0x6b, 0x7d, 0xdd, 0x78, 0xe4, 0x72, 0xe3, 0x91, 0x9f, 0x1b, 0x8f, 0xfc, 0xde, 0x78, 0xe4,
-	0xe3, 0xc9, 0xa1, 0x67, 0xf5, 0xac, 0x9c, 0x7c, 0x68, 0xcd, 0xbb, 0xf6, 0x42, 0x4e, 0xff, 0x04,
-	0x00, 0x00, 0xff, 0xff, 0x36, 0x72, 0x3e, 0x4f, 0x8e, 0x03, 0x00, 0x00,
+	// 498 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x9c, 0x94, 0x41, 0x8b, 0xd3, 0x40,
+	0x14, 0xc7, 0x77, 0x9a, 0x6e, 0xb5, 0xaf, 0xba, 0xca, 0x50, 0x31, 0x04, 0xcc, 0x96, 0xa8, 0x50,
+	0x5c, 0x49, 0x6c, 0xf7, 0x28, 0x22, 0x0a, 0x5a, 0xf6, 0x22, 0x92, 0x45, 0x10, 0x2f, 0x65, 0x9a,
+	0x4e, 0xd2, 0xd1, 0x26, 0x93, 0xce, 0x4c, 0x02, 0xee, 0xc9, 0x9b, 0x17, 0x3f, 0x94, 0xc7, 0xc5,
+	0x93, 0x47, 0x8f, 0x6e, 0x3f, 0x89, 0x64, 0x12, 0xb3, 0xad, 0x04, 0xac, 0xde, 0xde, 0xfc, 0xe7,
+	0xf7, 0x26, 0xef, 0xfd, 0xe7, 0x4d, 0xe0, 0x49, 0xc4, 0xd4, 0x22, 0x9b, 0xb9, 0x01, 0x8f, 0x3d,
+	0xa9, 0xe8, 0x72, 0x49, 0x44, 0x2a, 0xf8, 0x7b, 0x1a, 0x28, 0x4f, 0x51, 0x21, 0x08, 0x97, 0x1e,
+	0x49, 0x99, 0x97, 0x8f, 0x3c, 0x96, 0x84, 0x82, 0x48, 0x25, 0xb2, 0x40, 0x65, 0x82, 0xba, 0xa9,
+	0xe0, 0x8a, 0xe3, 0x3e, 0xe3, 0xee, 0x76, 0x9a, 0x9b, 0x8f, 0xac, 0x7e, 0xc4, 0x23, 0xae, 0x01,
+	0xaf, 0x88, 0x4a, 0xd6, 0xf9, 0x82, 0xa0, 0xff, 0x5a, 0xf0, 0x9c, 0x49, 0xc6, 0x93, 0x57, 0x7c,
+	0x4e, 0x7d, 0xba, 0xca, 0xa8, 0x54, 0xd8, 0x82, 0xab, 0x0b, 0x2e, 0x55, 0x42, 0x62, 0x6a, 0xa2,
+	0x01, 0x1a, 0x76, 0xfd, 0x7a, 0x8d, 0x6f, 0x82, 0x11, 0x93, 0xc0, 0x6c, 0x69, 0xb9, 0x08, 0x71,
+	0x1f, 0xf6, 0x59, 0x4c, 0x22, 0x6a, 0x1a, 0x5a, 0x2b, 0x17, 0xf8, 0x11, 0xb4, 0x42, 0x69, 0xb6,
+	0x07, 0x68, 0xd8, 0x1b, 0x0f, 0xdc, 0xa6, 0xaa, 0xdc, 0x97, 0x6c, 0x49, 0xe5, 0x47, 0xa9, 0x68,
+	0xec, 0xb7, 0x42, 0xe9, 0x4c, 0xe0, 0xd6, 0x1f, 0xd5, 0xc8, 0x94, 0x27, 0x92, 0x62, 0x17, 0xda,
+	0x09, 0x9f, 0x97, 0xa5, 0xf4, 0xc6, 0x56, 0xf3, 0x61, 0x3a, 0x43, 0x73, 0xce, 0x43, 0x38, 0x98,
+	0x50, 0xb5, 0x63, 0x43, 0xce, 0x33, 0xb8, 0x51, 0xd3, 0xff, 0xf9, 0xc1, 0xaf, 0x08, 0xda, 0xc5,
+	0xf2, 0x1f, 0x8d, 0xbb, 0x0b, 0xd7, 0x59, 0xc2, 0x14, 0x23, 0x8a, 0x8b, 0x29, 0x5b, 0x25, 0x95,
+	0x81, 0xd7, 0x6a, 0xf1, 0x64, 0x95, 0xe0, 0x3b, 0x00, 0x8a, 0x88, 0x88, 0x2a, 0x4d, 0xb4, 0x35,
+	0xd1, 0x2d, 0x95, 0x62, 0xbb, 0xb4, 0x79, 0x7f, 0x77, 0x9b, 0x2f, 0xaf, 0xab, 0xb3, 0x71, 0x5d,
+	0xce, 0x67, 0x04, 0x70, 0x09, 0xe2, 0x43, 0xe8, 0xcd, 0x48, 0xf0, 0x81, 0x25, 0xd1, 0x34, 0x13,
+	0xac, 0xea, 0x05, 0x2a, 0xe9, 0x8d, 0x60, 0xf8, 0x36, 0x5c, 0x09, 0xe5, 0x54, 0xb2, 0x33, 0xaa,
+	0x3b, 0x32, 0xfc, 0x4e, 0x28, 0x4f, 0xd9, 0x19, 0xc5, 0x4f, 0x01, 0x64, 0x36, 0xcb, 0xf9, 0x32,
+	0x8b, 0xa9, 0x34, 0x8d, 0x81, 0x31, 0xec, 0x8d, 0x0f, 0x9b, 0x0b, 0x3b, 0xfd, 0xcd, 0xf9, 0x1b,
+	0x29, 0xce, 0x31, 0x74, 0xeb, 0x0d, 0x8c, 0xa1, 0xbd, 0x61, 0xa6, 0x8e, 0x0b, 0x2d, 0x25, 0x6a,
+	0x51, 0x39, 0xa9, 0xe3, 0xf1, 0x37, 0x04, 0x07, 0x27, 0x5b, 0xef, 0x01, 0xcf, 0xa1, 0x5b, 0x8f,
+	0x13, 0x7e, 0xd0, 0x5c, 0x41, 0xd3, 0xf4, 0x5b, 0x47, 0x3b, 0xb1, 0xd5, 0xa8, 0xf8, 0x60, 0x4c,
+	0xa8, 0xc2, 0xf7, 0x9a, 0x73, 0xb6, 0xc7, 0xd0, 0xba, 0xff, 0x17, 0xaa, 0x3c, 0xf3, 0xf9, 0x8b,
+	0xf3, 0x0b, 0x7b, 0xef, 0xc7, 0x85, 0xbd, 0xf7, 0x69, 0x6d, 0xa3, 0xf3, 0xb5, 0x8d, 0xbe, 0xaf,
+	0x6d, 0xf4, 0x73, 0x6d, 0xa3, 0x77, 0x47, 0xbb, 0xfe, 0x1c, 0x1e, 0xe7, 0xa3, 0xb7, 0x7b, 0xb3,
+	0x8e, 0x7e, 0xe7, 0xc7, 0xbf, 0x02, 0x00, 0x00, 0xff, 0xff, 0x98, 0x64, 0x9b, 0x0e, 0x54, 0x04,
+	0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -289,6 +372,7 @@ const _ = grpc.SupportPackageIsVersion4
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type InfrastructureClient interface {
 	Provision(ctx context.Context, in *ProvisionNodeRequest, opts ...grpc.CallOption) (*ProvisionNodeResponse, error)
+	Get(ctx context.Context, in *GetNodeRequest, opts ...grpc.CallOption) (*GetNodeResponse, error)
 }
 
 type infrastructureClient struct {
@@ -308,9 +392,19 @@ func (c *infrastructureClient) Provision(ctx context.Context, in *ProvisionNodeR
 	return out, nil
 }
 
+func (c *infrastructureClient) Get(ctx context.Context, in *GetNodeRequest, opts ...grpc.CallOption) (*GetNodeResponse, error) {
+	out := new(GetNodeResponse)
+	err := c.cc.Invoke(ctx, "/io.stellarproject.v1.Infrastructure/Get", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // InfrastructureServer is the server API for Infrastructure service.
 type InfrastructureServer interface {
 	Provision(context.Context, *ProvisionNodeRequest) (*ProvisionNodeResponse, error)
+	Get(context.Context, *GetNodeRequest) (*GetNodeResponse, error)
 }
 
 func RegisterInfrastructureServer(s *grpc.Server, srv InfrastructureServer) {
@@ -335,6 +429,24 @@ func _Infrastructure_Provision_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Infrastructure_Get_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetNodeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(InfrastructureServer).Get(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/io.stellarproject.v1.Infrastructure/Get",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(InfrastructureServer).Get(ctx, req.(*GetNodeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 var _Infrastructure_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "io.stellarproject.v1.Infrastructure",
 	HandlerType: (*InfrastructureServer)(nil),
@@ -342,6 +454,10 @@ var _Infrastructure_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Provision",
 			Handler:    _Infrastructure_Provision_Handler,
+		},
+		{
+			MethodName: "Get",
+			Handler:    _Infrastructure_Get_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
@@ -428,6 +544,64 @@ func (m *ProvisionNodeResponse) MarshalTo(dAtA []byte) (int, error) {
 	return i, nil
 }
 
+func (m *GetNodeRequest) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *GetNodeRequest) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if len(m.Hostname) > 0 {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintInfrastructure(dAtA, i, uint64(len(m.Hostname)))
+		i += copy(dAtA[i:], m.Hostname)
+	}
+	if m.XXX_unrecognized != nil {
+		i += copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	return i, nil
+}
+
+func (m *GetNodeResponse) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *GetNodeResponse) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if m.Node != nil {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintInfrastructure(dAtA, i, uint64(m.Node.Size()))
+		n3, err := m.Node.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n3
+	}
+	if m.XXX_unrecognized != nil {
+		i += copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	return i, nil
+}
+
 func (m *Node) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
@@ -471,11 +645,11 @@ func (m *Node) MarshalTo(dAtA []byte) (int, error) {
 		dAtA[i] = 0x2a
 		i++
 		i = encodeVarintInfrastructure(dAtA, i, uint64(m.Fs.Size()))
-		n3, err := m.Fs.MarshalTo(dAtA[i:])
+		n4, err := m.Fs.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n3
+		i += n4
 	}
 	if len(m.Image) > 0 {
 		dAtA[i] = 0x32
@@ -619,6 +793,38 @@ func (m *ProvisionNodeResponse) Size() (n int) {
 	return n
 }
 
+func (m *GetNodeRequest) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Hostname)
+	if l > 0 {
+		n += 1 + l + sovInfrastructure(uint64(l))
+	}
+	if m.XXX_unrecognized != nil {
+		n += len(m.XXX_unrecognized)
+	}
+	return n
+}
+
+func (m *GetNodeResponse) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Node != nil {
+		l = m.Node.Size()
+		n += 1 + l + sovInfrastructure(uint64(l))
+	}
+	if m.XXX_unrecognized != nil {
+		n += len(m.XXX_unrecognized)
+	}
+	return n
+}
+
 func (m *Node) Size() (n int) {
 	if m == nil {
 		return 0
@@ -732,6 +938,28 @@ func (this *ProvisionNodeResponse) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&ProvisionNodeResponse{`,
+		`Node:` + strings.Replace(fmt.Sprintf("%v", this.Node), "Node", "Node", 1) + `,`,
+		`XXX_unrecognized:` + fmt.Sprintf("%v", this.XXX_unrecognized) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *GetNodeRequest) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&GetNodeRequest{`,
+		`Hostname:` + fmt.Sprintf("%v", this.Hostname) + `,`,
+		`XXX_unrecognized:` + fmt.Sprintf("%v", this.XXX_unrecognized) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *GetNodeResponse) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&GetNodeResponse{`,
 		`Node:` + strings.Replace(fmt.Sprintf("%v", this.Node), "Node", "Node", 1) + `,`,
 		`XXX_unrecognized:` + fmt.Sprintf("%v", this.XXX_unrecognized) + `,`,
 		`}`,
@@ -1000,6 +1228,182 @@ func (m *ProvisionNodeResponse) Unmarshal(dAtA []byte) error {
 		}
 		if fieldNum <= 0 {
 			return fmt.Errorf("proto: ProvisionNodeResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Node", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowInfrastructure
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthInfrastructure
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthInfrastructure
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Node == nil {
+				m.Node = &Node{}
+			}
+			if err := m.Node.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipInfrastructure(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthInfrastructure
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthInfrastructure
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.XXX_unrecognized = append(m.XXX_unrecognized, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *GetNodeRequest) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowInfrastructure
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: GetNodeRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: GetNodeRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Hostname", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowInfrastructure
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthInfrastructure
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthInfrastructure
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Hostname = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipInfrastructure(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthInfrastructure
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthInfrastructure
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.XXX_unrecognized = append(m.XXX_unrecognized, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *GetNodeResponse) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowInfrastructure
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: GetNodeResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: GetNodeResponse: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:

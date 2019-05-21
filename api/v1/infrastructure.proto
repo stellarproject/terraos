@@ -8,6 +8,7 @@ option go_package = "github.com/stellarproject/terraos/api/v1;v1";
 
 service Infrastructure {
 	rpc Provision(ProvisionNodeRequest) returns (ProvisionNodeResponse);
+	rpc Get(GetNodeRequest) returns (GetNodeResponse);
 }
 
 message ProvisionNodeRequest {
@@ -18,6 +19,14 @@ message ProvisionNodeRequest {
 }
 
 message ProvisionNodeResponse {
+	Node node = 1;
+}
+
+message GetNodeRequest {
+	string hostname = 1;
+}
+
+message GetNodeResponse {
 	Node node = 1;
 }
 

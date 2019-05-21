@@ -30,13 +30,14 @@ package controller
 import (
 	"context"
 	"fmt"
-	"hash/fnv"
 	"net"
 	"net/url"
 	"os"
 	"path/filepath"
 
 	"github.com/containerd/containerd/content"
+	"github.com/gogo/protobuf/proto"
+	"github.com/gomodule/redigo/redis"
 	"github.com/pkg/errors"
 	v1 "github.com/stellarproject/terraos/api/v1"
 	"github.com/stellarproject/terraos/pkg/disk"
@@ -50,15 +51,31 @@ const (
 	ContentStorePath = "/content-store"
 	ISCSIPath        = "/iscsi"
 	TFTPPath         = "/tftp"
+
+	KeyTargetIDs    = "stellarproject.io/controller/target/ids"
+	KeyTarget       = "stellarproject.io/controller/target/%d"
+	KeyLUN          = "stellarproject.io/controller/lun/%d"
+	KeyTargetLunIDs = "stellarproject.io/controller/target/%d/ids"
+	KeyTargetLuns   = "stellarproject.io/controller/target/%d/luns"
+	KeyNodes        = "stellarproject.io/controller/nodes"
 )
 
-func New(ip net.IP) (*Controller, error) {
+type IPType int
+
+const (
+	ISCSI IPType = iota + 1
+	Management
+	Gateway
+	TFTP
+)
+
+func New(ipConfig map[IPType]net.IP, pool *redis.Pool) (*Controller, error) {
 	store, err := image.NewContentStore(ContentStorePath)
 	if err != nil {
 		return nil, errors.Wrap(err, "create content store")
 	}
 	return &Controller{
-		ip:     ip,
+		ips:    ipConfig,
 		store:  store,
 		kernel: "/vmlinuz",
 		initrd: "/initrd.img",
@@ -66,14 +83,35 @@ func New(ip net.IP) (*Controller, error) {
 }
 
 type Controller struct {
-	ip     net.IP
+	ips    map[IPType]net.IP
 	store  content.Store
+	pool   *redis.Pool
 	kernel string
 	initrd string
 }
 
 func (c *Controller) Close() error {
-	return nil
+	return c.pool.Close()
+}
+
+func (c *Controller) Get(ctx context.Context, r *v1.GetNodeRequest) (*v1.GetNodeResponse, error) {
+	conn, err := c.pool.GetContext(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "get connection")
+	}
+	defer conn.Close()
+
+	data, err := redis.Bytes(conn.Do("HGET", KeyNodes, r.Hostname))
+	if err != nil {
+		return nil, errors.Wrapf(err, "get node %s", r.Hostname)
+	}
+	var node v1.Node
+	if err := proto.Unmarshal(data, &node); err != nil {
+		return nil, errors.Wrap(err, "unmarshal node")
+	}
+	return &v1.GetNodeResponse{
+		Node: &node,
+	}, nil
 }
 
 func (c *Controller) Provision(ctx context.Context, r *v1.ProvisionNodeRequest) (*v1.ProvisionNodeResponse, error) {
@@ -88,6 +126,9 @@ func (c *Controller) Provision(ctx context.Context, r *v1.ProvisionNodeRequest) 
 	}
 	if err := c.provisionDisk(ctx, node); err != nil {
 		return nil, errors.Wrap(err, "provision node disk")
+	}
+	if err := c.saveNode(node); err != nil {
+		return nil, err
 	}
 	return &v1.ProvisionNodeResponse{
 		Node: node,
@@ -116,10 +157,8 @@ func (c *Controller) provisionDisk(ctx context.Context, node *v1.Node) error {
 		if err := c.writePXEConfig(node, version); err != nil {
 			return errors.Wrap(err, "write pxe config")
 		}
-		return nil
 	case "local":
 		// node will have a manually installed local disk, nothing for us to do
-		return nil
 	default:
 		return errors.Wrapf(err, "invalid backing uri %s", node.Fs.BackingUri)
 	}
@@ -136,15 +175,32 @@ func (c *Controller) createISCSI(ctx context.Context, node *v1.Node, uri *url.UR
 	if err := c.installImage(ctx, node, uri, lun); err != nil {
 		return "", errors.Wrap(err, "install image onto lun")
 	}
-	target, err := iscsi.NewTarget(ctx, iqn, getTargetID(iqn))
+	targetID, err := c.getNextTargetID()
+	if err != nil {
+		return "", err
+	}
+	target, err := iscsi.NewTarget(ctx, iqn, targetID)
 	if err != nil {
 		return "", errors.Wrapf(err, "create target %s", iqn)
+	}
+	if err := c.saveTarget(target); err != nil {
+		return "", err
 	}
 	if err := target.AcceptAllInitiators(ctx); err != nil {
 		return "", errors.Wrap(err, "accept all initiators for target")
 	}
-	if err := target.Attach(ctx, lun); err != nil {
+	lid, err := c.getNextTargetLUNID(target)
+	if err != nil {
+		return "", err
+	}
+	if err := target.Attach(ctx, lun, lid); err != nil {
 		return "", errors.Wrap(err, "attach lun to target")
+	}
+	if err := c.saveLUN(lun); err != nil {
+		return "", err
+	}
+	if err := c.saveTargetAndLun(target, lun); err != nil {
+		return "", err
 	}
 	return iqn, nil
 }
@@ -161,6 +217,7 @@ func (c *Controller) installImage(ctx context.Context, node *v1.Node, uri *url.U
 		d.Unmount(ctx)
 		return errors.Wrap(err, "provision disk")
 	}
+	// TODO: write resolv.conf
 	if err := d.Write(ctx, image.Repo(node.Image), c.store); err != nil {
 		d.Unmount(ctx)
 		return errors.Wrap(err, "write image to disk")
@@ -177,7 +234,7 @@ func (c *Controller) writePXEConfig(node *v1.Node, version string) error {
 		MAC:          node.Mac,
 		InitiatorIQN: node.InitiatorIqn,
 		TargetIQN:    node.TargetIqn,
-		TargetIP:     c.ip.To4().String(),
+		TargetIP:     c.ips[ISCSI].To4().String(),
 		IP:           pxe.DHCP,
 		Entries: []pxe.Entry{
 			{
@@ -205,8 +262,71 @@ func (c *Controller) writePXEConfig(node *v1.Node, version string) error {
 	return nil
 }
 
-func getTargetID(iqn iscsi.IQN) int {
-	h := fnv.New32a()
-	fmt.Fprint(h, iqn)
-	return int(h.Sum32())
+func (c *Controller) getNextTargetID() (int, error) {
+	conn := c.pool.Get()
+	defer conn.Close()
+
+	id, err := redis.Int(conn.Do("INCR", KeyTargetIDs))
+	if err != nil {
+		return -1, errors.Wrap(err, "get next target id")
+	}
+	return id, nil
+}
+
+func (c *Controller) getNextTargetLUNID(t *iscsi.Target) (int, error) {
+	conn := c.pool.Get()
+	defer conn.Close()
+
+	id, err := redis.Int(conn.Do("INCR", fmt.Sprintf(KeyTargetLunIDs, t.ID())))
+	if err != nil {
+		return -1, errors.Wrap(err, "get next target lun id")
+	}
+	return id, nil
+}
+
+func (c *Controller) saveTarget(t *iscsi.Target) error {
+	conn := c.pool.Get()
+	defer conn.Close()
+	args := []interface{}{
+		"iqn", string(t.IQN()),
+	}
+	if _, err := conn.Do("HMSET", append([]interface{}{fmt.Sprintf(KeyTarget, t.ID())}, args...)...); err != nil {
+		return errors.Wrap(err, "set target hash")
+	}
+	return nil
+}
+
+func (c *Controller) saveLUN(t *iscsi.Lun) error {
+	conn := c.pool.Get()
+	defer conn.Close()
+	args := []interface{}{
+		"size", t.Size(),
+		"path", t.Path(),
+	}
+	if _, err := conn.Do("HMSET", append([]interface{}{fmt.Sprintf(KeyLUN, t.ID())}, args...)...); err != nil {
+		return errors.Wrap(err, "set lun hash")
+	}
+	return nil
+}
+
+func (c *Controller) saveTargetAndLun(t *iscsi.Target, lun *iscsi.Lun) error {
+	conn := c.pool.Get()
+	defer conn.Close()
+	if _, err := conn.Do("SADD", fmt.Sprintf(KeyTargetLuns, t.ID()), lun.ID()); err != nil {
+		return errors.Wrap(err, "set target lun")
+	}
+	return nil
+}
+
+func (c *Controller) saveNode(node *v1.Node) error {
+	conn := c.pool.Get()
+	defer conn.Close()
+	data, err := proto.Marshal(node)
+	if err != nil {
+		return errors.Wrap(err, "marshal node")
+	}
+	if _, err := conn.Do("HSETNX", KeyNodes, node.Hostname, data); err != nil {
+		return errors.Wrapf(err, "save node %s", node.Hostname)
+	}
+	return nil
 }

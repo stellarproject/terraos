@@ -72,6 +72,11 @@ Terra OS management`
 			Usage: "enable debug output in the logs",
 		},
 		cli.StringFlag{
+			Name:  "controller",
+			Usage: "controller address",
+			Value: "127.0.0.1:9000",
+		},
+		cli.StringFlag{
 			Name:   "sentry-dsn",
 			Usage:  "sentry DSN",
 			EnvVar: "SENTRY_DSN",
@@ -95,6 +100,7 @@ Terra OS management`
 	app.Commands = []cli.Command{
 		createCommand,
 		controllerCommand,
+		provisionCommand,
 	}
 	if err := app.Run(os.Args); err != nil {
 		fmt.Fprintln(os.Stderr, err)

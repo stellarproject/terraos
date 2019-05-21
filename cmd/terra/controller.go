@@ -33,6 +33,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/gomodule/redigo/redis"
 	"github.com/pkg/errors"
 	v1 "github.com/stellarproject/terraos/api/v1"
 	"github.com/stellarproject/terraos/cmd"
@@ -45,19 +46,45 @@ var controllerCommand = cli.Command{
 	Description: "terra infrastructure controller",
 	Flags: []cli.Flag{
 		cli.StringFlag{
-			Name:  "management,m",
-			Usage: "management ip address",
+			Name:  "redis",
+			Usage: "redis address",
+			Value: "127.0.0.1:6379",
+		},
+		cli.StringFlag{
+			Name:  "iscsi",
+			Usage: "iscsi ip",
+		},
+		cli.StringFlag{
+			Name:  "gateway",
+			Usage: "gateway address",
 		},
 	},
 	Action: func(clix *cli.Context) error {
-		ip := net.ParseIP(clix.String("management"))
-		if ip.To4() == nil {
-			return errors.New("invalid management ip address")
+		ip := net.ParseIP(clix.GlobalString("controller"))
+		if ip == nil || ip.To4() == nil {
+			return errors.New("invalid controller ip address")
 		}
-		controller, err := controller.New(ip)
+		gateway := net.ParseIP(clix.String("gateway"))
+		if gateway == nil || gateway.To4() == nil {
+			return errors.New("invalid gateway ip address")
+		}
+		iscsi := net.ParseIP(clix.String("iscsi"))
+		if iscsi == nil || iscsi.To4() == nil {
+			return errors.New("invalid iscsi ip address")
+		}
+		ips := map[controller.IPType]net.IP{
+			controller.Management: ip,
+			controller.Gateway:    gateway,
+		}
+		pool := redis.NewPool(func() (redis.Conn, error) {
+			return redis.Dial("tcp", clix.String("redis"))
+		}, 5)
+		controller, err := controller.New(ips, pool)
 		if err != nil {
 			return errors.Wrap(err, "new controller")
 		}
+		defer controller.Close()
+
 		server := cmd.NewServer()
 		v1.RegisterInfrastructureServer(server, controller)
 
@@ -67,7 +94,7 @@ var controllerCommand = cli.Command{
 			<-signals
 			server.Stop()
 		}()
-		l, err := net.Listen("tcp", clix.String("management"))
+		l, err := net.Listen("tcp", clix.GlobalString("controller"))
 		if err != nil {
 			return errors.Wrap(err, "listen tcp")
 		}
