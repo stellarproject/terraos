@@ -101,6 +101,7 @@ Terra OS management`
 		createCommand,
 		controllerCommand,
 		provisionCommand,
+		listCommand,
 		pxeCommand,
 	}
 	if err := app.Run(os.Args); err != nil {

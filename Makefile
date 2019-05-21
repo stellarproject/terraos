@@ -89,3 +89,6 @@ orbit:
 	go build -o build/ob -v -ldflags '${GO_LDFLAGS}' github.com/stellarproject/terraos/cmd/ob
 	go build -o build/orbit-log -v -ldflags '${GO_LDFLAGS}' github.com/stellarproject/terraos/cmd/orbit-log
 	gcc -static -o build/orbit-network cmd/orbit-network/main.c
+
+example:
+	@cd contrib/example && terra create --push server.toml

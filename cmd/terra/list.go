@@ -29,9 +29,11 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
+	"text/tabwriter"
 
-	"github.com/BurntSushi/toml"
+	"github.com/gogo/protobuf/types"
 	"github.com/pkg/errors"
 	v1 "github.com/stellarproject/terraos/api/v1"
 	"github.com/stellarproject/terraos/cmd"
@@ -39,38 +41,16 @@ import (
 	"google.golang.org/grpc"
 )
 
-type Subvolume struct {
-	Name string `toml:"name"`
-	Path string `toml:"path"`
-}
-
-type Node struct {
-	Hostname   string      `toml:"hostname"`
-	MAC        string      `toml:"mac"`
-	Image      string      `toml:"image"`
-	BackingURI string      `toml:"fs_uri"`
-	Size       int64       `toml:"fs_size"`
-	Subvolumes []Subvolume `toml:"fs_subvolumes"`
-}
-
-var provisionCommand = cli.Command{
-	Name:        "provision",
-	Description: "provision a new node",
+var listCommand = cli.Command{
+	Name:        "list",
+	Description: "list all registered nodes",
 	Flags: []cli.Flag{
 		cli.BoolFlag{
-			Name:  "dump",
-			Usage: "dump and example config",
+			Name:  "json",
+			Usage: "output in json format",
 		},
 	},
 	Action: func(clix *cli.Context) error {
-		if clix.Bool("dump") {
-			return dumpNodeConfig()
-		}
-		var node Node
-		if _, err := toml.DecodeFile(clix.Args().First(), &node); err != nil {
-			return errors.Wrap(err, "load node file")
-		}
-
 		address := clix.GlobalString("controller") + ":9000"
 		conn, err := grpc.Dial(address, grpc.WithInsecure())
 		if err != nil {
@@ -80,46 +60,27 @@ var provisionCommand = cli.Command{
 		client := v1.NewInfrastructureClient(conn)
 		ctx := cmd.CancelContext()
 
-		resp, err := client.Provision(ctx, &v1.ProvisionNodeRequest{
-			Hostname: node.Hostname,
-			Mac:      node.MAC,
-			Image:    node.Image,
-			Fs: &v1.Filesystem{
-				BackingUri: node.BackingURI,
-				FsSize:     node.Size,
-				Subvolumes: subvolumes(node.Subvolumes),
-			},
-		})
+		resp, err := client.List(ctx, &types.Empty{})
 		if err != nil {
-			return errors.Wrap(err, "provision node from controller")
+			return errors.Wrap(err, "list nodes from terra")
 		}
-		return json.NewEncoder(os.Stdout).Encode(resp.Node)
+		if clix.Bool("json") {
+			return json.NewEncoder(os.Stdout).Encode(resp.Nodes)
+		}
+		w := tabwriter.NewWriter(os.Stdout, 10, 1, 3, ' ', 0)
+		const tfmt = "%s\t%s\t%s\t%s\t%s\t%s\n"
+		fmt.Fprint(w, "HOSTNAME\tMAC\tIMAGE\tINITIATOR\tTARGET\tFS\n")
+		for _, n := range resp.Nodes {
+			fmt.Fprintf(w, tfmt,
+				n.Hostname,
+				n.Mac,
+				n.Image,
+				n.InitiatorIqn,
+				n.TargetIqn,
+				n.Fs.BackingUri,
+			)
+
+		}
+		return w.Flush()
 	},
-}
-
-func subvolumes(subvolumes []Subvolume) (out []*v1.Subvolume) {
-	for _, s := range subvolumes {
-		out = append(out, &v1.Subvolume{
-			Name: s.Name,
-			Path: s.Path,
-		})
-	}
-	return out
-}
-
-func dumpNodeConfig() error {
-	c := &Node{
-		Hostname:   "terra-01",
-		MAC:        "66:xx:ss:bb:f1:b1",
-		Image:      "docker.io/stellarproject/example:v4",
-		BackingURI: "iscsi://btrfs",
-		Size:       512,
-		Subvolumes: []Subvolume{
-			{
-				Name: "tftp",
-				Path: "/tftp",
-			},
-		},
-	}
-	return toml.NewEncoder(os.Stdout).Encode(c)
 }

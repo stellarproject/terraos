@@ -49,38 +49,6 @@ import (
 	"github.com/urfave/cli"
 )
 
-type Component struct {
-	Image   string   `toml:"image"`
-	Systemd []string `toml:"systemd"`
-}
-
-type ImageContext struct {
-	Base       string
-	Userland   string
-	Imports    []*Component
-	Kernel     string
-	Init       string
-	Hostname   string
-	ResolvConf bool
-}
-
-type ServerConfig struct {
-	ID         string           `toml:"id"`
-	Version    string           `toml:"version"`
-	Repo       string           `toml:"repo"`
-	OS         string           `toml:"os"`
-	Components []*Component     `toml:"components"`
-	Userland   string           `toml:"userland"`
-	Init       string           `toml:"init"`
-	SSH        SSH              `toml:"ssh"`
-	Netplan    *netplan.Netplan `toml:"netplan"`
-	ResolvConf *resolvconf.Conf `toml:"resolvconf"`
-}
-
-type SSH struct {
-	Github string `toml:"github"`
-}
-
 var createCommand = cli.Command{
 	Name:  "create",
 	Usage: "create a new machine image",
@@ -98,8 +66,19 @@ var createCommand = cli.Command{
 			Name:  "userland,u",
 			Usage: "userland file path",
 		},
+		cli.BoolFlag{
+			Name:  "dump",
+			Usage: "dump and example config",
+		},
+		cli.BoolFlag{
+			Name:  "dry,n",
+			Usage: "dry run without building",
+		},
 	},
 	Action: func(clix *cli.Context) error {
+		if clix.Bool("dump") {
+			return dumpConfig()
+		}
 		config, err := loadServerConfig(clix.Args().First())
 		if err != nil {
 			return errors.Wrap(err, "load server toml")
@@ -116,7 +95,7 @@ var createCommand = cli.Command{
 			Base:     config.OS,
 			Userland: config.Userland,
 			Init:     config.Init,
-			Hostname: config.ID,
+			Hostname: config.Hostname,
 		}
 		if userland := clix.String("userland"); userland != "" {
 			data, err := ioutil.ReadFile(userland)
@@ -125,11 +104,13 @@ var createCommand = cli.Command{
 			}
 			imageContext.Userland = string(data)
 		}
-		defer func() {
-			for _, p := range paths {
-				os.Remove(p)
-			}
-		}()
+		if !clix.Bool("dry") {
+			defer func() {
+				for _, p := range paths {
+					os.Remove(p)
+				}
+			}()
+		}
 		for _, c := range config.Components {
 			imageContext.Imports = append(imageContext.Imports, c)
 		}
@@ -137,9 +118,12 @@ var createCommand = cli.Command{
 		if err != nil {
 			return errors.Wrap(err, "write dockerfile")
 		}
-		defer os.RemoveAll(path)
 
-		if err := setupHostname(abs, config.ID, &paths); err != nil {
+		if !clix.Bool("dry") {
+			defer os.RemoveAll(path)
+		}
+
+		if err := setupHostname(abs, config.Hostname, &paths); err != nil {
 			return errors.Wrap(err, "setup hostname")
 		}
 		if err := setupSSH(abs, config.SSH, &paths); err != nil {
@@ -151,9 +135,13 @@ var createCommand = cli.Command{
 		if err := setupResolvConf(abs, config.ResolvConf, &paths); err != nil {
 			return errors.Wrap(err, "setup resolv.conf")
 		}
+
+		if !clix.Bool("dry") {
+			return nil
+		}
 		cmd := exec.CommandContext(ctx, "vab", "build",
 			"-c", abs,
-			"--ref", fmt.Sprintf("%s/%s:%s", config.Repo, config.ID, config.Version),
+			"--ref", fmt.Sprintf("%s/%s:%s", config.Repo, config.Hostname, config.Version),
 			"--push="+strconv.FormatBool(clix.Bool("push")),
 		)
 		cmd.Stdout = os.Stdout
@@ -363,4 +351,70 @@ func setupNetplan(path string, n *netplan.Netplan, paths *[]string) error {
 		return errors.Wrap(err, "write netplan contents")
 	}
 	return nil
+}
+
+type Component struct {
+	Image   string   `toml:"image"`
+	Systemd []string `toml:"systemd"`
+}
+
+type ImageContext struct {
+	Base       string
+	Userland   string
+	Imports    []*Component
+	Kernel     string
+	Init       string
+	Hostname   string
+	ResolvConf bool
+}
+
+type ServerConfig struct {
+	Hostname   string           `toml:"hostname"`
+	Version    string           `toml:"version"`
+	Repo       string           `toml:"repo"`
+	OS         string           `toml:"os"`
+	Components []*Component     `toml:"components"`
+	Userland   string           `toml:"userland"`
+	Init       string           `toml:"init"`
+	SSH        SSH              `toml:"ssh"`
+	Netplan    *netplan.Netplan `toml:"netplan"`
+	ResolvConf *resolvconf.Conf `toml:"resolvconf"`
+}
+
+type SSH struct {
+	Github string `toml:"github"`
+}
+
+func dumpConfig() error {
+	c := &ServerConfig{
+		Hostname: "terra-01",
+		Version:  "v1",
+		Repo:     "docker.io/stellarproject",
+		OS:       "docker.io/stellarproject/terraos:v10",
+		Init:     "/sbin/init",
+		Components: []*Component{
+			{
+				Image:   "docker.io/stellarproject/buildkit:v10",
+				Systemd: []string{"buildkit"},
+			},
+		},
+		Userland: "RUN apt install htop",
+		SSH: SSH{
+			Github: "crosbymichael",
+		},
+		Netplan: &netplan.Netplan{
+			Interfaces: []netplan.Interface{
+				{
+					Name:      "eth0",
+					Addresses: []string{"192.168.1.10"},
+					Gateway:   "192.168.1.1",
+				},
+			},
+		},
+		ResolvConf: &resolvconf.Conf{
+			Nameservers: resolvconf.DefaultNameservers,
+		},
+	}
+
+	return toml.NewEncoder(os.Stdout).Encode(c)
 }

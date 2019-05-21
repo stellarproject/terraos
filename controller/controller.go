@@ -157,7 +157,7 @@ func (c *Controller) Close() error {
 	return err
 }
 
-func (c *Controller) Get(ctx context.Context, r *v1.GetNodeRequest) (*v1.GetNodeResponse, error) {
+func (c *Controller) List(ctx context.Context, _ *types.Empty) (*v1.ListNodeResponse, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -167,17 +167,19 @@ func (c *Controller) Get(ctx context.Context, r *v1.GetNodeRequest) (*v1.GetNode
 	}
 	defer conn.Close()
 
-	data, err := redis.Bytes(conn.Do("HGET", KeyNodes, r.Hostname))
+	nodes, err := redis.ByteSlices(conn.Do("HVALS", KeyNodes))
 	if err != nil {
-		return nil, errors.Wrapf(err, "get node %s", r.Hostname)
+		return nil, errors.Wrap(err, "get all nodes from store")
 	}
-	var node v1.Node
-	if err := proto.Unmarshal(data, &node); err != nil {
-		return nil, errors.Wrap(err, "unmarshal node")
+	var resp v1.ListNodeResponse
+	for _, data := range nodes {
+		var node v1.Node
+		if err := proto.Unmarshal(data, &node); err != nil {
+			return nil, errors.Wrap(err, "unmarshal node")
+		}
+		resp.Nodes = append(resp.Nodes, &node)
 	}
-	return &v1.GetNodeResponse{
-		Node: &node,
-	}, nil
+	return &resp, nil
 }
 
 func (c *Controller) InstallPXE(ctx context.Context, r *v1.InstallPXERequest) (*types.Empty, error) {

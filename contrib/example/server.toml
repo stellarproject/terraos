@@ -1,10 +1,13 @@
-id = "example"
-version = "4"
+hostname = "example"
+version = "5"
 os = "docker.io/stellarproject/terraos:v10"
 repo = "docker.io/stellarproject"
 userland = """
 RUN echo 'terra:terra' | chpasswd
 """
+[netplan]
+  [[netplan.interfaces]]
+    name = "eth0"
 
-[fs]
-	type = "btrfs"
+[resolvconf]
+  nameservers = ["8.8.8.8", "8.8.4.4"]

@@ -9,7 +9,7 @@ option go_package = "github.com/stellarproject/terraos/api/v1;v1";
 
 service Infrastructure {
 	rpc Provision(ProvisionNodeRequest) returns (ProvisionNodeResponse);
-	rpc Get(GetNodeRequest) returns (GetNodeResponse);
+	rpc List(google.protobuf.Empty) returns (ListNodeResponse);
 	rpc InstallPXE(InstallPXERequest) returns (google.protobuf.Empty);
 }
 
@@ -24,12 +24,8 @@ message ProvisionNodeResponse {
 	Node node = 1;
 }
 
-message GetNodeRequest {
-	string hostname = 1;
-}
-
-message GetNodeResponse {
-	Node node = 1;
+message ListNodeResponse {
+	repeated Node nodes = 1;
 }
 
 message InstallPXERequest {
