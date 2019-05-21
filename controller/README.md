@@ -35,7 +35,7 @@ To see the current image options:
 To run a dry run to see the image dockerfile and configuration
 
 ```bash
-> terra create --dry
+> terra create --dry <server.toml>
 ```
 
 ### Server Image Config
@@ -83,8 +83,8 @@ To see the current provision options:
 
 ```toml
 hostname = "terra-01"
-mac = "66:xx:ss:bb:f1:b1"
-image = "docker.io/stellarproject/example:v4"
+mac = "xx:xx:xx:xx:xx:xx"
+image = "docker.io/stellarproject/example:5"
 fs_uri = "iscsi://btrfs"
 fs_size = 512
 

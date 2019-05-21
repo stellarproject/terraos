@@ -136,7 +136,7 @@ var createCommand = cli.Command{
 			return errors.Wrap(err, "setup resolv.conf")
 		}
 
-		if !clix.Bool("dry") {
+		if clix.Bool("dry") {
 			return nil
 		}
 		cmd := exec.CommandContext(ctx, "vab", "build",
@@ -196,7 +196,6 @@ RUN systemctl enable {{$s}}
 
 ADD hostname /etc/hostname
 ADD hosts /etc/hosts
-ADD fstab /etc/fstab
 ADD resolv.conf /etc/resolv.conf
 ADD 01-netcfg.yaml /etc/netplan/
 
