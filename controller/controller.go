@@ -263,6 +263,16 @@ func (c *Controller) Delete(ctx context.Context, r *v1.DeleteNodeRequest) (*type
 	if _, err := conn.Do("HDEL", KeyNodes, hostname); err != nil {
 		return nil, errors.Wrap(err, "delete node from kv")
 	}
+
+	p := &pxe.PXE{
+		MAC: node.Mac,
+	}
+	path := filepath.Join(TFTPPath, "pxelinux.cfg", p.Filename())
+	if err := os.Remove(path); err != nil {
+		if !os.IsNotExist(err) {
+			return nil, errors.Wrap(err, "delete pxe config")
+		}
+	}
 	return empty, nil
 }
 

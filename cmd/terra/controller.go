@@ -82,6 +82,7 @@ var controllerCommand = cli.Command{
 		ips := map[controller.IPType]net.IP{
 			controller.Management: ip,
 			controller.Gateway:    gateway,
+			controller.ISCSI:      iscsi,
 		}
 		logrus.Info("creating redis pool...")
 		pool := redis.NewPool(func() (redis.Conn, error) {
