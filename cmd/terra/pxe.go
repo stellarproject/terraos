@@ -28,10 +28,6 @@
 package main
 
 import (
-	"encoding/json"
-	"os"
-
-	"github.com/BurntSushi/toml"
 	"github.com/pkg/errors"
 	v1 "github.com/stellarproject/terraos/api/v1"
 	"github.com/stellarproject/terraos/cmd"
@@ -39,29 +35,10 @@ import (
 	"google.golang.org/grpc"
 )
 
-type Subvolume struct {
-	Name string `toml:"name"`
-	Path string `toml:"path"`
-}
-
-type Node struct {
-	Hostname   string      `toml:"hostname"`
-	MAC        string      `toml:"mac"`
-	Image      string      `toml:"image"`
-	BackingURI string      `toml:"fs_uri"`
-	Size       int64       `toml:"fs_size"`
-	Subvolumes []Subvolume `toml:"fs_subvolumes"`
-}
-
-var provisionCommand = cli.Command{
-	Name:        "provision",
-	Description: "provision a new node",
+var pxeCommand = cli.Command{
+	Name:        "pxe",
+	Description: "update the pxe and kernel on the controller",
 	Action: func(clix *cli.Context) error {
-		var node Node
-		if _, err := toml.DecodeFile(clix.Args().First(), &node); err != nil {
-			return errors.Wrap(err, "load node file")
-		}
-
 		address := clix.GlobalString("controller") + ":9000"
 		conn, err := grpc.Dial(address, grpc.WithInsecure())
 		if err != nil {
@@ -71,29 +48,11 @@ var provisionCommand = cli.Command{
 		client := v1.NewInfrastructureClient(conn)
 		ctx := cmd.CancelContext()
 
-		resp, err := client.Provision(ctx, &v1.ProvisionNodeRequest{
-			Hostname: node.Hostname,
-			Mac:      node.MAC,
-			Image:    node.Image,
-			Fs: &v1.Filesystem{
-				BackingUri: node.BackingURI,
-				FsSize:     node.Size,
-				Subvolumes: subvolumes(node.Subvolumes),
-			},
-		})
-		if err != nil {
-			return errors.Wrap(err, "provision node from controller")
+		if _, err := client.InstallPXE(ctx, &v1.InstallPXERequest{
+			Image: clix.Args().First(),
+		}); err != nil {
+			return errors.Wrap(err, "install pxe image")
 		}
-		return json.NewEncoder(os.Stdout).Encode(resp.Node)
+		return nil
 	},
-}
-
-func subvolumes(subvolumes []Subvolume) (out []*v1.Subvolume) {
-	for _, s := range subvolumes {
-		out = append(out, &v1.Subvolume{
-			Name: s.Name,
-			Path: s.Path,
-		})
-	}
-	return out
 }

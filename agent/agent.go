@@ -145,6 +145,15 @@ type Agent struct {
 
 func (a *Agent) Create(ctx context.Context, req *v1.CreateRequest) (*types.Empty, error) {
 	ctx = relayContext(ctx)
+	if req.Container == nil {
+		return nil, errors.New("no container provided on create")
+	}
+	if req.Container.Process == nil {
+		req.Container.Process = &v1.Process{}
+	}
+	if req.Container.Security == nil {
+		req.Container.Security = &v1.Security{}
+	}
 	image, err := a.client.Pull(ctx, req.Container.Image, containerd.WithPullUnpack, withPlainRemote(req.Container.Image))
 	if err != nil {
 		return nil, err

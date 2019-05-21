@@ -74,7 +74,7 @@ Terra OS management`
 		cli.StringFlag{
 			Name:  "controller",
 			Usage: "controller address",
-			Value: "127.0.0.1:9000",
+			Value: "127.0.0.1",
 		},
 		cli.StringFlag{
 			Name:   "sentry-dsn",
@@ -101,6 +101,7 @@ Terra OS management`
 		createCommand,
 		controllerCommand,
 		provisionCommand,
+		pxeCommand,
 	}
 	if err := app.Run(os.Args); err != nil {
 		fmt.Fprintln(os.Stderr, err)

@@ -105,6 +105,7 @@ func specOpt(paths Paths, container *v1.Container, image containerd.Image) oci.S
 		withConfigs(paths, container.Configs),
 		oci.WithHostname(container.ID),
 	}
+
 	if container.Security.Privileged {
 		opts = append(opts,
 			oci.WithPrivileged,

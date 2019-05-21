@@ -46,6 +46,7 @@ import (
 	"github.com/sirupsen/logrus"
 	v1 "github.com/stellarproject/terraos/api/v1"
 	"github.com/stellarproject/terraos/config"
+	"github.com/stellarproject/terraos/pkg/btrfs"
 	"github.com/stellarproject/terraos/pkg/disk"
 	"github.com/stellarproject/terraos/pkg/image"
 	"github.com/stellarproject/terraos/pkg/iscsi"
@@ -80,6 +81,12 @@ const (
 var empty = &types.Empty{}
 
 func New(client *containerd.Client, ipConfig map[IPType]net.IP, pool *redis.Pool, orbit *util.LocalAgent) (*Controller, error) {
+	if err := btrfs.Check(); err != nil {
+		return nil, err
+	}
+	if err := iscsi.Check(); err != nil {
+		return nil, err
+	}
 	if err := createRedisContainer(orbit); err != nil {
 		return nil, errors.Wrap(err, "create redis-master container")
 	}
@@ -98,9 +105,11 @@ func createRedisContainer(orbit *util.LocalAgent) error {
 	if _, err := orbit.Get(ctx, &v1.GetRequest{
 		ID: "redis-master",
 	}); err == nil {
+		logrus.Debug("existing redis container is running")
 		return nil
 	}
 
+	logrus.Info("starting redis container")
 	container := &v1.Container{
 		ID:       "redis-master",
 		Image:    "docker.io/library/redis:4.0-alpine",
@@ -117,7 +126,9 @@ func createRedisContainer(orbit *util.LocalAgent) error {
 		Cpus:   1.5,
 		Memory: 1024,
 	}
-	if _, err := orbit.Create(ctx, &v1.CreateRequest{}); err != nil {
+	if _, err := orbit.Create(ctx, &v1.CreateRequest{
+		Container: container,
+	}); err != nil {
 		return errors.Wrap(err, "create redis container")
 	}
 	return nil
@@ -175,6 +186,9 @@ func (c *Controller) InstallPXE(ctx context.Context, r *v1.InstallPXERequest) (*
 
 	ctx = namespaces.WithNamespace(ctx, "controller")
 	repo := image.Repo(r.Image)
+	if repo == "" {
+		return nil, errors.New("no pxe image specified")
+	}
 
 	logrus.Debugf("installing pxe version %s", repo.Version())
 

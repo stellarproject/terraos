@@ -42,6 +42,13 @@ type Subvolume struct {
 	Path string
 }
 
+func Check() error {
+	if _, err := exec.LookPath("btrfs"); err != nil {
+		return errors.Wrap(err, "btrfs command cannot be found")
+	}
+	return nil
+}
+
 func CreateSubvolumes(subvolumes []Subvolume, path string) error {
 	for _, s := range subvolumes {
 		sv := filepath.Join(path, s.Name)

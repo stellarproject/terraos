@@ -42,6 +42,13 @@ const (
 	nodeIqnFmt   = "iqn.%d.%s:%s"
 )
 
+func Check() error {
+	if _, err := exec.LookPath("tgtadm"); err != nil {
+		return errors.Wrap(err, "tgtadm command cannot be found")
+	}
+	return nil
+}
+
 type IQN string
 
 func NewIQN(year int, domain, machine string, disk int) IQN {

@@ -37,6 +37,7 @@ import (
 	"github.com/containerd/containerd/defaults"
 	"github.com/gomodule/redigo/redis"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	v1 "github.com/stellarproject/terraos/api/v1"
 	"github.com/stellarproject/terraos/cmd"
 	"github.com/stellarproject/terraos/controller"
@@ -65,6 +66,7 @@ var controllerCommand = cli.Command{
 		},
 	},
 	Action: func(clix *cli.Context) error {
+		logrus.Info("building ip map...")
 		ip := net.ParseIP(clix.GlobalString("controller"))
 		if ip == nil || ip.To4() == nil {
 			return errors.New("invalid controller ip address")
@@ -81,13 +83,16 @@ var controllerCommand = cli.Command{
 			controller.Management: ip,
 			controller.Gateway:    gateway,
 		}
+		logrus.Info("creating redis pool...")
 		pool := redis.NewPool(func() (redis.Conn, error) {
 			return redis.Dial("tcp", clix.String("redis"))
 		}, 5)
+		logrus.Info("connecting to orbit...")
 		orbit, err := util.Agent("127.0.0.1:9100")
 		if err != nil {
 			return errors.Wrap(err, "get orbit agent")
 		}
+		logrus.Info("connecting to containerd...")
 		client, err := containerd.New(
 			defaults.DefaultAddress,
 			containerd.WithDefaultNamespace("controller"),
@@ -96,12 +101,14 @@ var controllerCommand = cli.Command{
 		if err != nil {
 			return errors.Wrap(err, "create containerd client")
 		}
+		logrus.Info("creating new controller...")
 		controller, err := controller.New(client, ips, pool, orbit)
 		if err != nil {
 			return errors.Wrap(err, "new controller")
 		}
 		defer controller.Close()
 
+		logrus.Info("registering grpc server...")
 		server := cmd.NewServer()
 		v1.RegisterInfrastructureServer(server, controller)
 
@@ -111,11 +118,17 @@ var controllerCommand = cli.Command{
 			<-signals
 			server.Stop()
 		}()
-		l, err := net.Listen("tcp", clix.GlobalString("controller"))
+
+		logrus.Info("listening on controller address...")
+		l, err := net.Listen("tcp", clix.GlobalString("controller")+":9000")
 		if err != nil {
 			return errors.Wrap(err, "listen tcp")
 		}
 		defer l.Close()
+
+		logrus.Info("serving controller api...")
+		logrus.Info("controller boot successful...")
+		defer logrus.Info("controller exiting, bye bye...")
 
 		return server.Serve(l)
 	},
