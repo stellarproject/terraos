@@ -93,6 +93,7 @@ Terra OS management`
 		return nil
 	}
 	app.Commands = []cli.Command{
+		createCommand,
 		controllerCommand,
 	}
 	if err := app.Run(os.Args); err != nil {

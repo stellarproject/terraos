@@ -25,47 +25,50 @@
 	THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package main
+package netplan
 
 import (
-	"os"
-	"path/filepath"
+	"io"
 	"strings"
 	"text/template"
+
+	"github.com/pkg/errors"
+)
+
+const (
+	DefaultVersion  = 2
+	DefaultRenderer = "networkd"
+	DefaultFilename = "01-netcfg.yaml"
 )
 
 const netplanTemplate = `network:
   version: 2
   renderer: networkd
-  ethernets:
-    {{ .Interface }}:
-      {{if .Addresses}}addresses: [{{addresses .Addresses}}]{{else}}dhcp4: yes{{end}}
-      {{if ne .Gateway ""}}gateway4: {{.Gateway}}{{end}}`
+  ethernets:{{range $i := .Interfaces}}
+    {{ $i.Name }}:
+      {{if $i.Addresses}}addresses: [{{addresses $i.Addresses}}]{{else}}dhcp4: yes{{end}}
+      {{if ne $i.Gateway ""}}gateway4: {{$i.Gateway}}{{end}}
+{{end}}`
 
 type Netplan struct {
-	Interface string   `toml:"interface"`
-	Addresses []string `toml:"addresses"`
-	Gateway   string   `toml:"gateway"`
+	Interfaces []Interface `toml:"interfaces"`
 }
 
-func setupNetplan(path string, n Netplan, paths *[]string) error {
-	if n.Interface == "" {
-		n.Interface = "eth0"
-	}
+func (n *Netplan) Write(w io.Writer) error {
 	t, err := template.New("netplan").Funcs(template.FuncMap{
 		"addresses":   addresses,
 		"nameservers": nameservers,
 	}).Parse(netplanTemplate)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "netplan template")
 	}
-	f, err := os.OpenFile(filepath.Join(path, "01-netcfg.yaml"), os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0664)
-	if err != nil {
-		return err
-	}
-	*paths = append(*paths, f.Name())
-	defer f.Close()
-	return t.Execute(f, n)
+	return t.Execute(w, n)
+}
+
+type Interface struct {
+	Name      string   `toml:"name"`
+	Addresses []string `toml:"addresses"`
+	Gateway   string   `toml:"gateway"`
 }
 
 func addresses(v []string) string {

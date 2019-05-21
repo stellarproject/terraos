@@ -55,7 +55,6 @@ os: FORCE
 local: FORCE
 	@cd cmd/terra && CGO_ENABLED=0 go build -v -ldflags '${GO_LDFLAGS}' -o ../../build/terra
 	@cd cmd/terra-install && CGO_ENABLED=0 go build -v -ldflags '${GO_LDFLAGS}' -o ../../build/terra-install
-	@cd cmd/terra-create && CGO_ENABLED=0 go build -v -ldflags '${GO_LDFLAGS}' -o ../../build/terra-create
 	# @cd cmd/vab && CGO_ENABLED=0 go build -v -ldflags '${GO_LDFLAGS}' -o ../../build/vab
 	@cd cmd/rdns && CGO_ENABLED=0 go build -v -ldflags '${GO_LDFLAGS}' -o ../../build/rdns
 
