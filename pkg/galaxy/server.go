@@ -31,12 +31,12 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 
 	"aqwari.net/net/styx"
 	"github.com/sirupsen/logrus"
 	"github.com/stellarproject/terraos/pkg/store"
 	"github.com/stellarproject/terraos/pkg/store/client"
-	"github.com/stellarproject/terraos/version"
 )
 
 // Config is the galaxy server configuration
@@ -53,7 +53,7 @@ type Config struct {
 type Server struct {
 	config  *Config
 	backend store.Store
-	router  *router
+	router  *Router
 }
 
 var logrequests styx.HandlerFunc = func(s *styx.Session) {
@@ -68,15 +68,20 @@ func NewServer(cfg *Config) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	r := newRouter()
-	r.Path("/", rootHandler)
-	r.Path("/version", versionHandler)
+	r := NewRouter()
+	r.Path("/", rootHandler(b))
+	r.Path("/version", versionHandler(b))
 	r.Prefix("/cluster", clusterHandler(b))
 	return &Server{
 		config:  cfg,
 		backend: b,
 		router:  r,
 	}, nil
+}
+
+// Router returns the current router for the server
+func (s *Server) Router() *Router {
+	return s.router
 }
 
 // Run starts a new galaxy server and listens for sessions
@@ -92,85 +97,29 @@ func (s *Server) Run() error {
 	return styxServer.ListenAndServe()
 }
 
-func (s *Server) handleRequest(p string) (interface{}, interface{}, error) {
-	// top level
-	if p == "/" {
-		return nil, mkdir([]os.FileInfo{
-			&dir{name: "cluster"},
-			&file{name: "version"},
-		}), nil
-	}
-
-	switch p {
-	case "/cluster":
-		return nil, mkdir([]os.FileInfo{
-			&dir{name: "service"},
-		}), nil
-	case "/cluster/service":
-		// TODO: dynamic lookup from redis
-		return nil, mkdir([]os.FileInfo{
-			&dir{name: "test"},
-			&dir{name: "foo"},
-		}), nil
-	case "/cluster/service/test":
-		return nil, mkdir([]os.FileInfo{
-			&file{name: "containers"},
-		}), nil
-	case "/cluster/service/foo":
-		return nil, mkdir([]os.FileInfo{
-			&file{name: "containers"},
-		}), nil
-	case "/cluster/service/test/containers":
-		return nil, &file{
-			name:  "containers",
-			isDir: false,
-			uid:   "root",
-			gid:   "root",
-			data:  []byte(`[{id: "test"}, {"id": "foo"}]`),
-		}, nil
-	case "/cluster/service/foo/containers":
-		return nil, &file{
-			name:  "containers",
-			isDir: false,
-			uid:   "root",
-			gid:   "root",
-			data:  []byte(`[{id: "test"}, {"id": "foo"}]`),
-		}, nil
-	case "/version":
-		return nil, &file{
-			name:  "version",
-			isDir: false,
-			uid:   "root",
-			gid:   "root",
-			data:  []byte(version.Version + "\n"),
-		}, nil
-	default:
-		// TODO lookup from store
-	}
-	return nil, nil, ErrNoFile
-}
-
+// Serve9P implements the 9P session request handler
 func (s *Server) Serve9P(session *styx.Session) {
 	for session.Next() {
 		r := session.Request()
 		_, f, err := s.router.handle(r.Path(), r)
 		if err != nil {
-			fmt.Println("---", r.Path(), err)
-			// r.Rerror(err.Error())
-			// continue
+			//r.Rerror(err.Error())
+			//continue
 		}
 		var fi os.FileInfo
 		switch v := f.(type) {
-		case *dir:
+		case Dir:
 			fi = v
-		case *file:
+		case File:
 			fi = v
 		case nil:
+			// create
 			fi = nil
 		default:
 			r.Rerror("unknown type received %T", v)
 			continue
 		}
+
 		switch t := r.(type) {
 		case styx.Twalk:
 			fmt.Println("Twalk")
@@ -184,17 +133,34 @@ func (s *Server) Serve9P(session *styx.Session) {
 			fmt.Printf("Tstat fi %T\n", fi)
 			if fi != nil {
 				t.Rstat(fi, nil)
-			} else {
-				t.Rstat(nil, os.ErrNotExist)
+			} else { // attempt to create
+				if _, err := s.backend.GetOrCreate(t.Path()); err != nil {
+					t.Rerror(err.Error())
+					continue
+				}
+				n := filepath.Base(t.Path())
+				f, err := newFile(n, t.Path(), "0", "0", false, nil, s.backend)
+				if err != nil {
+					t.Rerror(err.Error())
+					continue
+				}
+				t.Rstat(f, nil)
 			}
+		case styx.Tutimes:
+			fmt.Println("Tutimes")
+			// TODO
+			t.Rutimes(nil)
 		case styx.Topen:
 			fmt.Println("Topen")
 			switch v := fi.(type) {
 			case *dir:
-				t.Ropen(mkdir(v.entries), nil)
+				t.Ropen(mkdir(v.entries, 0755), nil)
 			case *file:
 				t.Ropen(fi, nil)
 			}
+		case styx.Ttruncate:
+			// TODO
+			t.Rtruncate(nil)
 		case styx.Tcreate:
 			fmt.Println("Tcreate")
 			switch fi.(type) {
@@ -213,6 +179,12 @@ func (s *Server) Serve9P(session *styx.Session) {
 			default:
 				t.Rerror("%s is not a directory", t.Path())
 			}
+		case styx.Tremove:
+			if err := s.backend.Delete(t.Path()); err != nil {
+				t.Rerror(err.Error())
+				continue
+			}
+			t.Rremove(nil)
 		default:
 			fmt.Printf("default: %T\n", t)
 		}

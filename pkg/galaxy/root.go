@@ -31,11 +31,18 @@ import (
 	"os"
 
 	"aqwari.net/net/styx"
+	"github.com/stellarproject/terraos/pkg/store"
 )
 
-func rootHandler(_ string, _ styx.Request) (interface{}, interface{}, error) {
-	return nil, mkdir([]os.FileInfo{
-		&dir{name: "cluster"},
-		&file{name: "version"},
-	}), nil
+func rootHandler(backend store.Store) handler {
+	return func(p string, r styx.Request) (interface{}, interface{}, error) {
+		f, err := versionFile(backend, r.Path())
+		if err != nil {
+			return nil, nil, err
+		}
+		return nil, mkdir([]os.FileInfo{
+			&dir{name: "cluster"},
+			f,
+		}, 0755), nil
+	}
 }
