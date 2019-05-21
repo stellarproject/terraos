@@ -37,12 +37,18 @@ import (
 	"github.com/pkg/errors"
 )
 
-const iqnFmt = "iqn.%d.%s.%s:%s"
+const (
+	targetIqnFmt = "iqn.%d.%s.%s:%d"
+	nodeIqnFmt   = "iqn.%d.%s:%s"
+)
 
 type IQN string
 
-func NewIQN(year int, domain, machine, disk string) IQN {
-	return IQN(fmt.Sprintf(iqnFmt, year, domain, machine, disk))
+func NewIQN(year int, domain, machine string, disk int) IQN {
+	if disk > -1 {
+		return IQN(fmt.Sprintf(targetIqnFmt, year, domain, machine, disk))
+	}
+	return IQN(fmt.Sprintf(nodeIqnFmt, year, domain, machine))
 }
 
 func iscsi(ctx context.Context, args ...string) ([]byte, error) {
@@ -149,4 +155,13 @@ func (l *Lun) Path() string {
 // Size in MB
 func (l *Lun) Size() int64 {
 	return l.size
+}
+
+func (l *Lun) LocalMount(ctx context.Context, t, path string) error {
+	// TODO: make into syscall mount command
+	out, err := exec.CommandContext(ctx, "mount", "-t", t, "-o", "loop", l.path, path).CombinedOutput()
+	if err != nil {
+		return errors.Wrapf(err, "%s", out)
+	}
+	return nil
 }

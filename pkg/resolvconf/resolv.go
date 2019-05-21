@@ -29,8 +29,7 @@ package resolvconf
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
+	"io"
 )
 
 // Default resolv.conf path
@@ -49,22 +48,14 @@ type Conf struct {
 }
 
 // Write the conf to the provided path
-func (r *Conf) Write(path string) error {
-	if err := os.MkdirAll(filepath.Dir(path), 0711); err != nil {
-		return err
-	}
-	f, err := os.Create(path)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
+func (r *Conf) Write(w io.Writer) error {
 	for _, ns := range r.Nameservers {
-		if _, err := f.WriteString(fmt.Sprintf("nameserver %s\n", ns)); err != nil {
+		if _, err := fmt.Fprintf(w, "nameserver %s\n", ns); err != nil {
 			return err
 		}
 	}
 	if r.Search != "" {
-		if _, err := f.WriteString(fmt.Sprintf("search %s", r.Search)); err != nil {
+		if _, err := fmt.Fprintf(w, "search %s", r.Search); err != nil {
 			return err
 		}
 	}

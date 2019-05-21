@@ -30,13 +30,15 @@ package main
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"syscall"
+	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	v1 "github.com/stellarproject/terraos/api/v1"
 	"github.com/stellarproject/terraos/cmd"
+	"github.com/stellarproject/terraos/pkg/disk"
+	"github.com/stellarproject/terraos/pkg/image"
 	"github.com/stellarproject/terraos/version"
 	"github.com/urfave/cli"
 )
@@ -84,6 +86,11 @@ Terra OS management`
 			Usage: "set the filesystem type",
 			Value: "ext4",
 		},
+		cli.StringSliceFlag{
+			Name:  "subvolumes,s",
+			Usage: "persistent subvolumes format> name:path",
+			Value: &cli.StringSlice{},
+		},
 	}
 	app.Before = func(clix *cli.Context) error {
 		if clix.GlobalBool("debug") {
@@ -92,57 +99,50 @@ Terra OS management`
 		return nil
 	}
 	app.Action = func(clix *cli.Context) error {
-		repo, err := cmd.GetRepo(clix)
+		repo, err := image.GetRepo(clix)
 		if err != nil {
 			return err
 		}
 		var (
-			version  = repo.Version()
-			logger   = logrus.WithField("repo", repo)
-			unpackTo = "/sd"
+			path   = "/sd"
+			ctx    = cmd.CancelContext()
+			fstype = clix.GlobalString("fs-type")
 		)
-		if err := os.MkdirAll("/sd", 0755); err != nil {
+		if err := os.MkdirAll(path, 0755); err != nil {
 			return errors.Wrap(err, "create /sd")
 		}
-		if err := syscall.Mount(clix.GlobalString("device"), unpackTo, clix.GlobalString("fs-type"), 0, ""); err != nil {
-			return errors.Wrap(err, "mount device")
+		node := &v1.Node{
+			Image: string(repo),
+			Fs: &v1.Filesystem{
+				Subvolumes: parseSubvolumes(clix.GlobalStringSlice("subvolumes")),
+			},
 		}
-		defer syscall.Unmount("/sd", 0)
-
-		if clix.GlobalString("fs-type") == "btrfs" {
-			unpackTo = filepath.Join(unpackTo, "submount")
-			if err := os.MkdirAll(unpackTo, 0755); err != nil {
-				return errors.Wrap(err, "mkdir submount")
-			}
-			if err := createSubvolumes(version, "/sd"); err != nil {
-				return errors.Wrap(err, "create subvolumes")
-			}
-			paths, err := mountSubvolumes(clix.String("device"), version, unpackTo)
-			if err != nil {
-				return errors.Wrap(err, "mount subvolumes")
-			}
-			defer func() {
-				for _, p := range paths {
-					syscall.Unmount(p, 0)
-				}
-			}()
+		d := disk.NewLocalDisk(clix.GlobalString("device"))
+		if err := d.Format(ctx, fstype, "os"); err != nil {
+			return errors.Wrap(err, "format disk")
 		}
-
-		logger.Info("creating new content store")
-		storePath := filepath.Join("/sd", "terra-content")
-		store, err := cmd.NewContentStore(storePath)
+		if err := d.Provision(ctx, fstype, node); err != nil {
+			d.Unmount(ctx)
+			return errors.Wrap(err, "provision disk")
+		}
+		storePath := filepath.Join(path, "terra-content")
+		store, err := image.NewContentStore(storePath)
 		if err != nil {
 			return errors.Wrap(err, "new content store")
 		}
-		// we will keep the content store for faster lookups
-		// TODO: add content purge command to this binary
-
-		ctx := cmd.CancelContext()
-		desc, err := cmd.Fetch(ctx, clix.Bool("http"), store, string(repo))
-		if err != nil {
-			return errors.Wrap(err, "fetch OS image")
+		if err := d.Write(ctx, image.Repo(node.Image), store); err != nil {
+			os.RemoveAll(storePath)
+			d.Unmount(ctx)
+			return errors.Wrap(err, "write image to disk")
 		}
-		return cmd.Unpack(ctx, store, desc, unpackTo)
+		if err := os.RemoveAll(storePath); err != nil {
+			d.Unmount(ctx)
+			return errors.Wrap(err, "remove store path")
+		}
+		if err := d.Unmount(ctx); err != nil {
+			return errors.Wrap(err, "unmount disk")
+		}
+		return nil
 	}
 	if err := app.Run(os.Args); err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -150,59 +150,13 @@ Terra OS management`
 	}
 }
 
-var subvolumes = map[string]string{
-	"home":       "/home",
-	"containerd": "/var/lib/containerd",
-	"log":        "/var/log",
-}
-
-func createSubvolumes(version, path string) error {
-	for d := range subvolumes {
-		sv := filepath.Join(path, d)
-		if _, err := os.Stat(sv); err == nil {
-			continue
-		}
-		if err := btrfs("subvolume", "create", sv); err != nil {
-			return err
-		}
+func parseSubvolumes(raw []string) (out []*v1.Subvolume) {
+	for _, s := range raw {
+		parts := strings.SplitN(s, ":", 2)
+		out = append(out, &v1.Subvolume{
+			Name: parts[0],
+			Path: parts[1],
+		})
 	}
-	vp := filepath.Join(path, version)
-	if _, err := os.Stat(vp); err == nil {
-		return errors.New("version already installed")
-	}
-
-	return btrfs("subvolume", "create", vp)
-}
-
-func mountSubvolumes(device, version, path string) (paths []string, err error) {
-	defer func() {
-		if err != nil {
-			for _, p := range paths {
-				syscall.Unmount(p, 0)
-			}
-		}
-	}()
-	if err := syscall.Mount(device, path, "btrfs", 0, fmt.Sprintf("subvol=%s", version)); err != nil {
-		return nil, err
-	}
-	for k, v := range subvolumes {
-		subPath := filepath.Join(path, v)
-		if err := os.MkdirAll(subPath, 0755); err != nil {
-			return nil, err
-		}
-		if err := syscall.Mount(device, subPath, "btrfs", 0, fmt.Sprintf("subvol=%s", k)); err != nil {
-			return nil, errors.Wrapf(err, "mount %s:%s", k, subPath)
-		}
-		paths = append(paths, subPath)
-	}
-	paths = append(paths, path)
-	return paths, nil
-}
-
-func btrfs(args ...string) error {
-	out, err := exec.Command("btrfs", args...).CombinedOutput()
-	if err != nil {
-		return errors.Wrapf(err, "%s", out)
-	}
-	return nil
+	return out
 }

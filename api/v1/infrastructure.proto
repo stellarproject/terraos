@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+package io.stellarproject.v1;
+
+import weak "gogoproto/gogo.proto";
+
+option go_package = "github.com/stellarproject/terraos/api/v1;v1";
+
+service Infrastructure {
+	rpc RegisterNode(RegisterNodeRequest) returns (RegisterNodeResponse);
+}
+
+message RegisterNodeRequest {
+	string hostname = 1;
+	string mac = 2;
+	string image = 3;
+	Filesystem fs = 4;
+}
+
+message RegisterNodeResponse {
+	Node node = 1;
+}
+
+message Node {
+	string hostname = 1;
+	string mac = 2;
+	string initiator_iqn = 3;
+	string target_iqn = 4;
+	Filesystem fs = 5;
+	string image = 6;
+}
+
+message Filesystem {
+	string backing_uri = 1;
+	int64 fs_size = 2;
+	repeated Subvolume subvolumes = 3;
+}
+
+message Subvolume {
+	string name = 1;
+	string path = 2;
+}
