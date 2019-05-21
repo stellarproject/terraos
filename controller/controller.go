@@ -38,15 +38,19 @@ import (
 
 	"github.com/containerd/containerd"
 	"github.com/containerd/containerd/namespaces"
+	"github.com/containerd/typeurl"
 	"github.com/gogo/protobuf/proto"
 	"github.com/gogo/protobuf/types"
 	"github.com/gomodule/redigo/redis"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	v1 "github.com/stellarproject/terraos/api/v1"
+	"github.com/stellarproject/terraos/config"
 	"github.com/stellarproject/terraos/pkg/disk"
 	"github.com/stellarproject/terraos/pkg/image"
 	"github.com/stellarproject/terraos/pkg/iscsi"
 	"github.com/stellarproject/terraos/pkg/pxe"
+	"github.com/stellarproject/terraos/util"
 )
 
 const (
@@ -60,6 +64,7 @@ const (
 	KeyTargetLunIDs = "stellarproject.io/controller/target/%d/ids"
 	KeyTargetLuns   = "stellarproject.io/controller/target/%d/luns"
 	KeyNodes        = "stellarproject.io/controller/nodes"
+	KeyPXEVersion   = "stellarproject.io/controller/pxe/version"
 )
 
 type IPType int
@@ -69,31 +74,76 @@ const (
 	Management
 	Gateway
 	TFTP
+	Orbit
 )
 
 var empty = &types.Empty{}
 
-func New(client *containerd.Client, ipConfig map[IPType]net.IP, pool *redis.Pool) (*Controller, error) {
+func New(client *containerd.Client, ipConfig map[IPType]net.IP, pool *redis.Pool, orbit *util.LocalAgent) (*Controller, error) {
+	if err := createRedisContainer(orbit); err != nil {
+		return nil, errors.Wrap(err, "create redis-master container")
+	}
 	return &Controller{
 		ips:    ipConfig,
 		client: client,
+		orbit:  orbit,
+		pool:   pool,
 		kernel: "/vmlinuz",
 		initrd: "/initrd.img",
 	}, nil
 }
 
+func createRedisContainer(orbit *util.LocalAgent) error {
+	ctx := namespaces.WithNamespace(context.Background(), config.DefaultNamespace)
+	if _, err := orbit.Get(ctx, &v1.GetRequest{
+		ID: "redis-master",
+	}); err == nil {
+		return nil
+	}
+
+	container := &v1.Container{
+		ID:       "redis-master",
+		Image:    "docker.io/library/redis:4.0-alpine",
+		Services: []string{"master.redis"},
+	}
+	any, err := typeurl.MarshalAny(&v1.HostNetwork{})
+	if err != nil {
+		panic(err)
+	}
+	container.Networks = append(container.Networks, any)
+
+	container.Resources = &v1.Resources{
+		NoFile: 2048,
+		Cpus:   1.5,
+		Memory: 1024,
+	}
+	if _, err := orbit.Create(ctx, &v1.CreateRequest{}); err != nil {
+		return errors.Wrap(err, "create redis container")
+	}
+	return nil
+}
+
 type Controller struct {
 	mu sync.Mutex
 
-	ips    map[IPType]net.IP
 	client *containerd.Client
 	pool   *redis.Pool
+	orbit  *util.LocalAgent
+
+	ips    map[IPType]net.IP
 	kernel string
 	initrd string
 }
 
 func (c *Controller) Close() error {
-	return c.pool.Close()
+	err := c.pool.Close()
+	if oerr := c.orbit.Close(); err == nil {
+		err = oerr
+	}
+	if cerr := c.client.Close(); err == nil {
+		err = cerr
+	}
+	return err
 }
 
 func (c *Controller) Get(ctx context.Context, r *v1.GetNodeRequest) (*v1.GetNodeResponse, error) {
@@ -124,12 +174,23 @@ func (c *Controller) InstallPXE(ctx context.Context, r *v1.InstallPXERequest) (*
 	defer c.mu.Unlock()
 
 	ctx = namespaces.WithNamespace(ctx, "controller")
+	repo := image.Repo(r.Image)
+
+	logrus.Debugf("installing pxe version %s", repo.Version())
+
 	i, err := c.client.Fetch(ctx, r.Image)
 	if err != nil {
 		return nil, errors.Wrapf(err, "fetch pxe image %s", r.Image)
 	}
 	if err := image.Unpack(ctx, c.client.ContentStore(), &i.Target, "/"); err != nil {
 		return nil, errors.Wrap(err, "unpack pxe image")
+	}
+	conn, err := c.pool.GetContext(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "get connection")
+	}
+	if _, err := conn.Do("SET", KeyPXEVersion, repo.Version()); err != nil {
+		return nil, errors.Wrap(err, "set pxe version")
 	}
 	return empty, nil
 }

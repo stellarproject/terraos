@@ -40,6 +40,7 @@ import (
 	v1 "github.com/stellarproject/terraos/api/v1"
 	"github.com/stellarproject/terraos/cmd"
 	"github.com/stellarproject/terraos/controller"
+	"github.com/stellarproject/terraos/util"
 	"github.com/urfave/cli"
 )
 
@@ -83,6 +84,10 @@ var controllerCommand = cli.Command{
 		pool := redis.NewPool(func() (redis.Conn, error) {
 			return redis.Dial("tcp", clix.String("redis"))
 		}, 5)
+		orbit, err := util.Agent("127.0.0.1:9100")
+		if err != nil {
+			return errors.Wrap(err, "get orbit agent")
+		}
 		client, err := containerd.New(
 			defaults.DefaultAddress,
 			containerd.WithDefaultNamespace("controller"),
@@ -91,7 +96,7 @@ var controllerCommand = cli.Command{
 		if err != nil {
 			return errors.Wrap(err, "create containerd client")
 		}
-		controller, err := controller.New(client, ips, pool)
+		controller, err := controller.New(client, ips, pool, orbit)
 		if err != nil {
 			return errors.Wrap(err, "new controller")
 		}
