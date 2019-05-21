@@ -62,7 +62,7 @@ func CreateSubvolumes(subvolumes []Subvolume, path string) error {
 	return nil
 }
 
-func OverlaySubvolumes(root string, subvolumes []Subvolume, deviceMount string) (paths []string, err error) {
+func OverlaySubvolumes(installPath string, subvolumes []Subvolume, deviceMount string) (paths []string, err error) {
 	defer func() {
 		if err != nil {
 			for _, p := range paths {
@@ -71,17 +71,18 @@ func OverlaySubvolumes(root string, subvolumes []Subvolume, deviceMount string) 
 		}
 	}()
 	for _, s := range subvolumes {
-		subPath := filepath.Join(root, s.Path)
+		subPath := filepath.Join(installPath, s.Path)
 		if err := os.MkdirAll(subPath, 0755); err != nil {
 			return nil, errors.Wrapf(err, "mkdir subvolume %s", subPath)
 		}
-		if err := syscall.Mount(filepath.Join(deviceMount, s.Name), subPath, "none", syscall.MS_BIND, ""); err != nil {
-			return nil, errors.Wrapf(err, "mount %s:%s", s.Name, subPath)
+		devMount := filepath.Join(deviceMount, s.Name)
+		if err := syscall.Mount(devMount, subPath, "none", syscall.MS_BIND, ""); err != nil {
+			return nil, errors.Wrapf(err, "mount %s to %s", devMount, subPath)
 		}
 		paths = append(paths, subPath)
 	}
 	// add the root path
-	paths = append(paths, root)
+	paths = append(paths, installPath)
 	return paths, nil
 }
 

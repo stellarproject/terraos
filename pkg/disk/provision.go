@@ -34,6 +34,7 @@ import (
 	"path/filepath"
 	"syscall"
 
+	"github.com/Sirupsen/logrus"
 	"github.com/containerd/containerd/content"
 	"github.com/pkg/errors"
 	v1 "github.com/stellarproject/terraos/api/v1"
@@ -71,7 +72,7 @@ func (l *localDisk) Format(ctx context.Context, fstype, label string) error {
 	if fstype == mkfs.Btrfs {
 		args = append(args, "-f")
 	}
-	if err := mkfs.Mkfs(fstype, label, l.device, args...); err != nil {
+	if err := mkfs.Mkfs(fstype, l.device, label, args...); err != nil {
 		return errors.Wrap(err, "mkfs device")
 	}
 	return nil
@@ -88,8 +89,9 @@ func (l *localDisk) Unmount(ctx context.Context) error {
 	for _, p := range l.mounts {
 		syscall.Unmount(p, 0)
 	}
-	if err := syscall.Unmount(l.path, 0); err != nil {
-		return errors.Wrap(err, "unmount disk")
+	if err := syscall.Unmount(l.root, 0); err != nil {
+		logrus.WithError(err).Error("unmount disk")
+		return nil
 	}
 	if err := os.RemoveAll(l.path); err != nil {
 		return errors.Wrap(err, "remove path")
@@ -122,7 +124,7 @@ func (l *localDisk) Provision(ctx context.Context, fstype string, node *v1.Node)
 			return errors.Wrap(err, "create subvolumes")
 		}
 		rootPath := filepath.Join(path, version)
-		paths, err := btrfs.OverlaySubvolumes(path, subvolumes, rootPath)
+		paths, err := btrfs.OverlaySubvolumes(rootPath, subvolumes, path)
 		if err != nil {
 			return errors.Wrap(err, "overlay subvolumes")
 		}
@@ -172,7 +174,7 @@ func (l *lunDisk) Unmount(ctx context.Context) error {
 	for _, p := range l.mounts {
 		syscall.Unmount(p, 0)
 	}
-	if err := syscall.Unmount(l.path, 0); err != nil {
+	if err := syscall.Unmount(l.root, 0); err != nil {
 		return errors.Wrap(err, "unmount disk")
 	}
 	if err := os.RemoveAll(l.path); err != nil {
@@ -193,7 +195,7 @@ func (l *lunDisk) Format(ctx context.Context, fstype, label string) error {
 	if fstype == mkfs.Btrfs {
 		args = append(args, "-f")
 	}
-	if err := mkfs.Mkfs(fstype, label, l.lun.Path(), args...); err != nil {
+	if err := mkfs.Mkfs(fstype, l.lun.Path(), label, args...); err != nil {
 		return errors.Wrap(err, "mkfs of lun")
 	}
 	return nil
@@ -222,11 +224,11 @@ func (l *lunDisk) Provision(ctx context.Context, fstype string, node *v1.Node) e
 		l.subvolumes = subvolumes
 		if err := btrfs.CreateSubvolumes(append(subvolumes, btrfs.Subvolume{
 			Name: version,
-		}), path); err != nil {
+		}), root); err != nil {
 			return errors.Wrap(err, "create subvolumes")
 		}
 		rootPath := filepath.Join(path, version)
-		paths, err := btrfs.OverlaySubvolumes(path, subvolumes, rootPath)
+		paths, err := btrfs.OverlaySubvolumes(rootPath, subvolumes, root)
 		if err != nil {
 			return errors.Wrap(err, "overlay subvolumes")
 		}

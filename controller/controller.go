@@ -90,6 +90,11 @@ func New(client *containerd.Client, ipConfig map[IPType]net.IP, pool *redis.Pool
 	if err := createRedisContainer(orbit); err != nil {
 		return nil, errors.Wrap(err, "create redis-master container")
 	}
+	for _, p := range []string{ClusterFS, ISCSIPath, TFTPPath} {
+		if err := os.MkdirAll(p, 0755); err != nil {
+			return nil, errors.Wrapf(err, "mkdir %s", p)
+		}
+	}
 	return &Controller{
 		ips:    ipConfig,
 		client: client,
@@ -100,6 +105,7 @@ func New(client *containerd.Client, ipConfig map[IPType]net.IP, pool *redis.Pool
 	}, nil
 }
 
+// TODO: add registry and prometheus
 func createRedisContainer(orbit *util.LocalAgent) error {
 	ctx := namespaces.WithNamespace(context.Background(), config.DefaultNamespace)
 	if _, err := orbit.Get(ctx, &v1.GetRequest{
@@ -147,6 +153,7 @@ type Controller struct {
 }
 
 func (c *Controller) Close() error {
+	logrus.Debug("closing controller")
 	err := c.pool.Close()
 	if oerr := c.orbit.Close(); err == nil {
 		err = oerr
@@ -161,6 +168,7 @@ func (c *Controller) List(ctx context.Context, _ *types.Empty) (*v1.ListNodeResp
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
+	logrus.Debug("listing nodes")
 	conn, err := c.pool.GetContext(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "get connection")
@@ -186,18 +194,23 @@ func (c *Controller) InstallPXE(ctx context.Context, r *v1.InstallPXERequest) (*
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
+	logrus.Debug("installing new pxe image")
+
 	ctx = namespaces.WithNamespace(ctx, "controller")
 	repo := image.Repo(r.Image)
 	if repo == "" {
 		return nil, errors.New("no pxe image specified")
 	}
+	log := logrus.WithField("image", repo)
 
-	logrus.Debugf("installing pxe version %s", repo.Version())
+	log.Infof("installing pxe version %s", repo.Version())
 
+	log.Debug("fetching image")
 	i, err := c.client.Fetch(ctx, r.Image)
 	if err != nil {
 		return nil, errors.Wrapf(err, "fetch pxe image %s", r.Image)
 	}
+	log.Debug("unpacking image")
 	if err := image.Unpack(ctx, c.client.ContentStore(), &i.Target, "/"); err != nil {
 		return nil, errors.Wrap(err, "unpack pxe image")
 	}
@@ -215,20 +228,26 @@ func (c *Controller) Provision(ctx context.Context, r *v1.ProvisionNodeRequest) 
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	if err := os.Mkdir(filepath.Join(ClusterFS, r.Hostname), 0755); err != nil {
-		return nil, errors.Wrap(err, "mkdir node directory")
-	}
+	log := logrus.WithField("node", r.Hostname)
+	log.Info("provisioning new node")
+
 	node := &v1.Node{
 		Hostname: r.Hostname,
 		Mac:      r.Mac,
 		Image:    r.Image,
 		Fs:       r.Fs,
 	}
+	// do the initial save so we know this host does not exist
+	if err := c.saveNode(node); err != nil {
+		return nil, err
+	}
 	ctx = namespaces.WithNamespace(ctx, "controller")
+	log.Debug("provision disk")
 	if err := c.provisionDisk(ctx, node); err != nil {
 		return nil, errors.Wrap(err, "provision node disk")
 	}
-	if err := c.saveNode(node); err != nil {
+	log.Debug("save node information")
+	if err := c.updateNode(node); err != nil {
 		return nil, err
 	}
 	return &v1.ProvisionNodeResponse{
@@ -268,11 +287,14 @@ func (c *Controller) provisionDisk(ctx context.Context, node *v1.Node) error {
 
 // TODO: parallel create lun and fetch image
 func (c *Controller) createISCSI(ctx context.Context, node *v1.Node, uri *url.URL) (iscsi.IQN, error) {
+	log := logrus.WithField("node", node.Hostname)
 	iqn := iscsi.NewIQN(2024, "san.crosbymichael.com", node.Hostname, 0)
+	log.Infof("created new iqn %s", iqn)
 	lun, err := iscsi.NewLun(ctx, filepath.Join(ISCSIPath, fmt.Sprintf("%s.lun", node.Hostname)), node.Fs.FsSize)
 	if err != nil {
 		return "", errors.Wrap(err, "create lun")
 	}
+	log.Debug("installing image")
 	if err := c.installImage(ctx, node, uri, lun); err != nil {
 		return "", errors.Wrap(err, "install image onto lun")
 	}
@@ -280,6 +302,7 @@ func (c *Controller) createISCSI(ctx context.Context, node *v1.Node, uri *url.UR
 	if err != nil {
 		return "", err
 	}
+	log.Infof("creating new target with id %d", targetID)
 	target, err := iscsi.NewTarget(ctx, iqn, targetID)
 	if err != nil {
 		return "", errors.Wrapf(err, "create target %s", iqn)
@@ -294,6 +317,7 @@ func (c *Controller) createISCSI(ctx context.Context, node *v1.Node, uri *url.UR
 	if err != nil {
 		return "", err
 	}
+	log.Infof("creating lun with id %d", lid)
 	if err := target.Attach(ctx, lun, lid); err != nil {
 		return "", errors.Wrap(err, "attach lun to target")
 	}
@@ -428,6 +452,19 @@ func (c *Controller) saveNode(node *v1.Node) error {
 	}
 	if _, err := conn.Do("HSETNX", KeyNodes, node.Hostname, data); err != nil {
 		return errors.Wrapf(err, "save node %s", node.Hostname)
+	}
+	return nil
+}
+
+func (c *Controller) updateNode(node *v1.Node) error {
+	conn := c.pool.Get()
+	defer conn.Close()
+	data, err := proto.Marshal(node)
+	if err != nil {
+		return errors.Wrap(err, "marshal node")
+	}
+	if _, err := conn.Do("HSET", KeyNodes, node.Hostname, data); err != nil {
+		return errors.Wrapf(err, "update node %s", node.Hostname)
 	}
 	return nil
 }

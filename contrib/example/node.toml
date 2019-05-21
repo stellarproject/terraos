@@ -2,7 +2,7 @@ hostname = "terra-01"
 mac = "xx:xx:xx:xx:xx:xx"
 image = "docker.io/stellarproject/example:5"
 fs_uri = "iscsi://btrfs"
-fs_size = 512
+fs_size = 2048
 
 [[fs_subvolumes]]
   name = "data"
