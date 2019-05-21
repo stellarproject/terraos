@@ -34,8 +34,20 @@ import (
 	"github.com/pkg/errors"
 )
 
-func Init(t, device, label string) error {
-	out, err := exec.Command(fmt.Sprintf("mkfs.%s", t), "-L", label, device).CombinedOutput()
+type Type string
+
+const (
+	Ext4  Type = "ext4"
+	XFS   Type = "xfs"
+	Btrfs Type = "btrfs"
+)
+
+func Mkfs(t Type, device, label string, args ...string) error {
+	ca := append([]string{
+		"-L", label,
+	}, args...)
+	ca = append(ca, device)
+	out, err := exec.Command(fmt.Sprintf("mkfs.%s", t), ca...).CombinedOutput()
 	if err != nil {
 		return errors.Wrapf(err, "%s", out)
 	}

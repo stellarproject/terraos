@@ -53,7 +53,7 @@ os: FORCE
 	vab build -c os -d os --push --ref ${REPO}/terraos:${VERSION} --arg KERNEL_VERSION=${KERNEL} --arg VERSION=${VERSION} --arg REPO=${REPO}
 
 local: FORCE
-	@cd cmd/terra && CGO_ENABLED=0 go build -v -ldflags '${GO_LDFLAGS}' -o ../../build/terra
+	@cd cmd/terra-controller && CGO_ENABLED=0 go build -v -ldflags '${GO_LDFLAGS}' -o ../../build/terra-controller
 	@cd cmd/terra-install && CGO_ENABLED=0 go build -v -ldflags '${GO_LDFLAGS}' -o ../../build/terra-install
 	@cd cmd/terra-create && CGO_ENABLED=0 go build -v -ldflags '${GO_LDFLAGS}' -o ../../build/terra-create
 	@cd cmd/vab && CGO_ENABLED=0 go build -v -ldflags '${GO_LDFLAGS}' -o ../../build/vab
