@@ -34,9 +34,12 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"sync"
 
-	"github.com/containerd/containerd/content"
+	"github.com/containerd/containerd"
+	"github.com/containerd/containerd/namespaces"
 	"github.com/gogo/protobuf/proto"
+	"github.com/gogo/protobuf/types"
 	"github.com/gomodule/redigo/redis"
 	"github.com/pkg/errors"
 	v1 "github.com/stellarproject/terraos/api/v1"
@@ -47,10 +50,9 @@ import (
 )
 
 const (
-	ClusterFS        = "/cluster"
-	ContentStorePath = "/content-store"
-	ISCSIPath        = "/iscsi"
-	TFTPPath         = "/tftp"
+	ClusterFS = "/cluster"
+	ISCSIPath = "/iscsi"
+	TFTPPath  = "/tftp"
 
 	KeyTargetIDs    = "stellarproject.io/controller/target/ids"
 	KeyTarget       = "stellarproject.io/controller/target/%d"
@@ -69,22 +71,22 @@ const (
 	TFTP
 )
 
-func New(ipConfig map[IPType]net.IP, pool *redis.Pool) (*Controller, error) {
-	store, err := image.NewContentStore(ContentStorePath)
-	if err != nil {
-		return nil, errors.Wrap(err, "create content store")
-	}
+var empty = &types.Empty{}
+
+func New(client *containerd.Client, ipConfig map[IPType]net.IP, pool *redis.Pool) (*Controller, error) {
 	return &Controller{
 		ips:    ipConfig,
-		store:  store,
+		client: client,
 		kernel: "/vmlinuz",
 		initrd: "/initrd.img",
 	}, nil
 }
 
 type Controller struct {
+	mu sync.Mutex
+
 	ips    map[IPType]net.IP
-	store  content.Store
+	client *containerd.Client
 	pool   *redis.Pool
 	kernel string
 	initrd string
@@ -95,6 +97,9 @@ func (c *Controller) Close() error {
 }
 
 func (c *Controller) Get(ctx context.Context, r *v1.GetNodeRequest) (*v1.GetNodeResponse, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	conn, err := c.pool.GetContext(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "get connection")
@@ -114,7 +119,25 @@ func (c *Controller) Get(ctx context.Context, r *v1.GetNodeRequest) (*v1.GetNode
 	}, nil
 }
 
+func (c *Controller) InstallPXE(ctx context.Context, r *v1.InstallPXERequest) (*types.Empty, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	ctx = namespaces.WithNamespace(ctx, "controller")
+	i, err := c.client.Fetch(ctx, r.Image)
+	if err != nil {
+		return nil, errors.Wrapf(err, "fetch pxe image %s", r.Image)
+	}
+	if err := image.Unpack(ctx, c.client.ContentStore(), &i.Target, "/"); err != nil {
+		return nil, errors.Wrap(err, "unpack pxe image")
+	}
+	return empty, nil
+}
+
 func (c *Controller) Provision(ctx context.Context, r *v1.ProvisionNodeRequest) (*v1.ProvisionNodeResponse, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	if err := os.Mkdir(filepath.Join(ClusterFS, r.Hostname), 0755); err != nil {
 		return nil, errors.Wrap(err, "mkdir node directory")
 	}
@@ -124,6 +147,7 @@ func (c *Controller) Provision(ctx context.Context, r *v1.ProvisionNodeRequest) 
 		Image:    r.Image,
 		Fs:       r.Fs,
 	}
+	ctx = namespaces.WithNamespace(ctx, "controller")
 	if err := c.provisionDisk(ctx, node); err != nil {
 		return nil, errors.Wrap(err, "provision node disk")
 	}
@@ -218,7 +242,7 @@ func (c *Controller) installImage(ctx context.Context, node *v1.Node, uri *url.U
 		return errors.Wrap(err, "provision disk")
 	}
 	// TODO: write resolv.conf
-	if err := d.Write(ctx, image.Repo(node.Image), c.store); err != nil {
+	if err := d.Write(ctx, image.Repo(node.Image), c.client.ContentStore()); err != nil {
 		d.Unmount(ctx)
 		return errors.Wrap(err, "write image to disk")
 	}

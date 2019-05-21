@@ -33,6 +33,8 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/containerd/containerd"
+	"github.com/containerd/containerd/defaults"
 	"github.com/gomodule/redigo/redis"
 	"github.com/pkg/errors"
 	v1 "github.com/stellarproject/terraos/api/v1"
@@ -40,6 +42,8 @@ import (
 	"github.com/stellarproject/terraos/controller"
 	"github.com/urfave/cli"
 )
+
+const defaultRuntime = "io.containerd.runc.v2"
 
 var controllerCommand = cli.Command{
 	Name:        "controller",
@@ -79,7 +83,15 @@ var controllerCommand = cli.Command{
 		pool := redis.NewPool(func() (redis.Conn, error) {
 			return redis.Dial("tcp", clix.String("redis"))
 		}, 5)
-		controller, err := controller.New(ips, pool)
+		client, err := containerd.New(
+			defaults.DefaultAddress,
+			containerd.WithDefaultNamespace("controller"),
+			containerd.WithDefaultRuntime(defaultRuntime),
+		)
+		if err != nil {
+			return errors.Wrap(err, "create containerd client")
+		}
+		controller, err := controller.New(client, ips, pool)
 		if err != nil {
 			return errors.Wrap(err, "new controller")
 		}

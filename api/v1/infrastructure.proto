@@ -3,12 +3,14 @@ syntax = "proto3";
 package io.stellarproject.v1;
 
 import weak "gogoproto/gogo.proto";
+import "google/protobuf/empty.proto";
 
 option go_package = "github.com/stellarproject/terraos/api/v1;v1";
 
 service Infrastructure {
 	rpc Provision(ProvisionNodeRequest) returns (ProvisionNodeResponse);
 	rpc Get(GetNodeRequest) returns (GetNodeResponse);
+	rpc InstallPXE(InstallPXERequest) returns (google.protobuf.Empty);
 }
 
 message ProvisionNodeRequest {
@@ -28,6 +30,10 @@ message GetNodeRequest {
 
 message GetNodeResponse {
 	Node node = 1;
+}
+
+message InstallPXERequest {
+	string image = 1;
 }
 
 message Node {

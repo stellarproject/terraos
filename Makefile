@@ -39,6 +39,9 @@ all: clean local
 
 FORCE:
 
+pxe: FORCE
+	@vab build -p -c iso -d iso --ref ${REPO}/pxe:${VERSION} --arg KERNEL_VERSION=${KERNEL} --arg VERSION=${VERSION} --arg REPO=${REPO}
+
 extras: FORCE
 	vab build -p -c extras/containerd -d extras/containerd --ref ${REPO}/containerd:${VERSION}
 	vab build -p -c extras/cni -d extras/cni --ref ${REPO}/cni:${VERSION}
