@@ -190,6 +190,82 @@ func (c *Controller) List(ctx context.Context, _ *types.Empty) (*v1.ListNodeResp
 	return &resp, nil
 }
 
+func (c *Controller) get(ctx context.Context, hostname string) (*v1.Node, error) {
+	conn, err := c.pool.GetContext(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "get connection")
+	}
+	defer conn.Close()
+
+	data, err := redis.Bytes(conn.Do("HGET", KeyNodes, hostname))
+	if err != nil {
+		return nil, errors.Wrapf(err, "get node %s", hostname)
+	}
+	var node v1.Node
+	if err := proto.Unmarshal(data, &node); err != nil {
+		return nil, errors.Wrap(err, "unmarshal node")
+	}
+	return &node, nil
+}
+
+func (c *Controller) Delete(ctx context.Context, r *v1.DeleteNodeRequest) (*types.Empty, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	hostname := r.Hostname
+	logrus.WithField("node", hostname).Info("deleting node")
+	node, err := c.get(ctx, hostname)
+	if err != nil {
+		return nil, errors.Wrap(err, "get node information")
+	}
+
+	uri, err := url.Parse(node.Fs.BackingUri)
+	if err != nil {
+		return nil, errors.Wrap(err, "parse backing uri")
+	}
+	conn, err := c.pool.GetContext(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "get connection")
+	}
+	defer conn.Close()
+
+	if uri.Scheme == "iscsi" {
+		var (
+			target = iscsi.LoadTarget(iscsi.IQN(node.TargetIqn), int(node.TargetID))
+			lun    = iscsi.LoadLun(int(node.LunID), node.LunPath, node.Fs.FsSize)
+		)
+		if err := target.Delete(ctx, lun); err != nil {
+			return nil, errors.Wrap(err, "delete target and lun from tgt")
+		}
+		if err := lun.Delete(); err != nil {
+			return nil, errors.Wrap(err, "delete lun file")
+		}
+
+		/*
+			KeyTarget       = "stellarproject.io/controller/target/%d"
+			KeyLUN          = "stellarproject.io/controller/lun/%d"
+			KeyTargetLunIDs = "stellarproject.io/controller/target/%d/ids"
+			KeyTargetLuns   = "stellarproject.io/controller/target/%d/luns"
+		*/
+		if _, err := conn.Do("DEL", fmt.Sprintf(KeyTarget, target.ID())); err != nil {
+			return nil, errors.Wrap(err, "delete target from kv")
+		}
+		if _, err := conn.Do("DEL", fmt.Sprintf(KeyTargetLuns, lun.ID())); err != nil {
+			return nil, errors.Wrap(err, "delete lun from kv")
+		}
+		if _, err := conn.Do("DEL", fmt.Sprintf(KeyTargetLuns, target.ID())); err != nil {
+			return nil, errors.Wrap(err, "delete target luns from kv")
+		}
+		if _, err := conn.Do("DEL", fmt.Sprintf(KeyTargetLunIDs, target.ID())); err != nil {
+			return nil, errors.Wrap(err, "delete target luns ids from kv")
+		}
+	}
+	if _, err := conn.Do("HDEL", KeyNodes, hostname); err != nil {
+		return nil, errors.Wrap(err, "delete node from kv")
+	}
+	return empty, nil
+}
+
 func (c *Controller) InstallPXE(ctx context.Context, r *v1.InstallPXERequest) (*types.Empty, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -327,6 +403,9 @@ func (c *Controller) createISCSI(ctx context.Context, node *v1.Node, uri *url.UR
 	if err := c.saveTargetAndLun(target, lun); err != nil {
 		return "", err
 	}
+	node.TargetID = int64(target.ID())
+	node.LunID = int64(lun.ID())
+	node.LunPath = lun.Path()
 	return iqn, nil
 }
 

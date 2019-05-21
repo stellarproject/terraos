@@ -41,8 +41,8 @@ const DHCP = "dhcp"
 const pxeTemplate = `DEFAULT {{.Default}}
 
 {{range $e := .Entries}}
-LABEL terra
-  KERNEL {{$e.Kernel}
+LABEL {{$e.Label}}
+  KERNEL {{$e.Kernel}}
   INITRD {{$e.Initrd}}
   APPEND {{args $e}}
 {{end}}`

@@ -93,7 +93,7 @@ func (l *localDisk) Unmount(ctx context.Context) error {
 		logrus.WithError(err).Error("unmount disk")
 		return nil
 	}
-	if err := os.RemoveAll(l.path); err != nil {
+	if err := os.RemoveAll(l.root); err != nil {
 		return errors.Wrap(err, "remove path")
 	}
 	return nil
@@ -177,7 +177,7 @@ func (l *lunDisk) Unmount(ctx context.Context) error {
 	if err := syscall.Unmount(l.root, 0); err != nil {
 		return errors.Wrap(err, "unmount disk")
 	}
-	if err := os.RemoveAll(l.path); err != nil {
+	if err := os.RemoveAll(l.root); err != nil {
 		return errors.Wrap(err, "remove path")
 	}
 	return nil

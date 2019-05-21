@@ -100,6 +100,7 @@ Terra OS management`
 	app.Commands = []cli.Command{
 		createCommand,
 		controllerCommand,
+		deleteCommand,
 		provisionCommand,
 		listCommand,
 		pxeCommand,

@@ -30,9 +30,9 @@ package iscsi
 import (
 	"context"
 	"fmt"
+	"os"
 	"os/exec"
 	"strconv"
-	"sync"
 
 	"github.com/pkg/errors"
 )
@@ -80,9 +80,14 @@ func NewTarget(ctx context.Context, iqn IQN, tid int) (*Target, error) {
 	}, nil
 }
 
-type Target struct {
-	mu sync.Mutex
+func LoadTarget(iqn IQN, tid int) *Target {
+	return &Target{
+		iqn: iqn,
+		tid: tid,
+	}
+}
 
+type Target struct {
 	iqn IQN
 	tid int
 }
@@ -109,9 +114,6 @@ func (t *Target) AcceptAllInitiators(ctx context.Context) error {
 
 // Attach a lun to the target
 func (t *Target) Attach(ctx context.Context, l *Lun, lunID int) error {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-
 	if out, err := iscsi(ctx,
 		"--op", "new",
 		"--mode", "logicalunit",
@@ -122,6 +124,27 @@ func (t *Target) Attach(ctx context.Context, l *Lun, lunID int) error {
 		return errors.Wrapf(err, "%s", out)
 	}
 	l.lid = lunID
+	return nil
+}
+
+func (t *Target) Delete(ctx context.Context, lun *Lun) error {
+	if lun != nil {
+		if out, err := iscsi(ctx,
+			"--op", "delete",
+			"--mode", "logicalunit",
+			"--tid", strconv.Itoa(t.tid),
+			"--lun", strconv.Itoa(lun.lid),
+		); err != nil {
+			return errors.Wrapf(err, "%s", out)
+		}
+	}
+	if out, err := iscsi(ctx,
+		"--op", "delete",
+		"--mode", "target",
+		"--tid", strconv.Itoa(t.tid),
+	); err != nil {
+		return errors.Wrapf(err, "%s", out)
+	}
 	return nil
 }
 
@@ -140,6 +163,14 @@ func NewLun(ctx context.Context, path string, size int64) (*Lun, error) {
 		path: path,
 		size: size,
 	}, nil
+}
+
+func LoadLun(lid int, path string, size int64) *Lun {
+	return &Lun{
+		lid:  lid,
+		path: path,
+		size: size,
+	}
 }
 
 type Lun struct {
@@ -168,4 +199,8 @@ func (l *Lun) LocalMount(ctx context.Context, t, path string) error {
 		return errors.Wrapf(err, "%s", out)
 	}
 	return nil
+}
+
+func (l *Lun) Delete() error {
+	return os.Remove(l.path)
 }
