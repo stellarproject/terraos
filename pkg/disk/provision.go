@@ -48,8 +48,12 @@ import (
 type Disk interface {
 	Format(ctx context.Context, fstype, label string) error
 	Provision(context.Context, string, *v1.Node) error
-	Write(context.Context, image.Repo, content.Store) error
+	Write(context.Context, image.Repo, content.Store, []File) error
 	Unmount(context.Context) error
+}
+
+type File interface {
+	Write(root string) error
 }
 
 func NewLocalDisk(device string) Disk {
@@ -78,8 +82,8 @@ func (l *localDisk) Format(ctx context.Context, fstype, label string) error {
 	return nil
 }
 
-func (l *localDisk) Write(ctx context.Context, repo image.Repo, store content.Store) error {
-	if err := write(ctx, repo, l.root, l.path, store, l.subvolumes); err != nil {
+func (l *localDisk) Write(ctx context.Context, repo image.Repo, store content.Store, files []File) error {
+	if err := write(ctx, repo, l.root, l.path, store, l.subvolumes, files); err != nil {
 		return errors.Wrap(err, "write image to disk")
 	}
 	return nil
@@ -137,7 +141,7 @@ func (l *localDisk) Provision(ctx context.Context, fstype string, node *v1.Node)
 	return nil
 }
 
-func write(ctx context.Context, repo image.Repo, root, path string, store content.Store, subvolumes []btrfs.Subvolume) error {
+func write(ctx context.Context, repo image.Repo, root, path string, store content.Store, subvolumes []btrfs.Subvolume, files []File) error {
 	desc, err := image.Fetch(ctx, false, store, string(repo))
 	if err != nil {
 		return errors.Wrap(err, "fetch image")
@@ -151,6 +155,11 @@ func write(ctx context.Context, repo image.Repo, root, path string, store conten
 	if len(subvolumes) > 0 {
 		if err := writeFstab(subvolumes, path); err != nil {
 			return errors.Wrap(err, "write fstab file")
+		}
+	}
+	for i, f := range files {
+		if err := f.Write(path); err != nil {
+			return errors.Wrapf(err, "write file %d", i)
 		}
 	}
 	return nil
@@ -183,8 +192,8 @@ func (l *lunDisk) Unmount(ctx context.Context) error {
 	return nil
 }
 
-func (l *lunDisk) Write(ctx context.Context, repo image.Repo, store content.Store) error {
-	if err := write(ctx, repo, l.root, l.path, store, l.subvolumes); err != nil {
+func (l *lunDisk) Write(ctx context.Context, repo image.Repo, store content.Store, files []File) error {
+	if err := write(ctx, repo, l.root, l.path, store, l.subvolumes, files); err != nil {
 		return errors.Wrap(err, "write image to disk")
 	}
 	return nil

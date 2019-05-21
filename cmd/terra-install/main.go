@@ -130,7 +130,7 @@ Terra OS management`
 		if err != nil {
 			return errors.Wrap(err, "new content store")
 		}
-		if err := d.Write(ctx, image.Repo(node.Image), store); err != nil {
+		if err := d.Write(ctx, image.Repo(node.Image), store, nil); err != nil {
 			os.RemoveAll(storePath)
 			d.Unmount(ctx)
 			return errors.Wrap(err, "write image to disk")

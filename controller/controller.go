@@ -51,6 +51,7 @@ import (
 	"github.com/stellarproject/terraos/pkg/image"
 	"github.com/stellarproject/terraos/pkg/iscsi"
 	"github.com/stellarproject/terraos/pkg/pxe"
+	"github.com/stellarproject/terraos/pkg/resolvconf"
 	"github.com/stellarproject/terraos/util"
 )
 
@@ -431,8 +432,16 @@ func (c *Controller) installImage(ctx context.Context, node *v1.Node, uri *url.U
 		d.Unmount(ctx)
 		return errors.Wrap(err, "provision disk")
 	}
-	// TODO: write resolv.conf
-	if err := d.Write(ctx, image.Repo(node.Image), c.client.ContentStore()); err != nil {
+	files := []disk.File{
+		&resolveConfFile{
+			conf: &resolvconf.Conf{
+				Nameservers: []string{
+					c.ips[Gateway].To4().String(),
+				},
+			},
+		},
+	}
+	if err := d.Write(ctx, image.Repo(node.Image), c.client.ContentStore(), files); err != nil {
 		d.Unmount(ctx)
 		return errors.Wrap(err, "write image to disk")
 	}
@@ -440,6 +449,20 @@ func (c *Controller) installImage(ctx context.Context, node *v1.Node, uri *url.U
 		return errors.Wrap(err, "unmount disk")
 	}
 	return nil
+}
+
+type resolveConfFile struct {
+	conf *resolvconf.Conf
+}
+
+func (c *resolveConfFile) Write(path string) error {
+	path = filepath.Join(path, resolvconf.DefaultPath)
+	f, err := os.Create(path)
+	if err != nil {
+		return errors.Wrapf(err, "create resolv.conf file %s", path)
+	}
+	defer f.Close()
+	return c.conf.Write(f)
 }
 
 func (c *Controller) writePXEConfig(node *v1.Node, version string) error {
