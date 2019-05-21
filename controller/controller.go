@@ -35,16 +35,13 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
-	"syscall"
 
 	"github.com/containerd/containerd/content"
 	"github.com/pkg/errors"
 	v1 "github.com/stellarproject/terraos/api/v1"
-	"github.com/stellarproject/terraos/pkg/btrfs"
-	"github.com/stellarproject/terraos/pkg/fstab"
+	"github.com/stellarproject/terraos/pkg/disk"
 	"github.com/stellarproject/terraos/pkg/image"
 	"github.com/stellarproject/terraos/pkg/iscsi"
-	"github.com/stellarproject/terraos/pkg/mkfs"
 	"github.com/stellarproject/terraos/pkg/pxe"
 )
 
@@ -58,7 +55,7 @@ const (
 func New(ip net.IP) (*Controller, error) {
 	store, err := image.NewContentStore(ContentStorePath)
 	if err != nil {
-		return errors.Wrap(err, "create content store")
+		return nil, errors.Wrap(err, "create content store")
 	}
 	return &Controller{
 		ip:     ip,
@@ -90,7 +87,7 @@ func (c *Controller) RegisterNode(ctx context.Context, r *v1.RegisterNodeRequest
 		Fs:       r.Fs,
 	}
 	if err := c.provisionDisk(ctx, node); err != nil {
-		return errors.Wrap(err, "provision node disk")
+		return nil, errors.Wrap(err, "provision node disk")
 	}
 	return &v1.RegisterNodeResponse{
 		Node: node,
@@ -130,7 +127,7 @@ func (c *Controller) provisionDisk(ctx context.Context, node *v1.Node) error {
 }
 
 // TODO: parallel create lun and fetch image
-func (c *Controller) createISCSI(ctx context.Context, node *v1.Node, uri *url.URL) (IQN, error) {
+func (c *Controller) createISCSI(ctx context.Context, node *v1.Node, uri *url.URL) (iscsi.IQN, error) {
 	iqn := iscsi.NewIQN(2024, "san.crosbymichael.com", node.Hostname, 0)
 	lun, err := iscsi.NewLun(ctx, filepath.Join(ISCSIPath, fmt.Sprintf("%s.lun", node.Hostname)), node.Fs.FsSize)
 	if err != nil {
@@ -153,107 +150,30 @@ func (c *Controller) createISCSI(ctx context.Context, node *v1.Node, uri *url.UR
 }
 
 func (c *Controller) installImage(ctx context.Context, node *v1.Node, uri *url.URL, lun *iscsi.Lun) error {
-	t := mkfs.Type(uri.Host)
-	if err := mkfs.Mkfs(t, "os", lun.Path(), "-f"); err != nil {
-		return errors.Wrap(err, "mkfs of lun")
-	}
 	var (
-		path = lun.Path() + ".mnt"
-		root = path
+		t = uri.Host
+		d = disk.NewLunDisk(lun)
 	)
-	if err := os.MkdirAll(path, 0755); err != nil {
-		return errors.Wrap(err, "mkdir lun mount path")
+	if err := d.Format(ctx, t, "os"); err != nil {
+		return errors.Wrap(err, "format disk")
 	}
-	defer os.RemoveAll(path)
-	if err := lun.LocalMount(ctx, t, path); err != nil {
-		return errors.Wrap(err, "mount lun")
+	if err := d.Provision(ctx, t, node); err != nil {
+		d.Unmount(ctx)
+		return errors.Wrap(err, "provision disk")
 	}
-	defer syscall.Unmount(path, 0)
-
-	var (
-		repo    = image.Repo(node.Image)
-		version = repo.Version()
-	)
-	desc, err := image.Fetch(ctx, false, c.store, string(repo))
-	if err != nil {
-		return errors.Wrap(err, "fetch image")
+	if err := d.Write(ctx, image.Repo(node.Image), c.store); err != nil {
+		d.Unmount(ctx)
+		return errors.Wrap(err, "write image to disk")
 	}
-	var subvolumes []btrfs.Subvolume
-	if t == mkfs.Btrfs {
-		subvolumes = getSubVolumes(node)
-		if err := btrfs.CreateSubvolumes(append(subvolumes, btrfs.Subvolume{
-			Name: version,
-		}), path); err != nil {
-			return errors.Wrap(err, "create subvolumes")
-		}
-		rootPath := filepath.Join(path, version)
-		paths, err := btrfs.OverlaySubvolumes(path, subvolumes, rootPath)
-		if err != nil {
-			return errors.Wrap(err, "overlay subvolumes")
-		}
-		defer func() {
-			for _, p := range paths {
-				syscall.Unmount(p, 0)
-			}
-		}()
-		// set path to the rootpath so that the image is unpacked over the top
-		// of the version and subvolumes
-		path = rootPath
-	}
-	if err := image.Unpack(ctx, c.store, desc, path); err != nil {
-		return errors.Wrap(err, "unpack image")
-	}
-	if err := writeVersion(version, root); err != nil {
-		return errors.Wrap(err, "write version file")
-	}
-	if len(subvolumes) > 0 {
-		if err := writeFstab(subvolumes, path); err != nil {
-			return errors.Wrap(err, "write fstab file")
-		}
-	}
-	return nil
-}
-
-func writeVersion(version, root string) error {
-	path := filepath.Join(root, "VERSION")
-	f, err := os.Create(path)
-	if err != nil {
-		return errors.Wrapf(err, "create version file %s", path)
-	}
-	defer f.Close()
-	if _, err := fmt.Fprint(f, version); err != nil {
-		return errors.Wrapf(err, "write version to file %s", path)
-	}
-	return nil
-}
-
-func writeFstab(subvolumes []btrfs.Subvolume, path string) error {
-	f, err := os.Create(filepath.Join(path, "/etc/fstab"))
-	if err != nil {
-		return errors.Wrap(err, "create fstab")
-	}
-	defer f.Close()
-	var entries []*fstab.Entry
-	for _, s := range subvolumes {
-		entries = append(entries, &fstab.Entry{
-			Type:   mkfs.Btrfs,
-			Device: "LABEL=os",
-			Path:   s.Path,
-			Pass:   2,
-			Options: []string{
-				fmt.Sprintf("subvol=/%s", s.Name),
-			},
-		})
-	}
-	if err := fstab.Write(f, entries); err != nil {
-		return errors.Wrap(err, "write fstab")
+	if err := d.Unmount(ctx); err != nil {
+		return errors.Wrap(err, "unmount disk")
 	}
 	return nil
 }
 
 func (c *Controller) writePXEConfig(node *v1.Node, version string) error {
 	p := &pxe.PXE{
-		Defalt:       "terra",
+		Default:      "terra",
 		MAC:          node.Mac,
 		InitiatorIQN: node.InitiatorIqn,
 		TargetIQN:    node.TargetIqn,
@@ -289,28 +209,4 @@ func getTargetID(iqn iscsi.IQN) int {
 	h := fnv.New32a()
 	fmt.Fprint(h, iqn)
 	return int(h.Sum32())
-}
-
-func getSubVolumes(node *v1.Node) []btrfs.Subvolume {
-	subvolumes := []btrfs.Subvolume{
-		{
-			Name: "home",
-			Path: "/home",
-		},
-		{
-			Name: "containerd",
-			Path: "/var/lib/containerd",
-		},
-		{
-			Name: "log",
-			Path: "/var/log",
-		},
-	}
-	for _, s := range node.Fs.Subvolumes {
-		subvolumes = append(subvolumes, btrfs.Subvolume{
-			Name: s.Name,
-			Path: s.Path,
-		})
-	}
-	return subvolumes
 }

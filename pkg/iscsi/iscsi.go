@@ -35,7 +35,6 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
-	"github.com/stellarproject/terraos/pkg/mkfs"
 )
 
 const (
@@ -158,9 +157,9 @@ func (l *Lun) Size() int64 {
 	return l.size
 }
 
-func (l *Lun) LocalMount(ctx context.Context, t mkfs.Type, path string) error {
+func (l *Lun) LocalMount(ctx context.Context, t, path string) error {
 	// TODO: make into syscall mount command
-	out, err := exec.CommandContext(ctx, "mount", "-t", string(t), "-o", "loop", l.path, path).CombinedOutput()
+	out, err := exec.CommandContext(ctx, "mount", "-t", t, "-o", "loop", l.path, path).CombinedOutput()
 	if err != nil {
 		return errors.Wrapf(err, "%s", out)
 	}

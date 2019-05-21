@@ -25,29 +25,54 @@
 	THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package mkfs
+package main
 
 import (
-	"fmt"
-	"os/exec"
+	"net"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/pkg/errors"
+	v1 "github.com/stellarproject/terraos/api/v1"
+	"github.com/stellarproject/terraos/cmd"
+	"github.com/stellarproject/terraos/controller"
+	"github.com/urfave/cli"
 )
 
-const (
-	Ext4  = "ext4"
-	XFS   = "xfs"
-	Btrfs = "btrfs"
-)
+var controllerCommand = cli.Command{
+	Name:        "controller",
+	Description: "terra infrastructure controller",
+	Flags: []cli.Flag{
+		cli.StringFlag{
+			Name:  "management,m",
+			Usage: "management ip address",
+		},
+	},
+	Action: func(clix *cli.Context) error {
+		ip := net.ParseIP(clix.String("management"))
+		if ip.To4() == nil {
+			return errors.New("invalid management ip address")
+		}
+		controller, err := controller.New(ip)
+		if err != nil {
+			return errors.Wrap(err, "new controller")
+		}
+		server := cmd.NewServer()
+		v1.RegisterInfrastructureServer(server, controller)
 
-func Mkfs(t string, device, label string, args ...string) error {
-	ca := append([]string{
-		"-L", label,
-	}, args...)
-	ca = append(ca, device)
-	out, err := exec.Command(fmt.Sprintf("mkfs.%s", t), ca...).CombinedOutput()
-	if err != nil {
-		return errors.Wrapf(err, "%s", out)
-	}
-	return nil
+		signals := make(chan os.Signal, 32)
+		signal.Notify(signals, syscall.SIGTERM, syscall.SIGINT)
+		go func() {
+			<-signals
+			server.Stop()
+		}()
+		l, err := net.Listen("tcp", clix.String("management"))
+		if err != nil {
+			return errors.Wrap(err, "listen tcp")
+		}
+		defer l.Close()
+
+		return server.Serve(l)
+	},
 }

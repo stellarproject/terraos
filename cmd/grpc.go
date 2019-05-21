@@ -25,29 +25,40 @@
 	THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package mkfs
+package cmd
 
 import (
-	"fmt"
-	"os/exec"
+	"context"
 
-	"github.com/pkg/errors"
+	raven "github.com/getsentry/raven-go"
+	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/health"
+	"google.golang.org/grpc/health/grpc_health_v1"
 )
 
-const (
-	Ext4  = "ext4"
-	XFS   = "xfs"
-	Btrfs = "btrfs"
-)
+func NewServer() *grpc.Server {
+	s := grpc.NewServer(
+		grpc.UnaryInterceptor(unary),
+		grpc.StreamInterceptor(stream),
+	)
+	hs := health.NewServer()
+	grpc_health_v1.RegisterHealthServer(s, hs)
+	return s
+}
 
-func Mkfs(t string, device, label string, args ...string) error {
-	ca := append([]string{
-		"-L", label,
-	}, args...)
-	ca = append(ca, device)
-	out, err := exec.Command(fmt.Sprintf("mkfs.%s", t), ca...).CombinedOutput()
+func unary(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
+	r, err := grpc_prometheus.UnaryServerInterceptor(ctx, req, info, handler)
 	if err != nil {
-		return errors.Wrapf(err, "%s", out)
+		raven.CaptureError(err, nil)
 	}
-	return nil
+	return r, err
+}
+
+func stream(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+	err := grpc_prometheus.StreamServerInterceptor(srv, ss, info, handler)
+	if err != nil {
+		raven.CaptureError(err, nil)
+	}
+	return err
 }

@@ -30,24 +30,18 @@ package main
 import (
 	"fmt"
 	"os"
-	"path/filepath"
-	"strings"
 
-	"github.com/pkg/errors"
+	raven "github.com/getsentry/raven-go"
 	"github.com/sirupsen/logrus"
-	v1 "github.com/stellarproject/terraos/api/v1"
-	"github.com/stellarproject/terraos/cmd"
-	"github.com/stellarproject/terraos/pkg/disk"
-	"github.com/stellarproject/terraos/pkg/image"
 	"github.com/stellarproject/terraos/version"
 	"github.com/urfave/cli"
 )
 
 func main() {
 	app := cli.NewApp()
-	app.Name = "terra-install"
+	app.Name = "terra"
 	app.Version = version.Version
-	app.Usage = "[repo] [destination]"
+	app.Usage = "Terra OS Management"
 	app.Description = `
                                                      ___
                                                   ,o88888
@@ -71,24 +65,20 @@ func main() {
          .. . ."'
         .
 Terra OS management`
+
 	app.Flags = []cli.Flag{
 		cli.BoolFlag{
 			Name:  "debug",
 			Usage: "enable debug output in the logs",
 		},
 		cli.StringFlag{
-			Name:  "device",
-			Usage: "device name",
-			Value: "/dev/sda1",
-		},
-		cli.StringFlag{
-			Name:  "fs-type",
-			Usage: "set the filesystem type",
-			Value: "ext4",
+			Name:   "sentry-dsn",
+			Usage:  "sentry DSN",
+			EnvVar: "SENTRY_DSN",
 		},
 		cli.StringSliceFlag{
-			Name:  "subvolumes,s",
-			Usage: "persistent subvolumes format> name:path",
+			Name:  "plain-remote",
+			Usage: "http registries",
 			Value: &cli.StringSlice{},
 		},
 	}
@@ -96,67 +86,18 @@ Terra OS management`
 		if clix.GlobalBool("debug") {
 			logrus.SetLevel(logrus.DebugLevel)
 		}
+		if dsn := clix.GlobalString("sentry-dsn"); dsn != "" {
+			raven.SetDSN(dsn)
+			raven.DefaultClient.SetRelease(version.Version)
+		}
 		return nil
 	}
-	app.Action = func(clix *cli.Context) error {
-		repo, err := image.GetRepo(clix)
-		if err != nil {
-			return err
-		}
-		var (
-			path   = "/sd"
-			ctx    = cmd.CancelContext()
-			fstype = clix.GlobalString("fs-type")
-		)
-		if err := os.MkdirAll(path, 0755); err != nil {
-			return errors.Wrap(err, "create /sd")
-		}
-		node := &v1.Node{
-			Image: string(repo),
-			Fs: &v1.Filesystem{
-				Subvolumes: parseSubvolumes(clix.GlobalStringSlice("subvolumes")),
-			},
-		}
-		d := disk.NewLocalDisk(clix.GlobalString("device"))
-		if err := d.Format(ctx, fstype, "os"); err != nil {
-			return errors.Wrap(err, "format disk")
-		}
-		if err := d.Provision(ctx, fstype, node); err != nil {
-			d.Unmount(ctx)
-			return errors.Wrap(err, "provision disk")
-		}
-		storePath := filepath.Join(path, "terra-content")
-		store, err := image.NewContentStore(storePath)
-		if err != nil {
-			return errors.Wrap(err, "new content store")
-		}
-		if err := d.Write(ctx, image.Repo(node.Image), store); err != nil {
-			os.RemoveAll(storePath)
-			d.Unmount(ctx)
-			return errors.Wrap(err, "write image to disk")
-		}
-		if err := os.RemoveAll(storePath); err != nil {
-			d.Unmount(ctx)
-			return errors.Wrap(err, "remove store path")
-		}
-		if err := d.Unmount(ctx); err != nil {
-			return errors.Wrap(err, "unmount disk")
-		}
-		return nil
+	app.Commands = []cli.Command{
+		controllerCommand,
 	}
 	if err := app.Run(os.Args); err != nil {
 		fmt.Fprintln(os.Stderr, err)
+		raven.CaptureErrorAndWait(err, nil)
 		os.Exit(1)
 	}
-}
-
-func parseSubvolumes(raw []string) (out []*v1.Subvolume) {
-	for _, s := range raw {
-		parts := strings.SplitN(s, ":", 2)
-		out = append(out, &v1.Subvolume{
-			Name: parts[0],
-			Path: parts[1],
-		})
-	}
-	return out
 }
