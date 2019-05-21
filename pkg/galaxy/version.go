@@ -29,15 +29,20 @@ package galaxy
 
 import (
 	"aqwari.net/net/styx"
+	"github.com/stellarproject/terraos/pkg/store"
 	"github.com/stellarproject/terraos/version"
 )
 
-func versionHandler(_ string, _ styx.Request) (interface{}, interface{}, error) {
-	return nil, &file{
-		name:  "version",
-		isDir: false,
-		uid:   "root",
-		gid:   "root",
-		data:  []byte(version.Version + "\n"),
-	}, nil
+func versionFile(b store.Store, p string) (*file, error) {
+	return newFile("version", p, "0", "0", false, []byte(version.Version+"\n"), b)
+}
+
+func versionHandler(backend store.Store) handler {
+	return func(p string, r styx.Request) (interface{}, interface{}, error) {
+		f, err := versionFile(backend, r.Path())
+		if err != nil {
+			return nil, nil, err
+		}
+		return nil, f, nil
+	}
 }

@@ -46,7 +46,7 @@ func clusterHandler(backend store.Store) handler {
 			return nil, mkdir([]os.FileInfo{
 				&dir{name: "services", mode: 0775},
 				&dir{name: "nodes", mode: 0755},
-			}), nil
+			}, 0755), nil
 		case "/services":
 			// TODO: pull from store
 			info, err := backend.List(r.Path())
@@ -59,7 +59,7 @@ func clusterHandler(backend store.Store) handler {
 			if err != nil {
 				return nil, nil, err
 			}
-			return nil, mkdir(fi), nil
+			return nil, mkdir(fi, 0755), nil
 		case "/nodes":
 			// TODO: pull from store
 			info, err := backend.List(r.Path())
@@ -72,8 +72,13 @@ func clusterHandler(backend store.Store) handler {
 			if err != nil {
 				return nil, nil, err
 			}
-			return nil, mkdir(fi), nil
+			return nil, mkdir(fi, 0755), nil
 		default:
+			ctx := r.Context()
+			switch ctx.Value("action") {
+			case "create":
+				fmt.Println("action.CREATE")
+			}
 			switch v := r.(type) {
 			case styx.Tcreate:
 				f, err := backend.GetOrCreate(r.Path())
@@ -91,7 +96,7 @@ func clusterHandler(backend store.Store) handler {
 				if err != nil {
 					return nil, nil, err
 				}
-				return nil, mkdir(fi), nil
+				return nil, mkdir(fi, 0755), nil
 			default:
 				fmt.Printf("clusterHandler: default %T\n", v)
 				f, err := backend.Get(r.Path())
@@ -99,7 +104,7 @@ func clusterHandler(backend store.Store) handler {
 					return nil, nil, err
 				}
 				fmt.Printf("clusterHandler default backend.Get %T\n", f)
-				fi, err := toFile(f)
+				fi, err := toFile(f, r.Path(), backend)
 				if err != nil {
 					return nil, nil, err
 				}
@@ -123,14 +128,17 @@ func fromStat(items []store.Stat, backend store.Store) ([]os.FileInfo, error) {
 	return fi, nil
 }
 
-func toFile(i store.Item) (*file, error) {
+func toFile(i store.Item, p string, b store.Store) (*file, error) {
 	f := i.(*os.File)
+	// TODO: move to file Read
 	data, err := ioutil.ReadAll(f)
 	if err != nil {
 		return nil, err
 	}
 	return &file{
-		name: filepath.Base(f.Name()),
-		data: data,
+		name:    filepath.Base(f.Name()),
+		path:    p,
+		backend: b,
+		data:    data,
 	}, nil
 }

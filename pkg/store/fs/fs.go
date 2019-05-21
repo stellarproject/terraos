@@ -76,13 +76,17 @@ func (f *FS) GetOrCreate(key string) (store.Item, error) {
 			return nil, err
 		}
 		fmt.Println("create", p)
-		f, err := os.Create(p)
+		tf, err := ioutil.TempFile("", "stellar-store-")
 		if err != nil {
+			fmt.Printf("create error %s\n", err)
 			return nil, err
 		}
-		f.Close()
+		if err := os.Rename(tf.Name(), p); err != nil {
+			fmt.Printf("create error (rename) %s\n", err)
+			return nil, err
+		}
 	}
-	return f.Get(p)
+	return f.Get(key)
 }
 
 func (f *FS) Set(key string, v []byte) error {

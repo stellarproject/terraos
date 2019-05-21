@@ -29,31 +29,82 @@ package galaxy
 
 import (
 	"errors"
+	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"time"
+
+	"github.com/stellarproject/terraos/pkg/store"
 )
 
 var (
 	ErrNoFile = errors.New("no such file or directory")
 )
 
+type Dir interface {
+	os.FileInfo
+}
+
+type File interface {
+	io.ReadWriteCloser
+	os.FileInfo
+}
+
 type file struct {
-	name  string
-	uid   string
-	gid   string
-	isDir bool
-	data  []byte
+	name    string
+	path    string
+	uid     string
+	gid     string
+	isDir   bool
+	data    []byte
+	backend store.Store
+}
+
+func newFile(name, path, uid, gid string, isDir bool, data []byte, backend store.Store) (*file, error) {
+	if name == "" || path == "" {
+		return nil, fmt.Errorf("name and path must be specified")
+	}
+	if uid == "" {
+		uid = "0"
+	}
+	if gid == "" {
+		gid = "0"
+	}
+	if backend == nil {
+		return nil, fmt.Errorf("backend must not be nil")
+	}
+	return &file{
+		name:    name,
+		path:    path,
+		data:    data,
+		uid:     uid,
+		gid:     gid,
+		isDir:   isDir,
+		backend: backend,
+	}, nil
 }
 
 func (f *file) ReadAt(p []byte, off int64) (int, error) {
-	if len(f.data) == 0 {
-		return 0, io.EOF
+	// read data direct
+	size := len(f.data)
+	if size > 0 {
+		if off > int64(size) {
+			return 0, io.EOF
+		}
+		n := copy(p, f.data[off:])
+		return n, nil
 	}
-	if off > int64(len(f.data)) {
-		return 0, io.EOF
+	// lookup from store
+	x, err := f.backend.Get(f.path)
+	if err != nil {
+		return -1, err
 	}
-	n := copy(p, f.data[off:])
+	data, err := ioutil.ReadAll(x)
+	if err != nil {
+		return -1, err
+	}
+	n := copy(p, data[off:])
 	return n, nil
 }
 func (f *file) Name() string {
@@ -63,7 +114,19 @@ func (f *file) Size() int64 {
 	if f.isDir {
 		return 0
 	}
-	return int64(len(f.data))
+	if s := len(f.data); s > 0 {
+		return int64(s)
+	}
+	// get from store
+	x, err := f.backend.Get(f.path)
+	if err != nil {
+		return 0
+	}
+	data, err := ioutil.ReadAll(x)
+	if err != nil {
+		return -1
+	}
+	return int64(len(data))
 }
 func (f *file) Sys() interface{} {
 	return f
@@ -90,11 +153,11 @@ func (f *file) Mode() os.FileMode {
 	return 0644
 }
 func (f *file) WriteAt(p []byte, off int64) (int, error) {
-	if off > int64(len(f.data)) {
-		return 0, io.EOF
+	// TODO offset
+	if err := f.backend.Set(f.path, p); err != nil {
+		return -1, err
 	}
-	n := copy(f.data, p[off:])
-	return n, nil
+	return len(p), nil
 }
 func (f *file) Close() error {
 	return nil
@@ -112,7 +175,7 @@ func (d *dir) Mode() os.FileMode  { return os.ModeDir | d.mode }
 func (d *dir) IsDir() bool        { return true }
 func (d *dir) Name() string       { return d.name }
 func (d *dir) ModTime() time.Time { return time.Now() }
-func (d *dir) Size() int64        { return 0 }
+func (d *dir) Size() int64        { return 4096 }
 func (d *dir) Sys() interface{}   { return d }
 
 func (d *dir) Readdir(n int) ([]os.FileInfo, error) {
@@ -134,12 +197,12 @@ func (d *dir) Close() error {
 	return nil
 }
 
-func mkdir(entries []os.FileInfo) *dir {
+func mkdir(entries []os.FileInfo, mode os.FileMode) *dir {
 	c := make(chan os.FileInfo, 10)
 	done := make(chan struct{})
 	d := &dir{
 		entries: entries,
-		mode:    0755,
+		mode:    mode,
 	}
 	go func() {
 		for _, v := range d.entries {

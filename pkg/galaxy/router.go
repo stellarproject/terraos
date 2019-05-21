@@ -43,7 +43,7 @@ type matcher interface {
 
 type handler func(path string, r styx.Request) (interface{}, interface{}, error)
 
-type router struct {
+type Router struct {
 	handlers []matcher
 	backend  store.Store
 }
@@ -83,12 +83,13 @@ func (p *prefixMatcher) Handler() handler {
 	return p.handler
 }
 
-func newRouter() *router {
-	return &router{}
+// NewRouter returns a new galaxy router
+func NewRouter() *Router {
+	return &Router{}
 }
 
 // Path adds a new route handler at the specific path
-func (r *router) Path(p string, h handler) {
+func (r *Router) Path(p string, h handler) {
 	r.handlers = append(r.handlers, &pathMatcher{
 		path:    p,
 		handler: h,
@@ -96,14 +97,14 @@ func (r *router) Path(p string, h handler) {
 }
 
 // Prefix adds a new route handler using a prefix
-func (r *router) Prefix(p string, h handler) {
+func (r *Router) Prefix(p string, h handler) {
 	r.handlers = append(r.handlers, &prefixMatcher{
 		prefix:  p,
 		handler: h,
 	})
 }
 
-func (r *router) handle(p string, t styx.Request) (interface{}, interface{}, error) {
+func (r *Router) handle(p string, t styx.Request) (interface{}, interface{}, error) {
 	// ensure the first match based upon path or prefix
 	sort.SliceStable(r.handlers, func(i, j int) bool { return r.handlers[i].Path() < r.handlers[j].Path() })
 	for _, h := range r.handlers {
