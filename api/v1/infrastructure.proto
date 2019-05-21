@@ -7,17 +7,17 @@ import weak "gogoproto/gogo.proto";
 option go_package = "github.com/stellarproject/terraos/api/v1;v1";
 
 service Infrastructure {
-	rpc RegisterNode(RegisterNodeRequest) returns (RegisterNodeResponse);
+	rpc Provision(ProvisionNodeRequest) returns (ProvisionNodeResponse);
 }
 
-message RegisterNodeRequest {
+message ProvisionNodeRequest {
 	string hostname = 1;
 	string mac = 2;
 	string image = 3;
 	Filesystem fs = 4;
 }
 
-message RegisterNodeResponse {
+message ProvisionNodeResponse {
 	Node node = 1;
 }
 

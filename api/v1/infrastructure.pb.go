@@ -25,7 +25,7 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.GoGoProtoPackageIsVersion2 // please upgrade the proto package
 
-type RegisterNodeRequest struct {
+type ProvisionNodeRequest struct {
 	Hostname             string      `protobuf:"bytes,1,opt,name=hostname,proto3" json:"hostname,omitempty"`
 	Mac                  string      `protobuf:"bytes,2,opt,name=mac,proto3" json:"mac,omitempty"`
 	Image                string      `protobuf:"bytes,3,opt,name=image,proto3" json:"image,omitempty"`
@@ -35,17 +35,17 @@ type RegisterNodeRequest struct {
 	XXX_sizecache        int32       `json:"-"`
 }
 
-func (m *RegisterNodeRequest) Reset()      { *m = RegisterNodeRequest{} }
-func (*RegisterNodeRequest) ProtoMessage() {}
-func (*RegisterNodeRequest) Descriptor() ([]byte, []int) {
+func (m *ProvisionNodeRequest) Reset()      { *m = ProvisionNodeRequest{} }
+func (*ProvisionNodeRequest) ProtoMessage() {}
+func (*ProvisionNodeRequest) Descriptor() ([]byte, []int) {
 	return fileDescriptor_e56f073de834a377, []int{0}
 }
-func (m *RegisterNodeRequest) XXX_Unmarshal(b []byte) error {
+func (m *ProvisionNodeRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
-func (m *RegisterNodeRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+func (m *ProvisionNodeRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	if deterministic {
-		return xxx_messageInfo_RegisterNodeRequest.Marshal(b, m, deterministic)
+		return xxx_messageInfo_ProvisionNodeRequest.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
 		n, err := m.MarshalTo(b)
@@ -55,36 +55,36 @@ func (m *RegisterNodeRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte,
 		return b[:n], nil
 	}
 }
-func (m *RegisterNodeRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_RegisterNodeRequest.Merge(m, src)
+func (m *ProvisionNodeRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ProvisionNodeRequest.Merge(m, src)
 }
-func (m *RegisterNodeRequest) XXX_Size() int {
+func (m *ProvisionNodeRequest) XXX_Size() int {
 	return m.Size()
 }
-func (m *RegisterNodeRequest) XXX_DiscardUnknown() {
-	xxx_messageInfo_RegisterNodeRequest.DiscardUnknown(m)
+func (m *ProvisionNodeRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_ProvisionNodeRequest.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_RegisterNodeRequest proto.InternalMessageInfo
+var xxx_messageInfo_ProvisionNodeRequest proto.InternalMessageInfo
 
-type RegisterNodeResponse struct {
+type ProvisionNodeResponse struct {
 	Node                 *Node    `protobuf:"bytes,1,opt,name=node,proto3" json:"node,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *RegisterNodeResponse) Reset()      { *m = RegisterNodeResponse{} }
-func (*RegisterNodeResponse) ProtoMessage() {}
-func (*RegisterNodeResponse) Descriptor() ([]byte, []int) {
+func (m *ProvisionNodeResponse) Reset()      { *m = ProvisionNodeResponse{} }
+func (*ProvisionNodeResponse) ProtoMessage() {}
+func (*ProvisionNodeResponse) Descriptor() ([]byte, []int) {
 	return fileDescriptor_e56f073de834a377, []int{1}
 }
-func (m *RegisterNodeResponse) XXX_Unmarshal(b []byte) error {
+func (m *ProvisionNodeResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
-func (m *RegisterNodeResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+func (m *ProvisionNodeResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	if deterministic {
-		return xxx_messageInfo_RegisterNodeResponse.Marshal(b, m, deterministic)
+		return xxx_messageInfo_ProvisionNodeResponse.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
 		n, err := m.MarshalTo(b)
@@ -94,17 +94,17 @@ func (m *RegisterNodeResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte
 		return b[:n], nil
 	}
 }
-func (m *RegisterNodeResponse) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_RegisterNodeResponse.Merge(m, src)
+func (m *ProvisionNodeResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ProvisionNodeResponse.Merge(m, src)
 }
-func (m *RegisterNodeResponse) XXX_Size() int {
+func (m *ProvisionNodeResponse) XXX_Size() int {
 	return m.Size()
 }
-func (m *RegisterNodeResponse) XXX_DiscardUnknown() {
-	xxx_messageInfo_RegisterNodeResponse.DiscardUnknown(m)
+func (m *ProvisionNodeResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_ProvisionNodeResponse.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_RegisterNodeResponse proto.InternalMessageInfo
+var xxx_messageInfo_ProvisionNodeResponse proto.InternalMessageInfo
 
 type Node struct {
 	Hostname             string      `protobuf:"bytes,1,opt,name=hostname,proto3" json:"hostname,omitempty"`
@@ -232,8 +232,8 @@ func (m *Subvolume) XXX_DiscardUnknown() {
 var xxx_messageInfo_Subvolume proto.InternalMessageInfo
 
 func init() {
-	proto.RegisterType((*RegisterNodeRequest)(nil), "io.stellarproject.v1.RegisterNodeRequest")
-	proto.RegisterType((*RegisterNodeResponse)(nil), "io.stellarproject.v1.RegisterNodeResponse")
+	proto.RegisterType((*ProvisionNodeRequest)(nil), "io.stellarproject.v1.ProvisionNodeRequest")
+	proto.RegisterType((*ProvisionNodeResponse)(nil), "io.stellarproject.v1.ProvisionNodeResponse")
 	proto.RegisterType((*Node)(nil), "io.stellarproject.v1.Node")
 	proto.RegisterType((*Filesystem)(nil), "io.stellarproject.v1.Filesystem")
 	proto.RegisterType((*Subvolume)(nil), "io.stellarproject.v1.Subvolume")
@@ -244,36 +244,36 @@ func init() {
 }
 
 var fileDescriptor_e56f073de834a377 = []byte{
-	// 459 bytes of a gzipped FileDescriptorProto
+	// 460 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x53, 0x41, 0x8b, 0xd3, 0x40,
-	0x14, 0xee, 0x34, 0xd9, 0x6a, 0x5f, 0x57, 0x91, 0xb1, 0x60, 0x28, 0x98, 0x2d, 0xf1, 0x52, 0x15,
-	0x12, 0xdb, 0x3d, 0x8a, 0x08, 0x82, 0x0b, 0x7b, 0xf1, 0x90, 0x45, 0x10, 0x2f, 0x65, 0x9a, 0x7d,
-	0x49, 0x47, 0x9b, 0x99, 0x74, 0x66, 0x52, 0x71, 0x4f, 0xde, 0x3c, 0xf8, 0xa7, 0x3c, 0xee, 0xd1,
-	0xa3, 0x47, 0xb7, 0xbf, 0x44, 0x32, 0xa9, 0xdd, 0x16, 0x72, 0xa8, 0xb7, 0xf7, 0xbe, 0xf9, 0x5e,
-	0xf8, 0xbe, 0x2f, 0xef, 0xc1, 0xab, 0x8c, 0x9b, 0x79, 0x39, 0x0b, 0x13, 0x99, 0x47, 0xda, 0xe0,
-	0x62, 0xc1, 0x54, 0xa1, 0xe4, 0x27, 0x4c, 0x4c, 0x64, 0x50, 0x29, 0x26, 0x75, 0xc4, 0x0a, 0x1e,
-	0xad, 0xc6, 0x11, 0x17, 0xa9, 0x62, 0xda, 0xa8, 0x32, 0x31, 0xa5, 0xc2, 0xb0, 0x50, 0xd2, 0x48,
-	0xda, 0xe7, 0x32, 0xdc, 0x1f, 0x0b, 0x57, 0xe3, 0x41, 0x3f, 0x93, 0x99, 0xb4, 0x84, 0xa8, 0xaa,
-	0x6a, 0x6e, 0xf0, 0x83, 0xc0, 0xc3, 0x18, 0x33, 0xae, 0x0d, 0xaa, 0x77, 0xf2, 0x12, 0x63, 0x5c,
-	0x96, 0xa8, 0x0d, 0x1d, 0xc0, 0xdd, 0xb9, 0xd4, 0x46, 0xb0, 0x1c, 0x3d, 0x32, 0x24, 0xa3, 0x6e,
-	0xbc, 0xed, 0xe9, 0x03, 0x70, 0x72, 0x96, 0x78, 0x6d, 0x0b, 0x57, 0x25, 0xed, 0xc3, 0x11, 0xcf,
-	0x59, 0x86, 0x9e, 0x63, 0xb1, 0xba, 0xa1, 0x2f, 0xa0, 0x9d, 0x6a, 0xcf, 0x1d, 0x92, 0x51, 0x6f,
-	0x32, 0x0c, 0x9b, 0x44, 0x85, 0x67, 0x7c, 0x81, 0xfa, 0xab, 0x36, 0x98, 0xc7, 0xed, 0x54, 0x07,
-	0x67, 0xd0, 0xdf, 0x17, 0xa3, 0x0b, 0x29, 0x34, 0xd2, 0x10, 0x5c, 0x21, 0x2f, 0x6b, 0x25, 0xbd,
-	0xc9, 0xa0, 0xf9, 0x5b, 0x76, 0xc2, 0xf2, 0x82, 0x9f, 0x04, 0xdc, 0xaa, 0xfd, 0x4f, 0x1b, 0x4f,
-	0xe0, 0x1e, 0x17, 0xdc, 0x70, 0x66, 0xa4, 0x9a, 0xf2, 0xa5, 0xd8, 0xd8, 0x39, 0xde, 0x82, 0xe7,
-	0x4b, 0x41, 0x1f, 0x03, 0x18, 0xa6, 0x32, 0x34, 0x96, 0xe1, 0x5a, 0x46, 0xb7, 0x46, 0xaa, 0xe7,
-	0xda, 0xf4, 0xd1, 0xe1, 0xa6, 0x6f, 0xc3, 0xeb, 0xec, 0x84, 0x17, 0x7c, 0x27, 0x00, 0xb7, 0x44,
-	0x7a, 0x02, 0xbd, 0x19, 0x4b, 0x3e, 0x73, 0x91, 0x4d, 0x4b, 0xc5, 0x37, 0x5e, 0x60, 0x03, 0xbd,
-	0x57, 0x9c, 0x3e, 0x82, 0x3b, 0xa9, 0x9e, 0x6a, 0x7e, 0x85, 0xd6, 0x91, 0x13, 0x77, 0x52, 0x7d,
-	0xc1, 0xaf, 0x90, 0xbe, 0x06, 0xd0, 0xe5, 0x6c, 0x25, 0x17, 0x65, 0x8e, 0xda, 0x73, 0x86, 0xce,
-	0xa8, 0x37, 0x39, 0x69, 0x16, 0x76, 0xf1, 0x8f, 0x17, 0xef, 0x8c, 0x04, 0xa7, 0xd0, 0xdd, 0x3e,
-	0x50, 0x0a, 0xee, 0x4e, 0x98, 0xb6, 0xae, 0xb0, 0x82, 0x99, 0xf9, 0x26, 0x49, 0x5b, 0x4f, 0xbe,
-	0xc0, 0xfd, 0xf3, 0xbd, 0xdd, 0xa4, 0x08, 0xc7, 0xbb, 0xff, 0x96, 0x3e, 0x6d, 0xd6, 0xd0, 0xb0,
-	0x8c, 0x83, 0x67, 0x87, 0x50, 0xeb, 0x55, 0x79, 0xf3, 0xf6, 0xfa, 0xc6, 0x6f, 0xfd, 0xbe, 0xf1,
-	0x5b, 0xdf, 0xd6, 0x3e, 0xb9, 0x5e, 0xfb, 0xe4, 0xd7, 0xda, 0x27, 0x7f, 0xd6, 0x3e, 0xf9, 0xf8,
-	0xfc, 0xd0, 0xab, 0x7a, 0xb9, 0x1a, 0x7f, 0x68, 0xcd, 0x3a, 0xf6, 0x40, 0x4e, 0xff, 0x06, 0x00,
-	0x00, 0xff, 0xff, 0x85, 0xf0, 0xcf, 0xbd, 0x8d, 0x03, 0x00, 0x00,
+	0x14, 0xee, 0xb4, 0xd9, 0x6a, 0x5f, 0x55, 0x64, 0xa8, 0x18, 0x0a, 0x66, 0x4b, 0xbc, 0x14, 0x17,
+	0x12, 0xdb, 0x3d, 0x8a, 0x08, 0x82, 0xca, 0x5e, 0x44, 0xb2, 0x08, 0xe2, 0xa5, 0x4c, 0xd3, 0x49,
+	0x3a, 0xda, 0xcc, 0xa4, 0xf3, 0x26, 0x01, 0xf7, 0xe4, 0xcd, 0x8b, 0x3f, 0xca, 0xe3, 0x1e, 0x3d,
+	0x7a, 0x74, 0xfb, 0x4b, 0x24, 0x93, 0xda, 0xed, 0x4a, 0x0e, 0xf5, 0xf6, 0xde, 0x37, 0xdf, 0x0b,
+	0xdf, 0xf7, 0xe5, 0x3d, 0x78, 0x9e, 0x0a, 0xb3, 0x2c, 0xe6, 0x41, 0xac, 0xb2, 0x10, 0x0d, 0x5f,
+	0xad, 0x98, 0xce, 0xb5, 0xfa, 0xc4, 0x63, 0x13, 0x1a, 0xae, 0x35, 0x53, 0x18, 0xb2, 0x5c, 0x84,
+	0xe5, 0x24, 0x14, 0x32, 0xd1, 0x0c, 0x8d, 0x2e, 0x62, 0x53, 0x68, 0x1e, 0xe4, 0x5a, 0x19, 0x45,
+	0x07, 0x42, 0x05, 0x37, 0xc7, 0x82, 0x72, 0x32, 0x1c, 0xa4, 0x2a, 0x55, 0x96, 0x10, 0x56, 0x55,
+	0xcd, 0xf5, 0xbf, 0x13, 0x18, 0xbc, 0xd3, 0xaa, 0x14, 0x28, 0x94, 0x7c, 0xab, 0x16, 0x3c, 0xe2,
+	0xeb, 0x82, 0xa3, 0xa1, 0x43, 0xb8, 0xbd, 0x54, 0x68, 0x24, 0xcb, 0xb8, 0x4b, 0x46, 0x64, 0xdc,
+	0x8b, 0x76, 0x3d, 0xbd, 0x0f, 0x9d, 0x8c, 0xc5, 0x6e, 0xdb, 0xc2, 0x55, 0x49, 0x07, 0x70, 0x24,
+	0x32, 0x96, 0x72, 0xb7, 0x63, 0xb1, 0xba, 0xa1, 0x4f, 0xa1, 0x9d, 0xa0, 0xeb, 0x8c, 0xc8, 0xb8,
+	0x3f, 0x1d, 0x05, 0x4d, 0xaa, 0x82, 0xd7, 0x62, 0xc5, 0xf1, 0x0b, 0x1a, 0x9e, 0x45, 0xed, 0x04,
+	0xfd, 0x37, 0xf0, 0xe0, 0x1f, 0x35, 0x98, 0x2b, 0x89, 0x9c, 0x06, 0xe0, 0x48, 0xb5, 0xa8, 0xa5,
+	0xf4, 0xa7, 0xc3, 0xe6, 0x8f, 0xd9, 0x09, 0xcb, 0xf3, 0x7f, 0x10, 0x70, 0xaa, 0xf6, 0x3f, 0x7d,
+	0x3c, 0x86, 0xbb, 0x42, 0x0a, 0x23, 0x98, 0x51, 0x7a, 0x26, 0xd6, 0x72, 0xeb, 0xe7, 0xce, 0x0e,
+	0x3c, 0x5b, 0x4b, 0xfa, 0x08, 0xc0, 0x30, 0x9d, 0x72, 0x63, 0x19, 0x8e, 0x65, 0xf4, 0x6a, 0xa4,
+	0x7a, 0xae, 0x5d, 0x1f, 0x1d, 0xee, 0xfa, 0x3a, 0xbd, 0xee, 0x5e, 0x7a, 0xfe, 0x37, 0x02, 0x70,
+	0x4d, 0xa4, 0xc7, 0xd0, 0x9f, 0xb3, 0xf8, 0xb3, 0x90, 0xe9, 0xac, 0xd0, 0x62, 0xeb, 0x05, 0xb6,
+	0xd0, 0x7b, 0x2d, 0xe8, 0x43, 0xb8, 0x95, 0xe0, 0x0c, 0xc5, 0x05, 0xb7, 0x8e, 0x3a, 0x51, 0x37,
+	0xc1, 0x73, 0x71, 0xc1, 0xe9, 0x0b, 0x00, 0x2c, 0xe6, 0xa5, 0x5a, 0x15, 0x19, 0x47, 0xb7, 0x33,
+	0xea, 0x8c, 0xfb, 0xd3, 0xe3, 0x66, 0x61, 0xe7, 0x7f, 0x79, 0xd1, 0xde, 0x88, 0x7f, 0x0a, 0xbd,
+	0xdd, 0x03, 0xa5, 0xe0, 0xec, 0x85, 0x69, 0xeb, 0x0a, 0xcb, 0x99, 0x59, 0x6e, 0x93, 0xb4, 0xf5,
+	0xb4, 0x84, 0x7b, 0x67, 0x37, 0xb6, 0x93, 0x2e, 0xa0, 0xb7, 0xfb, 0xb9, 0xf4, 0x49, 0xb3, 0x80,
+	0xa6, 0x5d, 0x1c, 0x9e, 0x1c, 0xc4, 0xad, 0x37, 0xe5, 0xe5, 0xab, 0xcb, 0x2b, 0xaf, 0xf5, 0xeb,
+	0xca, 0x6b, 0x7d, 0xdd, 0x78, 0xe4, 0x72, 0xe3, 0x91, 0x9f, 0x1b, 0x8f, 0xfc, 0xde, 0x78, 0xe4,
+	0xe3, 0xc9, 0xa1, 0x67, 0xf5, 0xac, 0x9c, 0x7c, 0x68, 0xcd, 0xbb, 0xf6, 0x42, 0x4e, 0xff, 0x04,
+	0x00, 0x00, 0xff, 0xff, 0x36, 0x72, 0x3e, 0x4f, 0x8e, 0x03, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -288,7 +288,7 @@ const _ = grpc.SupportPackageIsVersion4
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type InfrastructureClient interface {
-	RegisterNode(ctx context.Context, in *RegisterNodeRequest, opts ...grpc.CallOption) (*RegisterNodeResponse, error)
+	Provision(ctx context.Context, in *ProvisionNodeRequest, opts ...grpc.CallOption) (*ProvisionNodeResponse, error)
 }
 
 type infrastructureClient struct {
@@ -299,9 +299,9 @@ func NewInfrastructureClient(cc *grpc.ClientConn) InfrastructureClient {
 	return &infrastructureClient{cc}
 }
 
-func (c *infrastructureClient) RegisterNode(ctx context.Context, in *RegisterNodeRequest, opts ...grpc.CallOption) (*RegisterNodeResponse, error) {
-	out := new(RegisterNodeResponse)
-	err := c.cc.Invoke(ctx, "/io.stellarproject.v1.Infrastructure/RegisterNode", in, out, opts...)
+func (c *infrastructureClient) Provision(ctx context.Context, in *ProvisionNodeRequest, opts ...grpc.CallOption) (*ProvisionNodeResponse, error) {
+	out := new(ProvisionNodeResponse)
+	err := c.cc.Invoke(ctx, "/io.stellarproject.v1.Infrastructure/Provision", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -310,27 +310,27 @@ func (c *infrastructureClient) RegisterNode(ctx context.Context, in *RegisterNod
 
 // InfrastructureServer is the server API for Infrastructure service.
 type InfrastructureServer interface {
-	RegisterNode(context.Context, *RegisterNodeRequest) (*RegisterNodeResponse, error)
+	Provision(context.Context, *ProvisionNodeRequest) (*ProvisionNodeResponse, error)
 }
 
 func RegisterInfrastructureServer(s *grpc.Server, srv InfrastructureServer) {
 	s.RegisterService(&_Infrastructure_serviceDesc, srv)
 }
 
-func _Infrastructure_RegisterNode_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(RegisterNodeRequest)
+func _Infrastructure_Provision_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ProvisionNodeRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(InfrastructureServer).RegisterNode(ctx, in)
+		return srv.(InfrastructureServer).Provision(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/io.stellarproject.v1.Infrastructure/RegisterNode",
+		FullMethod: "/io.stellarproject.v1.Infrastructure/Provision",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(InfrastructureServer).RegisterNode(ctx, req.(*RegisterNodeRequest))
+		return srv.(InfrastructureServer).Provision(ctx, req.(*ProvisionNodeRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -340,15 +340,15 @@ var _Infrastructure_serviceDesc = grpc.ServiceDesc{
 	HandlerType: (*InfrastructureServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "RegisterNode",
-			Handler:    _Infrastructure_RegisterNode_Handler,
+			MethodName: "Provision",
+			Handler:    _Infrastructure_Provision_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "github.com/stellarproject/terraos/api/v1/infrastructure.proto",
 }
 
-func (m *RegisterNodeRequest) Marshal() (dAtA []byte, err error) {
+func (m *ProvisionNodeRequest) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -358,7 +358,7 @@ func (m *RegisterNodeRequest) Marshal() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *RegisterNodeRequest) MarshalTo(dAtA []byte) (int, error) {
+func (m *ProvisionNodeRequest) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
@@ -397,7 +397,7 @@ func (m *RegisterNodeRequest) MarshalTo(dAtA []byte) (int, error) {
 	return i, nil
 }
 
-func (m *RegisterNodeResponse) Marshal() (dAtA []byte, err error) {
+func (m *ProvisionNodeResponse) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -407,7 +407,7 @@ func (m *RegisterNodeResponse) Marshal() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *RegisterNodeResponse) MarshalTo(dAtA []byte) (int, error) {
+func (m *ProvisionNodeResponse) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
@@ -575,7 +575,7 @@ func encodeVarintInfrastructure(dAtA []byte, offset int, v uint64) int {
 	dAtA[offset] = uint8(v)
 	return offset + 1
 }
-func (m *RegisterNodeRequest) Size() (n int) {
+func (m *ProvisionNodeRequest) Size() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -603,7 +603,7 @@ func (m *RegisterNodeRequest) Size() (n int) {
 	return n
 }
 
-func (m *RegisterNodeResponse) Size() (n int) {
+func (m *ProvisionNodeResponse) Size() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -713,11 +713,11 @@ func sovInfrastructure(x uint64) (n int) {
 func sozInfrastructure(x uint64) (n int) {
 	return sovInfrastructure(uint64((x << 1) ^ uint64((int64(x) >> 63))))
 }
-func (this *RegisterNodeRequest) String() string {
+func (this *ProvisionNodeRequest) String() string {
 	if this == nil {
 		return "nil"
 	}
-	s := strings.Join([]string{`&RegisterNodeRequest{`,
+	s := strings.Join([]string{`&ProvisionNodeRequest{`,
 		`Hostname:` + fmt.Sprintf("%v", this.Hostname) + `,`,
 		`Mac:` + fmt.Sprintf("%v", this.Mac) + `,`,
 		`Image:` + fmt.Sprintf("%v", this.Image) + `,`,
@@ -727,11 +727,11 @@ func (this *RegisterNodeRequest) String() string {
 	}, "")
 	return s
 }
-func (this *RegisterNodeResponse) String() string {
+func (this *ProvisionNodeResponse) String() string {
 	if this == nil {
 		return "nil"
 	}
-	s := strings.Join([]string{`&RegisterNodeResponse{`,
+	s := strings.Join([]string{`&ProvisionNodeResponse{`,
 		`Node:` + strings.Replace(fmt.Sprintf("%v", this.Node), "Node", "Node", 1) + `,`,
 		`XXX_unrecognized:` + fmt.Sprintf("%v", this.XXX_unrecognized) + `,`,
 		`}`,
@@ -787,7 +787,7 @@ func valueToStringInfrastructure(v interface{}) string {
 	pv := reflect.Indirect(rv).Interface()
 	return fmt.Sprintf("*%v", pv)
 }
-func (m *RegisterNodeRequest) Unmarshal(dAtA []byte) error {
+func (m *ProvisionNodeRequest) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -810,10 +810,10 @@ func (m *RegisterNodeRequest) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: RegisterNodeRequest: wiretype end group for non-group")
+			return fmt.Errorf("proto: ProvisionNodeRequest: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: RegisterNodeRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: ProvisionNodeRequest: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -973,7 +973,7 @@ func (m *RegisterNodeRequest) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *RegisterNodeResponse) Unmarshal(dAtA []byte) error {
+func (m *ProvisionNodeResponse) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -996,10 +996,10 @@ func (m *RegisterNodeResponse) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: RegisterNodeResponse: wiretype end group for non-group")
+			return fmt.Errorf("proto: ProvisionNodeResponse: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: RegisterNodeResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: ProvisionNodeResponse: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:

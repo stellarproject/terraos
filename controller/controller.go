@@ -76,7 +76,7 @@ func (c *Controller) Close() error {
 	return nil
 }
 
-func (c *Controller) RegisterNode(ctx context.Context, r *v1.RegisterNodeRequest) (*v1.RegisterNodeResponse, error) {
+func (c *Controller) Provision(ctx context.Context, r *v1.ProvisionNodeRequest) (*v1.ProvisionNodeResponse, error) {
 	if err := os.Mkdir(filepath.Join(ClusterFS, r.Hostname), 0755); err != nil {
 		return nil, errors.Wrap(err, "mkdir node directory")
 	}
@@ -89,7 +89,7 @@ func (c *Controller) RegisterNode(ctx context.Context, r *v1.RegisterNodeRequest
 	if err := c.provisionDisk(ctx, node); err != nil {
 		return nil, errors.Wrap(err, "provision node disk")
 	}
-	return &v1.RegisterNodeResponse{
+	return &v1.ProvisionNodeResponse{
 		Node: node,
 	}, nil
 }
