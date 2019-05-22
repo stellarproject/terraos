@@ -33,6 +33,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/BurntSushi/toml"
 	"github.com/containerd/containerd"
 	"github.com/containerd/containerd/defaults"
 	"github.com/gomodule/redigo/redis"
@@ -45,7 +46,17 @@ import (
 	"github.com/urfave/cli"
 )
 
-const defaultRuntime = "io.containerd.runc.v2"
+const (
+	defaultRuntime = "io.containerd.runc.v2"
+	configPath     = "/etc/terra/controller.toml"
+)
+
+type Config struct {
+	Redis      string `toml:"redis"`
+	Controller string `toml:"controller"`
+	ISCSI      string `toml:"iscsi"`
+	Gateway    string `toml:"gateway"`
+}
 
 var controllerCommand = cli.Command{
 	Name:        "controller",
@@ -66,16 +77,21 @@ var controllerCommand = cli.Command{
 		},
 	},
 	Action: func(clix *cli.Context) error {
+		logrus.Info("loading config...")
+		c, err := loadControllerConfig(clix)
+		if err != nil {
+			return err
+		}
 		logrus.Info("building ip map...")
-		ip := net.ParseIP(clix.GlobalString("controller"))
+		ip := net.ParseIP(c.Controller)
 		if ip == nil || ip.To4() == nil {
 			return errors.New("invalid controller ip address")
 		}
-		gateway := net.ParseIP(clix.String("gateway"))
+		gateway := net.ParseIP(c.Gateway)
 		if gateway == nil || gateway.To4() == nil {
 			return errors.New("invalid gateway ip address")
 		}
-		iscsi := net.ParseIP(clix.String("iscsi"))
+		iscsi := net.ParseIP(c.ISCSI)
 		if iscsi == nil || iscsi.To4() == nil {
 			return errors.New("invalid iscsi ip address")
 		}
@@ -86,7 +102,7 @@ var controllerCommand = cli.Command{
 		}
 		logrus.Info("creating redis pool...")
 		pool := redis.NewPool(func() (redis.Conn, error) {
-			return redis.Dial("tcp", clix.String("redis"))
+			return redis.Dial("tcp", c.Redis)
 		}, 5)
 		logrus.Info("connecting to orbit...")
 		orbit, err := util.Agent("127.0.0.1:9100")
@@ -133,4 +149,19 @@ var controllerCommand = cli.Command{
 
 		return server.Serve(l)
 	},
+}
+
+func loadControllerConfig(clix *cli.Context) (*Config, error) {
+	c := Config{
+		Redis:      clix.String("redis"),
+		Controller: clix.GlobalString("controller"),
+		ISCSI:      clix.String("iscsi"),
+		Gateway:    clix.String("gateway"),
+	}
+	if _, err := toml.DecodeFile(configPath, &c); err != nil {
+		if !os.IsNotExist(err) {
+			return nil, errors.Wrap(err, "load config")
+		}
+	}
+	return &c, nil
 }
