@@ -38,7 +38,6 @@ import (
 
 	"github.com/containerd/containerd"
 	"github.com/containerd/containerd/namespaces"
-	"github.com/containerd/typeurl"
 	"github.com/gogo/protobuf/proto"
 	"github.com/gogo/protobuf/types"
 	"github.com/gomodule/redigo/redis"
@@ -81,6 +80,10 @@ const (
 
 var empty = &types.Empty{}
 
+type infraContainer interface {
+	Start(context.Context) error
+}
+
 func New(client *containerd.Client, ipConfig map[IPType]net.IP, pool *redis.Pool, orbit *util.LocalAgent) (*Controller, error) {
 	if err := btrfs.Check(); err != nil {
 		return nil, err
@@ -88,8 +91,8 @@ func New(client *containerd.Client, ipConfig map[IPType]net.IP, pool *redis.Pool
 	if err := iscsi.Check(); err != nil {
 		return nil, err
 	}
-	if err := createRedisContainer(orbit); err != nil {
-		return nil, errors.Wrap(err, "create redis-master container")
+	if err := startContainers(orbit, ipConfig[Management]); err != nil {
+		return nil, errors.Wrap(err, "start containers")
 	}
 	for _, p := range []string{ClusterFS, ISCSIPath, TFTPPath} {
 		if err := os.MkdirAll(p, 0755); err != nil {
@@ -106,37 +109,17 @@ func New(client *containerd.Client, ipConfig map[IPType]net.IP, pool *redis.Pool
 	}, nil
 }
 
-// TODO: add registry and prometheus
-func createRedisContainer(orbit *util.LocalAgent) error {
+func startContainers(orbit *util.LocalAgent, ip net.IP) error {
 	ctx := namespaces.WithNamespace(context.Background(), config.DefaultNamespace)
-	if _, err := orbit.Get(ctx, &v1.GetRequest{
-		ID: "redis-master",
-	}); err == nil {
-		logrus.Debug("existing redis container is running")
-		return nil
+	containers := []infraContainer{
+		&redisContainer{orbit: orbit, ip: ip},
+		&registryContainer{orbit: orbit, ip: ip},
+		&prometheusContainer{orbit: orbit, ip: ip},
 	}
-
-	logrus.Info("starting redis container")
-	container := &v1.Container{
-		ID:       "redis-master",
-		Image:    "docker.io/library/redis:4.0-alpine",
-		Services: []string{"master.redis"},
-	}
-	any, err := typeurl.MarshalAny(&v1.HostNetwork{})
-	if err != nil {
-		panic(err)
-	}
-	container.Networks = append(container.Networks, any)
-
-	container.Resources = &v1.Resources{
-		NoFile: 2048,
-		Cpus:   1.5,
-		Memory: 1024,
-	}
-	if _, err := orbit.Create(ctx, &v1.CreateRequest{
-		Container: container,
-	}); err != nil {
-		return errors.Wrap(err, "create redis container")
+	for _, c := range containers {
+		if err := c.Start(ctx); err != nil {
+			return errors.Wrap(err, "start container")
+		}
 	}
 	return nil
 }
@@ -163,6 +146,25 @@ func (c *Controller) Close() error {
 		err = cerr
 	}
 	return err
+}
+
+func (c *Controller) Info(ctx context.Context, _ *types.Empty) (*v1.InfoResponse, error) {
+	conn, err := c.pool.GetContext(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "get connection")
+	}
+	defer conn.Close()
+
+	version, err := redis.String(conn.Do("GET", KeyPXEVersion))
+	if err != nil {
+		return nil, errors.Wrap(err, "get pxe version")
+	}
+	resp := &v1.InfoResponse{
+		PxeVersion: version,
+		Gateway:    c.ips[Gateway].To4().String(),
+	}
+
+	return resp, nil
 }
 
 func (c *Controller) List(ctx context.Context, _ *types.Empty) (*v1.ListNodeResponse, error) {

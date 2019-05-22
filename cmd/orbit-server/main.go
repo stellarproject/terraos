@@ -109,11 +109,6 @@ func main() {
 			Usage: "http registries",
 			Value: &cli.StringSlice{},
 		},
-		cli.StringFlag{
-			Name:  "cluster",
-			Usage: "cluster directory path",
-			Value: "/cluster",
-		},
 	}
 	app.Before = func(clix *cli.Context) error {
 		if clix.GlobalBool("debug") {
@@ -130,7 +125,7 @@ func main() {
 			ID:           clix.GlobalString("id"),
 			Iface:        clix.GlobalString("iface"),
 			State:        clix.GlobalString("state"),
-			ClusterDir:   clix.GlobalString("cluster"),
+			ClusterDir:   "/cluster",
 			Interval:     clix.GlobalDuration("interval"),
 			PlainRemotes: clix.GlobalStringSlice("plain-remote"),
 		}

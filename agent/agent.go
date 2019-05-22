@@ -102,6 +102,13 @@ func New(ctx context.Context, c *Config, client *containerd.Client) (*Agent, err
 	for _, r := range c.PlainRemotes {
 		plainRemotes[r] = true
 	}
+	for _, p := range []string{
+		filepath.Join(c.ClusterDir, "configs"),
+	} {
+		if err := os.MkdirAll(p, 0755); err != nil {
+			return nil, errors.Wrapf(err, "mkdir %s", p)
+		}
+	}
 	dhcp, err := setupDHCP(ctx)
 	if err != nil {
 		return nil, err
@@ -132,7 +139,6 @@ func setupDHCP(ctx context.Context) (*exec.Cmd, error) {
 			logrus.WithError(err).Error("wait on dhcp server")
 		}
 	}()
-
 	return dhcp, nil
 }
 

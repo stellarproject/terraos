@@ -12,6 +12,7 @@ service Infrastructure {
 	rpc List(google.protobuf.Empty) returns (ListNodeResponse);
 	rpc InstallPXE(InstallPXERequest) returns (google.protobuf.Empty);
 	rpc Delete(DeleteNodeRequest) returns (google.protobuf.Empty);
+	rpc Info(google.protobuf.Empty) returns (InfoResponse);
 }
 
 message ProvisionNodeRequest {
@@ -35,6 +36,24 @@ message InstallPXERequest {
 
 message DeleteNodeRequest {
 	string hostname = 1;
+}
+
+message InfoResponse {
+	string pxe_version = 1;
+	string gateway = 2;
+	repeated Target targets = 3;
+}
+
+message Target {
+	string iqn = 1;
+	repeated Lun luns = 2;
+	int64 tid = 3;
+}
+
+message Lun {
+	string iqn = 1;
+	int64 size = 2;
+	int64 lid = 3;
 }
 
 message Node {

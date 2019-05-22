@@ -101,6 +101,7 @@ Terra OS management`
 		createCommand,
 		controllerCommand,
 		deleteCommand,
+		infoCommand,
 		provisionCommand,
 		listCommand,
 		pxeCommand,
