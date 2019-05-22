@@ -53,6 +53,7 @@ type Container struct {
 	Capabilities []string     `toml:"capabilities"`
 	Privileged   bool         `toml:"privileged"`
 	Pty          bool         `toml:"pty"`
+	MaskedPaths  []string     `toml:"masked_paths"`
 }
 
 type Network struct {
@@ -83,6 +84,7 @@ func (c *Container) Proto() *v1.Container {
 		Security: &v1.Security{
 			Privileged:   c.Privileged,
 			Capabilities: c.Capabilities,
+			MaskedPaths:  c.MaskedPaths,
 		},
 	}
 	for _, n := range c.Networks {

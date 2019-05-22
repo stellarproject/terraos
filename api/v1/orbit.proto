@@ -163,6 +163,7 @@ message CNINetwork {
 message Security {
 	bool privileged = 1;
 	repeated string capabilities = 2;
+	repeated string masked_paths = 3;
 }
 
 message Container {

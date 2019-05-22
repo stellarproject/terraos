@@ -118,6 +118,9 @@ func specOpt(paths Paths, container *v1.Container, image containerd.Image) oci.S
 			seccomp.WithDefaultProfile(),
 		)
 	}
+	if len(container.Security.MaskedPaths) > 0 {
+		opts = append(opts, oci.WithMaskedPaths(container.Security.MaskedPaths))
+	}
 	if container.Process.Pty {
 		opts = append(opts, oci.WithTTY)
 	}
@@ -320,10 +323,25 @@ func withContainerHostsFile(root string) oci.SpecOpts {
 		if _, err := f.WriteString("::1     localhost ip6-localhost ip6-loopback\n"); err != nil {
 			return err
 		}
+		hpath := filepath.Join(root, "hostname")
+		hf, err := os.Create(hpath)
+		if err != nil {
+			return err
+		}
+		if _, err := hf.WriteString(hostname); err != nil {
+			return err
+		}
+		defer hf.Close()
 		s.Mounts = append(s.Mounts, specs.Mount{
 			Destination: "/etc/hosts",
 			Type:        "bind",
 			Source:      path,
+			Options:     []string{"rbind", "ro"},
+		})
+		s.Mounts = append(s.Mounts, specs.Mount{
+			Destination: "/etc/hostname",
+			Type:        "bind",
+			Source:      hpath,
 			Options:     []string{"rbind", "ro"},
 		})
 		return nil

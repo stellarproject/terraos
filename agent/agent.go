@@ -914,7 +914,6 @@ func (a *Agent) getNetwork(networks []*types.Any) (network, error) {
 		opts        = []gocni.CNIOpt{
 
 			gocni.WithPluginDir([]string{"/opt/containerd/bin", "/usr/local/bin"}),
-			gocni.WithLoNetwork,
 		}
 	)
 	for i, network := range networks {
@@ -946,6 +945,7 @@ func (a *Agent) getNetwork(networks []*types.Any) (network, error) {
 			return nil, errors.Errorf("unknown network type %s", network.TypeUrl)
 		}
 	}
+	opts = append(opts, gocni.WithLoNetwork)
 	n, err := gocni.New(opts...)
 	if err != nil {
 		return nil, err

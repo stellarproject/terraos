@@ -4,6 +4,7 @@ os = "docker.io/stellarproject/terraos:v10"
 repo = "docker.io/stellarproject"
 userland = """
 RUN echo 'terra:terra' | chpasswd
+ADD sshd_config /etc/ssh/
 """
 [netplan]
   [[netplan.interfaces]]
