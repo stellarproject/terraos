@@ -46,9 +46,8 @@ const netplanTemplate = `network:
   renderer: networkd
   ethernets:{{range $i := .Interfaces}}
     {{ $i.Name }}:
-      {{if $i.Addresses}}addresses: [{{addresses $i.Addresses}}]{{else}}dhcp4: yes{{end}}
-      {{if ne $i.Gateway ""}}gateway4: {{$i.Gateway}}{{end}}
-{{end}}`
+      {{if $i.Addresses}}addresses: [{{addresses $i.Addresses}}]{{else}}dhcp4: yes{{end}}{{if ne $i.Gateway ""}}
+      gateway4: {{$i.Gateway}}{{end}}{{end}}`
 
 type Netplan struct {
 	Interfaces []Interface `toml:"interfaces"`

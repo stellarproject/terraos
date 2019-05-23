@@ -20,7 +20,7 @@ local_mount_root()
 	ROOT="${DEV}"
 	DISK_LABEL="${disk_label}"
 	if [ -z "${DISK_LABEL}" ]; then
-		DISK_LABEL="terra"
+		DISK_LABEL="os"
 	fi
 
 	# find the disk with the terra label
@@ -40,14 +40,10 @@ local_mount_root()
 	modprobe ${FSTYPE}
 	checkfs ${ROOT} root "${FSTYPE}"
 
-	if [ "${FSTYPE}" == "btrfs" ]; then
-		mkdir /lower
-		mount -t ${FSTYPE} ${ROOTFLAGS} ${ROOT} /lower || rescue_shell
-		if [ -z "${VERSION}" ]; then
-			VERSION="$(cat /lower/VERSION)"
-		fi
-		mount -o subvol=/${VERSION} -t btrfs ${ROOT} ${rootmnt} || rescue_shell
-	else
-		mount ${ROOTFLAGS} ${ROOT} ${rootmnt} || rescue_shell
+	mkdir /lower
+	mount -t ${FSTYPE} ${ROOTFLAGS} ${ROOT} /lower || rescue_shell
+	if [ -z "${VERSION}" ]; then
+		VERSION="$(cat /lower/VERSION)"
 	fi
+	mount -o subvol=/${VERSION} -t btrfs ${ROOT} ${rootmnt} || rescue_shell
 }
