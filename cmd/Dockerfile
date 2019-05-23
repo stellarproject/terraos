@@ -35,4 +35,3 @@ RUN make clean local
 FROM scratch
 
 COPY --from=builder /go/src/github.com/stellarproject/terraos/build/terra* /usr/local/sbin/
-COPY --from=builder /go/src/github.com/stellarproject/terraos/build/vab /usr/local/bin/
