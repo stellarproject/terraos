@@ -41,6 +41,12 @@ import (
 	"github.com/stellarproject/terraos/util"
 )
 
+const (
+	redisID    = "controller-redis"
+	promID     = "controller-prometheus"
+	registryID = "controller-registry"
+)
+
 type redisContainer struct {
 	ip    net.IP
 	orbit *util.LocalAgent
@@ -48,7 +54,7 @@ type redisContainer struct {
 
 func (r *redisContainer) Start(ctx context.Context) error {
 	if _, err := r.orbit.Get(ctx, &v1.GetRequest{
-		ID: "redis-master",
+		ID: redisID,
 	}); err == nil {
 		logrus.Debug("existing redis container is running")
 		return nil
@@ -65,7 +71,7 @@ func (r *redisContainer) Start(ctx context.Context) error {
 		args = append(args, "127.0.0.1")
 	}
 	container := &v1.Container{
-		ID:    "controller-redis",
+		ID:    redisID,
 		Image: "docker.io/library/redis:5-alpine",
 		Process: &v1.Process{
 			Args: args,
@@ -125,7 +131,7 @@ type registryContainer struct {
 
 func (r *registryContainer) Start(ctx context.Context) error {
 	if _, err := r.orbit.Get(ctx, &v1.GetRequest{
-		ID: "controller-registry",
+		ID: registryID,
 	}); err == nil {
 		logrus.Debug("existing registry container is running")
 		return nil
@@ -147,7 +153,7 @@ func (r *registryContainer) Start(ctx context.Context) error {
 
 	logrus.Info("starting registry container")
 	container := &v1.Container{
-		ID:    "controller-registry",
+		ID:    registryID,
 		Image: "docker.io/library/registry:2.7.1",
 		Configs: []*v1.ConfigFile{
 			{
@@ -192,7 +198,7 @@ const prometheusConfigFilename = "controller-prometheus.yml"
 
 func (r *prometheusContainer) Start(ctx context.Context) error {
 	if _, err := r.orbit.Get(ctx, &v1.GetRequest{
-		ID: "controller-prometheus",
+		ID: promID,
 	}); err == nil {
 		logrus.Debug("existing prometheus container is running")
 		return nil
@@ -213,7 +219,7 @@ func (r *prometheusContainer) Start(ctx context.Context) error {
 
 	logrus.Info("starting prometheus container")
 	container := &v1.Container{
-		ID:    "controller-prometheus",
+		ID:    promID,
 		Image: "docker.io/prom/prometheus:v2.9.2",
 		Process: &v1.Process{
 			Args: []string{

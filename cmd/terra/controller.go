@@ -137,7 +137,7 @@ var controllerCommand = cli.Command{
 		}()
 
 		logrus.Info("listening on controller address...")
-		l, err := net.Listen("tcp", clix.GlobalString("controller")+":9000")
+		l, err := net.Listen("tcp", c.Controller+":9000")
 		if err != nil {
 			return errors.Wrap(err, "listen tcp")
 		}

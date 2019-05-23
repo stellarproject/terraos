@@ -72,9 +72,10 @@ Terra OS management`
 			Usage: "enable debug output in the logs",
 		},
 		cli.StringFlag{
-			Name:  "controller",
-			Usage: "controller address",
-			Value: "127.0.0.1",
+			Name:   "controller",
+			Usage:  "controller address",
+			Value:  "127.0.0.1",
+			EnvVar: "TERRA_CONTROLLER",
 		},
 		cli.StringFlag{
 			Name:   "sentry-dsn",
