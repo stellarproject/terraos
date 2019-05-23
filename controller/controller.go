@@ -425,7 +425,7 @@ func (c *Controller) createISCSI(ctx context.Context, node *v1.Node, uri *url.UR
 func (c *Controller) installImage(ctx context.Context, node *v1.Node, uri *url.URL, lun *iscsi.Lun) error {
 	var (
 		t = uri.Host
-		d = disk.NewLunDisk(lun)
+		d = disk.NewLunDisk(lun, c.client)
 	)
 	if err := d.Format(ctx, t, "os"); err != nil {
 		return errors.Wrap(err, "format disk")

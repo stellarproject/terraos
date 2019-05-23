@@ -34,7 +34,9 @@ import (
 	"path/filepath"
 	"syscall"
 
+	"github.com/containerd/containerd"
 	"github.com/containerd/containerd/content"
+	"github.com/containerd/containerd/errdefs"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	v1 "github.com/stellarproject/terraos/api/v1"
@@ -83,8 +85,25 @@ func (l *localDisk) Format(ctx context.Context, fstype, label string) error {
 }
 
 func (l *localDisk) Write(ctx context.Context, repo image.Repo, store content.Store, files []File) error {
-	if err := write(ctx, repo, l.root, l.path, store, l.subvolumes, files); err != nil {
-		return errors.Wrap(err, "write image to disk")
+	desc, err := image.Fetch(ctx, false, store, string(repo))
+	if err != nil {
+		return errors.Wrap(err, "fetch image")
+	}
+	if err := image.Unpack(ctx, store, desc, l.path); err != nil {
+		return errors.Wrap(err, "unpack image")
+	}
+	if err := writeVersion(repo.Version(), l.root); err != nil {
+		return errors.Wrap(err, "write version file")
+	}
+	if len(l.subvolumes) > 0 {
+		if err := writeFstab(l.subvolumes, l.path); err != nil {
+			return errors.Wrap(err, "write fstab file")
+		}
+	}
+	for i, f := range files {
+		if err := f.Write(l.path); err != nil {
+			return errors.Wrapf(err, "write file %d", i)
+		}
 	}
 	return nil
 }
@@ -141,33 +160,10 @@ func (l *localDisk) Provision(ctx context.Context, fstype string, node *v1.Node)
 	return nil
 }
 
-func write(ctx context.Context, repo image.Repo, root, path string, store content.Store, subvolumes []btrfs.Subvolume, files []File) error {
-	desc, err := image.Fetch(ctx, false, store, string(repo))
-	if err != nil {
-		return errors.Wrap(err, "fetch image")
-	}
-	if err := image.Unpack(ctx, store, desc, path); err != nil {
-		return errors.Wrap(err, "unpack image")
-	}
-	if err := writeVersion(repo.Version(), root); err != nil {
-		return errors.Wrap(err, "write version file")
-	}
-	if len(subvolumes) > 0 {
-		if err := writeFstab(subvolumes, path); err != nil {
-			return errors.Wrap(err, "write fstab file")
-		}
-	}
-	for i, f := range files {
-		if err := f.Write(path); err != nil {
-			return errors.Wrapf(err, "write file %d", i)
-		}
-	}
-	return nil
-}
-
-func NewLunDisk(lun *iscsi.Lun) Disk {
+func NewLunDisk(lun *iscsi.Lun, client *containerd.Client) Disk {
 	return &lunDisk{
-		lun: lun,
+		lun:    lun,
+		client: client,
 	}
 }
 
@@ -177,6 +173,7 @@ type lunDisk struct {
 	path       string
 	root       string
 	subvolumes []btrfs.Subvolume
+	client     *containerd.Client
 }
 
 func (l *lunDisk) Unmount(ctx context.Context) error {
@@ -192,11 +189,44 @@ func (l *lunDisk) Unmount(ctx context.Context) error {
 	return nil
 }
 
-func (l *lunDisk) Write(ctx context.Context, repo image.Repo, store content.Store, files []File) error {
-	if err := write(ctx, repo, l.root, l.path, store, l.subvolumes, files); err != nil {
-		return errors.Wrap(err, "write image to disk")
+func (l *lunDisk) Write(ctx context.Context, repo image.Repo, _ content.Store, files []File) error {
+	img, err := l.fetch(ctx, repo)
+	if err != nil {
+		return errors.Wrap(err, "fetch image")
+	}
+	desc := img.Target()
+	if err := image.Unpack(ctx, l.client.ContentStore(), &desc, l.path); err != nil {
+		return errors.Wrap(err, "unpack image")
+	}
+	if err := writeVersion(repo.Version(), l.root); err != nil {
+		return errors.Wrap(err, "write version file")
+	}
+	if len(l.subvolumes) > 0 {
+		if err := writeFstab(l.subvolumes, l.path); err != nil {
+			return errors.Wrap(err, "write fstab file")
+		}
+	}
+	for i, f := range files {
+		if err := f.Write(l.path); err != nil {
+			return errors.Wrapf(err, "write file %d", i)
+		}
 	}
 	return nil
+}
+
+func (l *lunDisk) fetch(ctx context.Context, repo image.Repo) (containerd.Image, error) {
+	image, err := l.client.GetImage(ctx, string(repo))
+	if err != nil {
+		if !errdefs.IsNotFound(err) {
+			return nil, errors.Wrapf(err, "image get error %s", repo)
+		}
+		i, err := l.client.Fetch(ctx, string(repo))
+		if err != nil {
+			return nil, errors.Wrapf(err, "fetch repo %s", repo)
+		}
+		image = containerd.NewImage(l.client, i)
+	}
+	return image, nil
 }
 
 func (l *lunDisk) Format(ctx context.Context, fstype, label string) error {
