@@ -52,6 +52,7 @@ extras: FORCE
 	vab build -p -c extras/node_exporter -d extras/node_exporter --ref ${REPO}/node_exporter:${VERSION}
 	vab build -p -c extras/buildkit -d extras/buildkit --ref ${REPO}/buildkit:${VERSION}
 	vab build -p -d extras/criu -c extras/criu --ref ${REPO}/criu:${VERSION}
+	vab build -p -d extras/docker -c extras/docker --ref ${REPO}/docker:${VERSION}
 
 kernel: FORCE
 	vab build --arg KERNEL_VERSION=${KERNEL} -c kernel -d kernel --push --ref ${REPO}/kernel:${KERNEL}

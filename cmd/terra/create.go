@@ -74,6 +74,10 @@ var createCommand = cli.Command{
 			Name:  "dry,n",
 			Usage: "dry run without building",
 		},
+		cli.BoolFlag{
+			Name:  "no-cache",
+			Usage: "build with no cache",
+		},
 	},
 	Action: func(clix *cli.Context) error {
 		if clix.Bool("dump") {
@@ -143,6 +147,7 @@ var createCommand = cli.Command{
 			"-c", abs,
 			"--ref", fmt.Sprintf("%s/%s:%s", config.Repo, config.Hostname, config.Version),
 			"--push="+strconv.FormatBool(clix.Bool("push")),
+			"--no-cache="+strconv.FormatBool(clix.Bool("no-cache")),
 		)
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
@@ -186,11 +191,9 @@ FROM {{imageName $v}} as {{cname $v}}
 FROM {{.Base}}
 
 {{range $v := .Imports -}}
-{{if ne $v.Name "kernel"}}
 COPY --from={{cname $v}} / /
 {{range $s := $v.Systemd}}
 RUN systemctl enable {{$s}}
-{{end}}
 {{end}}
 {{end}}
 
@@ -216,7 +219,7 @@ ff02::2         ip6-allrouters`
 func cname(c Component) string {
 	h := md5.New()
 	h.Write([]byte(c.Image))
-	return hex.EncodeToString(h.Sum(nil))
+	return "I" + hex.EncodeToString(h.Sum(nil))
 }
 
 func cmdargs(args []string) string {
