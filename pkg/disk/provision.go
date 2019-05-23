@@ -34,9 +34,9 @@ import (
 	"path/filepath"
 	"syscall"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/containerd/containerd/content"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	v1 "github.com/stellarproject/terraos/api/v1"
 	"github.com/stellarproject/terraos/pkg/btrfs"
 	"github.com/stellarproject/terraos/pkg/fstab"
