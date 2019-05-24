@@ -1,0 +1,80 @@
+syntax = "proto3";
+
+package io.stellarproject.v1;
+
+import weak "gogoproto/gogo.proto";
+import "google/protobuf/empty.proto";
+
+option go_package = "github.com/stellarproject/terraos/api/v1;v1";
+
+service Infrastructure {
+	rpc Provision(ProvisionNodeRequest) returns (ProvisionNodeResponse);
+	rpc List(google.protobuf.Empty) returns (ListNodeResponse);
+	rpc InstallPXE(InstallPXERequest) returns (google.protobuf.Empty);
+	rpc Delete(DeleteNodeRequest) returns (google.protobuf.Empty);
+	rpc Info(google.protobuf.Empty) returns (InfoResponse);
+}
+
+message ProvisionNodeRequest {
+	string hostname = 1;
+	string mac = 2;
+	string image = 3;
+	Filesystem fs = 4;
+}
+
+message ProvisionNodeResponse {
+	Node node = 1;
+}
+
+message ListNodeResponse {
+	repeated Node nodes = 1;
+}
+
+message InstallPXERequest {
+	string image = 1;
+}
+
+message DeleteNodeRequest {
+	string hostname = 1;
+}
+
+message InfoResponse {
+	string pxe_version = 1;
+	string gateway = 2;
+	repeated Target targets = 3;
+}
+
+message Target {
+	string iqn = 1;
+	repeated Lun luns = 2;
+	int64 tid = 3;
+}
+
+message Lun {
+	string iqn = 1;
+	int64 size = 2;
+	int64 lid = 3;
+}
+
+message Node {
+	string hostname = 1;
+	string mac = 2;
+	string initiator_iqn = 3;
+	string target_iqn = 4;
+	Filesystem fs = 5;
+	string image = 6;
+	int64 target_id = 7;
+	int64 lun_id = 8;
+	string lun_path = 9;
+}
+
+message Filesystem {
+	string backing_uri = 1;
+	int64 fs_size = 2;
+	repeated Subvolume subvolumes = 3;
+}
+
+message Subvolume {
+	string name = 1;
+	string path = 2;
+}

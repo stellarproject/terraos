@@ -1,0 +1,11 @@
+[Unit]
+Description=terra controller
+After=containerd.service orbit.service network.target
+
+[Service]
+ExecStart=/usr/local/sbin/terra-controller
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

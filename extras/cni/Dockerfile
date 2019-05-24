@@ -25,8 +25,10 @@
 
 FROM golang:1.12 as cni
 
-RUN go get -d github.com/containernetworking/plugins || true
+ENV COMMIT 54e54eed5d43e60dabad552bbc98a38274709dc8
+RUN git clone https://github.com/crosbymichael/plugins /go/src/github.com/containernetworking/plugins
 WORKDIR /go/src/github.com/containernetworking/plugins
+RUN git checkout $COMMIT
 
 RUN ./build_linux.sh
 

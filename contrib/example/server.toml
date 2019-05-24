@@ -1,9 +1,15 @@
-id = "example"
-version = "2"
-os = "docker.io/stellarproject/terraos:v9"
+hostname = "example"
+version = "5"
+os = "docker.io/stellarproject/terraos:v10"
 repo = "docker.io/stellarproject"
 userland = """
 RUN echo 'terra:terra' | chpasswd
+ADD sshd_config /etc/ssh/
 """
-[fs]
-	type = "btrfs"
+
+[netplan]
+  [[netplan.interfaces]]
+    name = "eth0"
+
+[resolvconf]
+  nameservers = ["8.8.8.8", "8.8.4.4"]

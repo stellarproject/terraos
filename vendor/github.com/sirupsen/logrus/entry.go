@@ -156,22 +156,19 @@ func getPackageName(f string) string {
 
 // getCaller retrieves the name of the first non-logrus calling function
 func getCaller() *runtime.Frame {
-
-	// cache this package's fully-qualified name
-	callerInitOnce.Do(func() {
-		pcs := make([]uintptr, 2)
-		_ = runtime.Callers(0, pcs)
-		logrusPackage = getPackageName(runtime.FuncForPC(pcs[1]).Name())
-
-		// now that we have the cache, we can skip a minimum count of known-logrus functions
-		// XXX this is dubious, the number of frames may vary
-		minimumCallerDepth = knownLogrusFrames
-	})
-
 	// Restrict the lookback frames to avoid runaway lookups
 	pcs := make([]uintptr, maximumCallerDepth)
 	depth := runtime.Callers(minimumCallerDepth, pcs)
 	frames := runtime.CallersFrames(pcs[:depth])
+
+	// cache this package's fully-qualified name
+	callerInitOnce.Do(func() {
+		logrusPackage = getPackageName(runtime.FuncForPC(pcs[0]).Name())
+
+		// now that we have the cache, we can skip a minimum count of known-logrus functions
+		// XXX this is dubious, the number of frames may vary store an entry in a logger interface
+		minimumCallerDepth = knownLogrusFrames
+	})
 
 	for f, again := frames.Next(); again; f, again = frames.Next() {
 		pkg := getPackageName(f.Function)
@@ -301,9 +298,7 @@ func (entry *Entry) Panic(args ...interface{}) {
 // Entry Printf family functions
 
 func (entry *Entry) Logf(level Level, format string, args ...interface{}) {
-	if entry.Logger.IsLevelEnabled(level) {
-		entry.Log(level, fmt.Sprintf(format, args...))
-	}
+	entry.Log(level, fmt.Sprintf(format, args...))
 }
 
 func (entry *Entry) Tracef(format string, args ...interface{}) {

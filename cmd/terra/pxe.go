@@ -28,73 +28,31 @@
 package main
 
 import (
-	"fmt"
-	"os"
-	"strings"
-	"text/template"
+	"github.com/pkg/errors"
+	v1 "github.com/stellarproject/terraos/api/v1"
+	"github.com/stellarproject/terraos/cmd"
+	"github.com/urfave/cli"
+	"google.golang.org/grpc"
 )
 
-type PXE struct {
-	IQN      string `toml:"iqn"`
-	Target   string `toml:"target"`
-	TargetIP string `toml:"target_ip"`
-	Root     string `toml:"root"`
-	IP       string `toml:"ip"`
-	MAC      string `toml:"mac"`
-}
+var pxeCommand = cli.Command{
+	Name:        "pxe",
+	Description: "update the pxe and kernel on the controller",
+	Action: func(clix *cli.Context) error {
+		address := clix.GlobalString("controller") + ":9000"
+		conn, err := grpc.Dial(address, grpc.WithInsecure())
+		if err != nil {
+			return errors.Wrap(err, "dial controller")
+		}
+		defer conn.Close()
+		client := v1.NewInfrastructureClient(conn)
+		ctx := cmd.CancelContext()
 
-type PXEContext struct {
-	Append []string
-}
-
-const pxeTemplate = `DEFAULT terra
-
-LABEL terra
-  KERNEL /vmlinuz
-  INITRD /initrd.img
-  APPEND {{cmdargs .Append}}`
-
-func setupPXE(id, version string, fs FS, pxe *PXE) error {
-	if pxe.IP == "" {
-		pxe.IP = "dhcp"
-	}
-	boot := "terra"
-	if fs.Type == "btrfs" {
-		boot = "btrfs"
-	}
-	args := []string{
-		fmt.Sprintf("boot=%s", boot),
-		fmt.Sprintf("ip=%s", pxe.IP),
-	}
-	if pxe.Root != "" {
-		args = append(args, fmt.Sprintf("root=%s", pxe.Root))
-	}
-	if pxe.IQN != "" {
-		args = append(args, fmt.Sprintf("ISCSI_INITIATOR=%s.%s", pxe.IQN, id))
-	}
-	if pxe.Target != "" {
-		args = append(args,
-			fmt.Sprintf("ISCSI_TARGET_NAME=%s:%s.%s", pxe.IQN, pxe.Target, id),
-			fmt.Sprintf("ISCSI_TARGET_IP=%s", pxe.TargetIP),
-		)
-	}
-	args = append(args, "version="+version)
-	ctx := &PXEContext{
-		Append: args,
-	}
-	t, err := template.New("pxe").Funcs(template.FuncMap{
-		"cname":     cname,
-		"imageName": imageName,
-		"cmdargs":   cmdargs,
-	}).Parse(pxeTemplate)
-	if err != nil {
-		return err
-	}
-	path := fmt.Sprintf("01-%s", strings.Replace(pxe.MAC, ":", "-", -1))
-	f, err := os.OpenFile(path, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0666)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	return t.Execute(f, ctx)
+		if _, err := client.InstallPXE(ctx, &v1.InstallPXERequest{
+			Image: clix.Args().First(),
+		}); err != nil {
+			return errors.Wrap(err, "install pxe image")
+		}
+		return nil
+	},
 }

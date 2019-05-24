@@ -23,42 +23,75 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH
 # THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+PACKAGES=$(shell go list ./... | grep -v /vendor/)
 REVISION=$(shell git rev-parse HEAD)
-VERSION=v9
+VERSION=v10
 GO_LDFLAGS=-s -w -X github.com/stellarproject/terraos/version.Version=$(VERSION) -X github.com/stellarproject/terraos/version.Revision=$(REVISION)
-KERNEL=5.0.12
+KERNEL=5.0.18
+REPO=stellarproject
 
-all: clean local
+release: orbit-release cmd extras os pxe iso
+
+FORCE:
+
+all: iso
+
+iso: clean local
 	@mkdir -p build
-	@cd iso && vab build --local --arg KERNEL_VERSION=${KERNEL} --arg VERSION=${VERSION}
+	@cd iso && vab build --local --arg KERNEL_VERSION=${KERNEL} --arg VERSION=${VERSION} --arg REPO=${REPO}
 	@mv iso/tftp build/tftp
 	@rm -f ./build/terra-${VERSION}.iso
 	@cd ./build && ln -s ./tftp/terra.iso terra-${VERSION}.iso
 
-FORCE:
+pxe: FORCE
+	@vab build -p -c iso -d iso --ref ${REPO}/pxe:${VERSION} --arg KERNEL_VERSION=${KERNEL} --arg VERSION=${VERSION} --arg REPO=${REPO}
 
 extras: FORCE
-	vab build -c extras/cni -d extras/cni --ref stellarproject/cni:${VERSION}
-	vab build -c extras/node_exporter -d extras/node_exporter --ref stellarproject/node_exporter:${VERSION}
-	vab build -c extras/buildkit -d extras/buildkit --ref stellarproject/buildkit:${VERSION}
-	vab build -d extras/criu -c extras/criu --ref stellarproject/criu:${VERSION}
+	vab build -p -c extras/containerd -d extras/containerd --ref ${REPO}/containerd:${VERSION}
+	vab build -p -c extras/cni -d extras/cni --ref ${REPO}/cni:${VERSION}
+	vab build -p -c extras/node_exporter -d extras/node_exporter --ref ${REPO}/node_exporter:${VERSION}
+	vab build -p -c extras/buildkit -d extras/buildkit --ref ${REPO}/buildkit:${VERSION}
+	vab build -p -d extras/criu -c extras/criu --ref ${REPO}/criu:${VERSION}
+	vab build -p -d extras/docker -c extras/docker --ref ${REPO}/docker:${VERSION}
 
 kernel: FORCE
-	vab build --arg KERNEL_VERSION=${KERNEL} -c kernel -d kernel --push --ref docker.io/stellarproject/kernel:${KERNEL}
+	vab build --arg KERNEL_VERSION=${KERNEL} -c kernel -d kernel --push --ref ${REPO}/kernel:${KERNEL}
 
 os: FORCE
-	vab build -c os -d os --push --ref docker.io/stellarproject/terraos:${VERSION} --arg KERNEL_VERSION=${KERNEL} --arg VERSION=${VERSION}
+	vab build -c os -d os --push --ref ${REPO}/terraos:${VERSION} --arg KERNEL_VERSION=${KERNEL} --arg VERSION=${VERSION} --arg REPO=${REPO}
 
-local: FORCE
+local: orbit FORCE
 	@cd cmd/terra && CGO_ENABLED=0 go build -v -ldflags '${GO_LDFLAGS}' -o ../../build/terra
-	@cd cmd/vab && CGO_ENABLED=0 go build -v -ldflags '${GO_LDFLAGS}' -o ../../build/vab
+	@cd cmd/terra-install && CGO_ENABLED=0 go build -v -ldflags '${GO_LDFLAGS}' -o ../../build/terra-install
+	@cd cmd/rdns && CGO_ENABLED=0 go build -v -ldflags '${GO_LDFLAGS}' -o ../../build/rdns
 
 cmd: FORCE
-	vab build --push -d cmd --ref stellarproject/terracmd:${VERSION}
+	vab build --push -d cmd --ref ${REPO}/terracmd:${VERSION}
 
 install:
-	@install build/terra /usr/local/sbin/terra
-	@install build/vab /usr/local/bin/vab
+	@install build/terra* /usr/local/sbin/
+	@install build/ob /usr/local/bin/
+	@install build/orbit-log /usr/local/bin/
+	@install build/orbit-server /usr/local/bin/
+	@install build/orbit-network /usr/local/bin/
 
 clean:
 	@rm -fr build/
+
+protos:
+	protobuild --quiet ${PACKAGES}
+
+orbit-release: FORCE
+	vab build -p --ref docker.io/stellarproject/orbit:v10
+
+orbit-latest: FORCE
+	vab build -p --ref docker.io/stellarproject/orbit:latest
+
+orbit:
+	go build -o build/orbit-server -v -ldflags '${GO_LDFLAGS}' github.com/stellarproject/terraos/cmd/orbit-server
+	go build -o build/ob -v -ldflags '${GO_LDFLAGS}' github.com/stellarproject/terraos/cmd/ob
+	go build -o build/orbit-log -v -ldflags '${GO_LDFLAGS}' github.com/stellarproject/terraos/cmd/orbit-log
+	gcc -static -o build/orbit-network cmd/orbit-network/main.c
+
+example:
+	@cd contrib/example && terra create --push server.toml

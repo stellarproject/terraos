@@ -28,12 +28,10 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"os"
-	"os/signal"
-	"syscall"
 
+	raven "github.com/getsentry/raven-go"
 	"github.com/sirupsen/logrus"
 	"github.com/stellarproject/terraos/version"
 	"github.com/urfave/cli"
@@ -43,7 +41,7 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "terra"
 	app.Version = version.Version
-	app.Usage = "Terra OS management"
+	app.Usage = "Terra OS Management"
 	app.Description = `
                                                      ___
                                                   ,o88888
@@ -67,36 +65,51 @@ func main() {
          .. . ."'
         .
 Terra OS management`
+
 	app.Flags = []cli.Flag{
 		cli.BoolFlag{
 			Name:  "debug",
 			Usage: "enable debug output in the logs",
+		},
+		cli.StringFlag{
+			Name:   "controller",
+			Usage:  "controller address",
+			Value:  "127.0.0.1",
+			EnvVar: "TERRA_CONTROLLER",
+		},
+		cli.StringFlag{
+			Name:   "sentry-dsn",
+			Usage:  "sentry DSN",
+			EnvVar: "SENTRY_DSN",
+		},
+		cli.StringSliceFlag{
+			Name:  "plain-remote",
+			Usage: "http registries",
+			Value: &cli.StringSlice{},
 		},
 	}
 	app.Before = func(clix *cli.Context) error {
 		if clix.GlobalBool("debug") {
 			logrus.SetLevel(logrus.DebugLevel)
 		}
+		if dsn := clix.GlobalString("sentry-dsn"); dsn != "" {
+			raven.SetDSN(dsn)
+			raven.DefaultClient.SetRelease(version.Version)
+		}
 		return nil
 	}
 	app.Commands = []cli.Command{
 		createCommand,
-		installCommand,
-		updateCommand,
+		controllerCommand,
+		deleteCommand,
+		infoCommand,
+		provisionCommand,
+		listCommand,
+		pxeCommand,
 	}
 	if err := app.Run(os.Args); err != nil {
 		fmt.Fprintln(os.Stderr, err)
+		raven.CaptureErrorAndWait(err, nil)
 		os.Exit(1)
 	}
-}
-
-func cancelContext() context.Context {
-	ctx, cancel := context.WithCancel(context.Background())
-	s := make(chan os.Signal)
-	signal.Notify(s, syscall.SIGTERM, syscall.SIGINT)
-	go func() {
-		<-s
-		cancel()
-	}()
-	return ctx
 }

@@ -1,0 +1,18 @@
+id = "terra-vhost"
+image = "docker.io/stellarproject/example:5"
+
+uid = 0
+gid = 0
+privileged = true
+# systemd will try to setup the interface
+masked_paths = ["/etc/netplan"]
+
+[[networks]]
+	type = "macvlan"
+	name = "ob0"
+	[networks.ipam]
+		type = "dhcp"
+
+[resources]
+	cpu = 1.0
+	memory = 128

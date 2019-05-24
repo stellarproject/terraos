@@ -27,15 +27,16 @@
 
 ARG VERSION
 ARG KERNEL_VERSION
+ARG REPO
 
-FROM docker.io/stellarproject/kernel:${KERNEL_VERSION} as kernel
-FROM docker.io/stellarproject/orbit:${VERSION} as orbit
-FROM docker.io/stellarproject/ion:v8 as ion
+FROM ${REPO}/kernel:${KERNEL_VERSION} as kernel
+FROM ${REPO}/orbit:${VERSION} as orbit
+FROM ${REPO}/containerd:${VERSION} as containerd
 
-FROM stellarproject/terracmd:${VERSION} as terra
-FROM stellarproject/node_exporter:${VERSION} as node_exporter
-FROM stellarproject/criu:${VERSION} as criu
-FROM stellarproject/cni:${VERSION} as cni
+FROM ${REPO}/terracmd:${VERSION} as terra
+FROM ${REPO}/node_exporter:${VERSION} as node_exporter
+FROM ${REPO}/criu:${VERSION} as criu
+FROM ${REPO}/cni:${VERSION} as cni
 
 FROM ubuntu:19.04 as debootstrap
 
@@ -61,10 +62,12 @@ RUN apt update && apt upgrade -y && \
 	curl \
 	pigz \
 	git \
+	vim \
 	apparmor \
 	libnl-3-dev \
 	libnet-dev \
 	libprotobuf-dev \
+	iptables \
 	haveged && \
 	rm -rf /var/lib/apt/lists/*
 
@@ -102,10 +105,10 @@ ADD motd/* /etc/update-motd.d/
 COPY --from=terra / /
 COPY --from=node_exporter / /
 COPY --from=cni / /
-COPY --from=ion / /
 COPY --from=orbit / /
+COPY --from=containerd / /
 COPY --from=criu / /
 
-RUN systemctl enable containerd node_exporter ssh
+RUN systemctl enable containerd node_exporter ssh orbit
 
 CMD ["/sbin/init"]

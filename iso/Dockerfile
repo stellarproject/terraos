@@ -27,10 +27,11 @@
 
 ARG KERNEL_VERSION
 ARG VERSION
+ARG REPO
 
 # ------------------ imports ------------------------------ #
-FROM stellarproject/terracmd:$VERSION as terra
-FROM docker.io/stellarproject/kernel:$KERNEL_VERSION as kernel
+FROM $REPO/terracmd:$VERSION as terra
+FROM $REPO/kernel:$KERNEL_VERSION as kernel
 
 # ------------------ live liveos -------------------------- #
 FROM alpine:latest as liveos
@@ -46,9 +47,10 @@ RUN apk update && \
 	dhclient \
 	openssh \
 	ca-certificates \
+	iptables \
 	grub-bios
 
-COPY --from=terra /usr/local/sbin/terra /bin/
+COPY --from=terra / /
 ADD interfaces /etc/network/interfaces
 RUN rm /sbin/init
 ADD resolv.conf /etc/resolv.conf
@@ -119,7 +121,6 @@ ADD squashhook /etc/initramfs-tools/hooks/squash
 RUN chmod +x /etc/initramfs-tools/hooks/squash
 COPY --from=squasher /live.sqsh /live.sq
 ADD terra /etc/initramfs-tools/scripts/terra
-ADD btrfs /etc/initramfs-tools/scripts/btrfs
 ADD modules /etc/initramfs-tools/modules
 RUN touch /etc/iscsi/iscsi.initramfs
 

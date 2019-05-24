@@ -23,7 +23,7 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH
 # THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-FROM ubuntu:19.04 as builder
+FROM ubuntu:18.10 as builder
 ARG KERNEL_VERSION
 
 RUN apt-get update && apt-get install -y \
@@ -44,12 +44,13 @@ RUN apt-get update && apt-get install -y \
 	libmnl-dev \
 	btrfs-progs \
 	btrfs-tools \
+	iptables \
 	make
 
 ENV WIREGUARD_VERSION=0.0.20190406
 ENV WIREGUARD_URL=https://git.zx2c4.com/WireGuard/snapshot/WireGuard-${WIREGUARD_VERSION}.tar.xz
 
-ADD https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-${KERNEL_VERSION}.tar.xz linux.tar.xz
+RUN curl -SsL -o linux.tar.xz https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-${KERNEL_VERSION}.tar.xz
 
 RUN mkdir /linux && \
 	tar --strip-components=1 -xpf linux.tar.xz -C /linux
@@ -75,14 +76,11 @@ WORKDIR /linux
 
 RUN /wireguard/contrib/kernel-tree/create-patch.sh | patch -p1
 
-RUN make -j "$(getconf _NPROCESSORS_ONLN)" KDEB_PKGVERSION=$PKGVERSION INSTALL_MOD_STRIP=1 deb-pkg
-
-RUN dpkg -i \
-	/linux-headers-$KERNEL_VERSION-terra_$KERNEL_VERSION-terra-1_amd64.deb \
-	/linux-libc-dev_$KERNEL_VERSION-terra-1_amd64.deb \
-	/linux-image-$KERNEL_VERSION-terra_$KERNEL_VERSION-terra-1_amd64.deb
+RUN make olddefconfig
+RUN make -j "$(getconf _NPROCESSORS_ONLN)" KDEB_PKGVERSION=$PKGVERSION INSTALL_MOD_STRIP=1 bindeb-pkg
 
 FROM scratch
 
 COPY --from=builder /*.deb /
 COPY --from=builder /wireguard/src/tools/wg /wg
+COPY --from=builder /wireguard/src/tools/wg-quick /wg-quick

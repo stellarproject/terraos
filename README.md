@@ -4,6 +4,8 @@
 
 Modern, minimal operating system (we've heard that before) optimized for containers within the Stellar Project.
 
+This repo is a mono repo for most, if not all terra/stellar projects.
+
 
 ## Build your own OS
 
