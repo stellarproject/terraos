@@ -47,6 +47,7 @@ RUN apk update && \
 	dhclient \
 	openssh \
 	ca-certificates \
+	iptables \
 	grub-bios
 
 COPY --from=terra / /

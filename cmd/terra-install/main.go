@@ -84,7 +84,7 @@ Terra OS management`
 		cli.StringFlag{
 			Name:  "fs-type",
 			Usage: "set the filesystem type",
-			Value: "ext4",
+			Value: "btrfs",
 		},
 		cli.StringSliceFlag{
 			Name:  "subvolumes,s",
