@@ -27,7 +27,7 @@ PACKAGES=$(shell go list ./... | grep -v /vendor/)
 REVISION=$(shell git rev-parse HEAD)
 VERSION=v10
 GO_LDFLAGS=-s -w -X github.com/stellarproject/terraos/version.Version=$(VERSION) -X github.com/stellarproject/terraos/version.Revision=$(REVISION)
-KERNEL=5.1.4
+KERNEL=5.0.18
 REPO=stellarproject
 
 release: orbit-release cmd extras os pxe iso
