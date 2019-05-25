@@ -26,25 +26,22 @@
 # THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 ARG KERNEL_VERSION
-ARG VERSION
 ARG REPO
 
 # ------------------ imports ------------------------------ #
-FROM $REPO/terracmd:$VERSION as terra
 FROM $REPO/kernel:$KERNEL_VERSION as kernel
-FROM $REPO/live:$VERSION as live
 
-# ------------------ iso build --------------------------- #
-FROM ubuntu:18.10 as iso
+# ------------------ pxe build --------------------------- #
+
+FROM ubuntu:18.10 as pxe
+
 ARG KERNEL_VERSION
 
 RUN apt-get update && apt-get install -y \
 	syslinux \
-	mkisofs \
 	curl \
 	ca-certificates \
 	xz-utils \
-	xorriso \
 	syslinux-utils \
 	open-iscsi \
 	isc-dhcp-common \
@@ -59,63 +56,46 @@ RUN --mount=type=bind,from=kernel,target=/tmp dpkg -i \
 RUN curl -sSL https://mirrors.edge.kernel.org/pub/linux/utils/boot/syslinux/syslinux-6.03.tar.xz -o /tmp/syslinux.tar.xz && \
 	tar xf /tmp/syslinux.tar.xz -C /
 
-RUN mkdir -p /boot/syslinux
+RUN mkdir -p /boot/syslinux /tftp /tftp/pxelinux.cfg
 
-RUN cp /syslinux-6.03/bios/core/isolinux.bin /boot/syslinux && \
-	cp /syslinux-6.03/bios/mbr/mbr.bin /boot/syslinux && \
-	cp /syslinux-6.03/bios/com32/elflink/ldlinux/ldlinux.c32 /boot/syslinux && \
-	cp /syslinux-6.03/bios/com32/menu/vesamenu.c32 /boot/syslinux/ && \
-	cp /syslinux-6.03/bios/com32/menu/menu.c32 /boot/syslinux/ && \
-	cp /syslinux-6.03/bios/com32/chain/chain.c32 /boot/syslinux/ && \
-	cp /syslinux-6.03/bios/com32/libutil/libutil.c32 /boot/syslinux/ && \
-	cp /syslinux-6.03/bios/com32/lib/libcom32.c32 /boot/syslinux/ && \
-	cp /syslinux-6.03/bios/com32/modules/sanboot.c32 /boot/syslinux/
+WORKDIR /syslinux-6.03
 
-ADD live /etc/initramfs-tools/scripts/live
-ADD squashhook /etc/initramfs-tools/hooks/squash
-RUN chmod +x /etc/initramfs-tools/hooks/squash
-COPY --from=live /live.sqsh /live.sq
+RUN cp -r bios/core/isolinux.bin \
+	bios/mbr/mbr.bin \
+	bios/com32/elflink/ldlinux/ldlinux.c32 \
+	bios/com32/menu/vesamenu.c32  \
+	bios/com32/menu/menu.c32 \
+	bios/com32/chain/chain.c32 \
+	bios/com32/libutil/libutil.c32 \
+	bios/com32/lib/libcom32.c32 \
+	bios/com32/modules/sanboot.c32 /boot/syslinux/
+
+RUN cp -r bios/core/pxelinux.0 \
+	bios/com32/cmenu/libmenu/libmenu.c32 \
+	bios/com32/menu/menu.c32 \
+	bios/com32/modules/sanboot.c32 \
+	bios/memdisk/memdisk \
+	bios/com32/elflink/ldlinux/ldlinux.c32 \
+	bios/com32/libutil/libutil.c32 /tftp/
+
+WORKDIR /
+
 ADD terra /etc/initramfs-tools/scripts/terra
+ADD default /tftp/pxelinux.cfg/default
 ADD modules /etc/initramfs-tools/modules
+
 RUN touch /etc/iscsi/iscsi.initramfs
 
 RUN update-initramfs -u
 
-RUN mv /boot/vmlinuz-$KERNEL_VERSION-terra /boot/vmlinuz
-RUN mv /boot/initrd.img-$KERNEL_VERSION-terra /boot/initrd.img
+RUN mv /boot/vmlinuz-$KERNEL_VERSION-terra /boot/vmlinuz && \
+	mv /boot/initrd.img-$KERNEL_VERSION-terra /boot/initrd.img
+RUN cp /boot/vmlinuz /boot/initrd.img /tftp/
 
-ADD syslinux.cfg /boot/syslinux/syslinux.cfg
-ADD splash.png /boot/syslinux/splash.png
+# ------------------------ output -----------------------------
 
-RUN mkisofs -o /terra.iso \
-   -b syslinux/isolinux.bin -c syslinux/boot.cat \
-   -no-emul-boot -boot-load-size 4 -boot-info-table \
-   /boot
-
-RUN isohybrid /terra.iso
-
-# ------------------ pxe ------------------------------ #
-FROM alpine:latest as pxe
-
-RUN apk add -U syslinux
-
-RUN mkdir /tftp && \
-	cp /usr/share/syslinux/pxelinux.0 /tftp/ && \
-	cp -r /usr/share/syslinux/libmenu.c32 \
-		/usr/share/syslinux/menu.c32 \
-		/usr/share/syslinux/sanboot.c32 \
-		/usr/share/syslinux/memdisk \
-		/usr/share/syslinux/ldlinux.c32 \
-		/usr/share/syslinux/libutil.c32 /tftp/ && \
-	mkdir /tftp/pxelinux.cfg
-
-ADD default /tftp/pxelinux.cfg/default
-
-# ------------------ build results --------------------- #
 FROM scratch
 
+COPY --from=pxe /boot /boot
 COPY --from=pxe /tftp /tftp
-COPY --from=iso /terra.iso /tftp/
-COPY --from=iso /boot/vmlinuz /tftp/
-COPY --from=iso /boot/initrd.img /tftp/
-# ------------------ build results --------------------- #
+COPY --from=pxe /lib/modules /lib/

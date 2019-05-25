@@ -35,9 +35,28 @@ ARGS=--arg KERNEL_VERSION=${KERNEL} --arg VERSION=${VERSION} --arg REPO=${REPO} 
 
 release: orbit-release cmd defaults os pxe iso
 
+all: local
+
+
+clean:
+	@rm -fr build/
+
 FORCE:
 
-all: local
+# -------------------- local -------------------------
+local: orbit
+	@cd cmd/terra && CGO_ENABLED=0 go build -v -ldflags '${GO_LDFLAGS}' -o ../../build/terra
+	@cd cmd/terra-install && CGO_ENABLED=0 go build -v -ldflags '${GO_LDFLAGS}' -o ../../build/terra-install
+	@cd cmd/rdns && CGO_ENABLED=0 go build -v -ldflags '${GO_LDFLAGS}' -o ../../build/rdns
+
+install:
+	@install build/terra* /usr/local/sbin/
+	@install build/ob /usr/local/bin/
+	@install build/orbit-log /usr/local/bin/
+	@install build/orbit-server /usr/local/bin/
+	@install build/orbit-network /usr/local/bin/
+
+# -------------------- iso -------------------------
 
 iso: clean local live
 	@mkdir -p build
@@ -49,10 +68,17 @@ iso: clean local live
 live: FORCE
 	@vab build -p -c live -d live --ref ${REPO}/live:${VERSION} ${ARGS}
 
-pxe: live FORCE
-	@vab build -p -c iso -d iso --ref ${REPO}/pxe:${VERSION}  ${ARGS}
+# -------------------- stage0 -------------------------
+stage0: kernel pxe
 
+kernel: FORCE
+	vab build -c stage0/kernel -d stage0/kernel --push --ref ${REPO}/kernel:${KERNEL} ${ARGS}
 
+pxe: FORCE
+	@vab --push build -c stage0/pxe -d stage0/pxe --ref ${REPO}/pxe:${VERSION}  ${ARGS}
+
+# -------------------- userland -------------------------
+#
 defaults: wireguard FORCE
 	vab build -p -c defaults/containerd -d defaults/containerd --ref ${REPO}/containerd:${VERSION} ${ARGS}
 	vab build -p -c defaults/node_exporter -d defaults/node_exporter --ref ${REPO}/node_exporter:${VERSION} ${ARGS}
@@ -66,29 +92,11 @@ extras: FORCE
 	vab build -p -c extras/buildkit -d extras/buildkit --ref ${REPO}/buildkit:${VERSION} ${ARGS}
 	vab build -p -d extras/docker -c extras/docker --ref ${REPO}/docker:${VERSION} ${ARGS}
 
-kernel: FORCE
-	vab build -c kernel -d kernel --push --ref ${REPO}/kernel:${KERNEL} ${ARGS}
-
 os: FORCE
 	vab build -c os -d os --push --ref ${REPO}/terraos:${VERSION} ${ARGS}
 
-local: orbit FORCE
-	@cd cmd/terra && CGO_ENABLED=0 go build -v -ldflags '${GO_LDFLAGS}' -o ../../build/terra
-	@cd cmd/terra-install && CGO_ENABLED=0 go build -v -ldflags '${GO_LDFLAGS}' -o ../../build/terra-install
-	@cd cmd/rdns && CGO_ENABLED=0 go build -v -ldflags '${GO_LDFLAGS}' -o ../../build/rdns
-
 cmd: FORCE
 	vab build --push -d cmd --ref ${REPO}/terracmd:${VERSION} ${ARGS}
-
-install:
-	@install build/terra* /usr/local/sbin/
-	@install build/ob /usr/local/bin/
-	@install build/orbit-log /usr/local/bin/
-	@install build/orbit-server /usr/local/bin/
-	@install build/orbit-network /usr/local/bin/
-
-clean:
-	@rm -fr build/
 
 # ----------------------- ORBIT --------------------------------
 protos:
