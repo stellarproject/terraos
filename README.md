@@ -4,7 +4,9 @@
 
 Modern, minimal operating system (we've heard that before) optimized for containers within the Stellar Project.
 
-This repo is a mono repo for most, if not all terra/stellar projects.
+Terra is an OS not a distro, we use the best distrobution for the job, and that's an Ubuntu base.
+
+This repo is a mono repo for most, if not all terra && stellar projects.
 
 
 ## Build your own OS
