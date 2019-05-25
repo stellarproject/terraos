@@ -33,10 +33,9 @@ WIREGUARD=0.0.20190406
 
 ARGS=--arg KERNEL_VERSION=${KERNEL} --arg VERSION=${VERSION} --arg REPO=${REPO} --arg WIREGUARD=${WIREGUARD}
 
-release: orbit-release cmd defaults os pxe iso
+release: stage0 userland iso
 
 all: local
-
 
 clean:
 	@rm -fr build/
@@ -78,8 +77,10 @@ pxe: FORCE
 	@vab --push build -c stage0/pxe -d stage0/pxe --ref ${REPO}/pxe:${VERSION}  ${ARGS}
 
 # -------------------- userland -------------------------
-#
-defaults: wireguard FORCE
+
+userland: defaults binaries os
+
+defaults: wireguard orbit-release FORCE
 	vab build -p -c defaults/containerd -d defaults/containerd --ref ${REPO}/containerd:${VERSION} ${ARGS}
 	vab build -p -c defaults/node_exporter -d defaults/node_exporter --ref ${REPO}/node_exporter:${VERSION} ${ARGS}
 	vab build -p -c defaults/cni -d defaults/cni --ref ${REPO}/cni:${VERSION} ${ARGS}
@@ -95,7 +96,7 @@ extras: FORCE
 os: FORCE
 	vab build -c os -d os --push --ref ${REPO}/terraos:${VERSION} ${ARGS}
 
-cmd: FORCE
+binaries: FORCE
 	vab build --push -d cmd --ref ${REPO}/terracmd:${VERSION} ${ARGS}
 
 # ----------------------- ORBIT --------------------------------
@@ -104,9 +105,6 @@ protos:
 
 orbit-release: FORCE
 	vab build -p --ref docker.io/stellarproject/orbit:v10
-
-orbit-latest: FORCE
-	vab build -p --ref docker.io/stellarproject/orbit:latest
 
 orbit:
 	go build -o build/orbit-server -v -ldflags '${GO_LDFLAGS}' github.com/stellarproject/terraos/cmd/orbit-server
