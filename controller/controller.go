@@ -379,7 +379,7 @@ func (c *Controller) createISCSI(ctx context.Context, node *v1.Node, uri *url.UR
 	log := logrus.WithField("node", node.Hostname)
 	iqn := iscsi.NewIQN(2024, "san.crosbymichael.com", node.Hostname, 0)
 	log.Infof("created new iqn %s", iqn)
-	lun, err := iscsi.NewLun(ctx, filepath.Join(ISCSIPath, fmt.Sprintf("%s.lun", node.Hostname)), node.Fs.FsSize)
+	lun, err := iscsi.NewLun(ctx, filepath.Join(ISCSIPath, fmt.Sprintf("%s.lun", node.Hostname)), node.Fs.FsSize, false)
 	if err != nil {
 		return "", errors.Wrap(err, "create lun")
 	}

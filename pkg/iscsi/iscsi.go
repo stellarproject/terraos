@@ -153,12 +153,17 @@ func (t *Target) Delete(ctx context.Context, lun *Lun) error {
 }
 
 // NewLun allocates a new lun with the specified size in MB
-func NewLun(ctx context.Context, path string, size int64) (*Lun, error) {
-	out, err := tgtimg(ctx,
+func NewLun(ctx context.Context, path string, size int64, thin bool) (*Lun, error) {
+	args := []string{
 		"--op", "new",
 		"--device-type", "disk",
 		"--size", strconv.Itoa(int(size)),
-		"--file", path)
+		"--file", path,
+	}
+	if thin {
+		args = append(args, "--thin-provisioning")
+	}
+	out, err := tgtimg(ctx, args...)
 	if err != nil {
 		return nil, errors.Wrapf(err, "%s", out)
 	}
