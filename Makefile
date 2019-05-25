@@ -30,7 +30,7 @@ GO_LDFLAGS=-s -w -X github.com/stellarproject/terraos/version.Version=$(VERSION)
 KERNEL=5.0.18
 REPO=stellarproject
 
-release: orbit-release cmd extras os pxe iso
+release: orbit-release cmd defaults os pxe iso
 
 FORCE:
 
@@ -46,12 +46,15 @@ iso: clean local
 pxe: FORCE
 	@vab build -p -c iso -d iso --ref ${REPO}/pxe:${VERSION} --arg KERNEL_VERSION=${KERNEL} --arg VERSION=${VERSION} --arg REPO=${REPO}
 
+
+defaults: FORCE
+	vab build -p -c defaults/containerd -d defaults/containerd --ref ${REPO}/containerd:${VERSION}
+	vab build -p -c defaults/node_exporter -d defaults/node_exporter --ref ${REPO}/node_exporter:${VERSION}
+	vab build -p -c defaults/cni -d defaults/cni --ref ${REPO}/cni:${VERSION}
+	vab build -p -d defaults/criu -c defaults/criu --ref ${REPO}/criu:${VERSION}
+
 extras: FORCE
-	vab build -p -c extras/containerd -d extras/containerd --ref ${REPO}/containerd:${VERSION}
-	vab build -p -c extras/cni -d extras/cni --ref ${REPO}/cni:${VERSION}
-	vab build -p -c extras/node_exporter -d extras/node_exporter --ref ${REPO}/node_exporter:${VERSION}
 	vab build -p -c extras/buildkit -d extras/buildkit --ref ${REPO}/buildkit:${VERSION}
-	vab build -p -d extras/criu -c extras/criu --ref ${REPO}/criu:${VERSION}
 	vab build -p -d extras/docker -c extras/docker --ref ${REPO}/docker:${VERSION}
 
 kernel: FORCE
