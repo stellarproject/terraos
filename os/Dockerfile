@@ -37,6 +37,7 @@ FROM ${REPO}/terracmd:${VERSION} as terra
 FROM ${REPO}/node_exporter:${VERSION} as node_exporter
 FROM ${REPO}/criu:${VERSION} as criu
 FROM ${REPO}/cni:${VERSION} as cni
+FROM ${REPO}/wireguard:${VERSION} as wireguard
 
 FROM ubuntu:19.04 as debootstrap
 
@@ -74,10 +75,7 @@ RUN apt update && apt upgrade -y && \
 RUN --mount=type=bind,from=kernel,target=/tmp dpkg -i \
         /tmp/linux-headers-${KERNEL_VERSION}-terra_${KERNEL_VERSION}-terra-1_amd64.deb \
         /tmp/linux-image-${KERNEL_VERSION}-terra_${KERNEL_VERSION}-terra-1_amd64.deb \
-        /tmp/linux-libc-dev_${KERNEL_VERSION}-terra-1_amd64.deb && \
-        cp /tmp/wg /usr/local/bin/
-
-ADD 01-netcfg.yaml  /etc/netplan
+        /tmp/linux-libc-dev_${KERNEL_VERSION}-terra-1_amd64.deb
 
 RUN rm /etc/fstab
 
@@ -108,6 +106,7 @@ COPY --from=cni / /
 COPY --from=orbit / /
 COPY --from=containerd / /
 COPY --from=criu / /
+COPY --from=wireguard / /
 
 RUN systemctl enable containerd node_exporter ssh orbit
 

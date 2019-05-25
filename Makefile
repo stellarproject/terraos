@@ -29,6 +29,7 @@ VERSION=v11
 GO_LDFLAGS=-s -w -X github.com/stellarproject/terraos/version.Version=$(VERSION) -X github.com/stellarproject/terraos/version.Revision=$(REVISION)
 KERNEL=5.0.18
 REPO=stellarproject
+WIREGUARD=0.0.20190406
 
 release: orbit-release cmd defaults os pxe iso
 
@@ -47,18 +48,21 @@ pxe: FORCE
 	@vab build -p -c iso -d iso --ref ${REPO}/pxe:${VERSION} --arg KERNEL_VERSION=${KERNEL} --arg VERSION=${VERSION} --arg REPO=${REPO}
 
 
-defaults: FORCE
+defaults: wireguard FORCE
 	vab build -p -c defaults/containerd -d defaults/containerd --ref ${REPO}/containerd:${VERSION}
 	vab build -p -c defaults/node_exporter -d defaults/node_exporter --ref ${REPO}/node_exporter:${VERSION}
 	vab build -p -c defaults/cni -d defaults/cni --ref ${REPO}/cni:${VERSION}
 	vab build -p -d defaults/criu -c defaults/criu --ref ${REPO}/criu:${VERSION}
+
+wireguard:
+	vab build -p -d defaults/wireguard -c defaults/wireguard --ref ${REPO}/wireguard:${VERSION} --arg WIREGUARD=${WIREGUARD}
 
 extras: FORCE
 	vab build -p -c extras/buildkit -d extras/buildkit --ref ${REPO}/buildkit:${VERSION}
 	vab build -p -d extras/docker -c extras/docker --ref ${REPO}/docker:${VERSION}
 
 kernel: FORCE
-	vab build --arg KERNEL_VERSION=${KERNEL} -c kernel -d kernel --push --ref ${REPO}/kernel:${KERNEL}
+	vab build --arg KERNEL_VERSION=${KERNEL} -c kernel -d kernel --push --ref ${REPO}/kernel:${KERNEL} --arg WIREGUARD=${WIREGUARD}
 
 os: FORCE
 	vab build -c os -d os --push --ref ${REPO}/terraos:${VERSION} --arg KERNEL_VERSION=${KERNEL} --arg VERSION=${VERSION} --arg REPO=${REPO}
