@@ -78,7 +78,7 @@ pxe: FORCE
 
 # -------------------- userland -------------------------
 
-userland: defaults binaries os
+userland: defaults binaries terraos
 
 defaults: wireguard orbit-release FORCE
 	vab build -p -c userland/defaults/containerd -d userland/defaults/containerd --ref ${REPO}/containerd:${VERSION} ${ARGS}
@@ -93,8 +93,8 @@ extras: FORCE
 	vab build -p -c userland/extras/buildkit -d userland/extras/buildkit --ref ${REPO}/buildkit:${VERSION} ${ARGS}
 	vab build -p -d userland/extras/docker -c userland/extras/docker --ref ${REPO}/docker:${VERSION} ${ARGS}
 
-os: FORCE
-	vab build -c userland/os -d userland/os --push --ref ${REPO}/terraos:${VERSION} ${ARGS}
+terraos: FORCE
+	vab build -c userland/terraos -d userland/terraos --push --ref ${REPO}/terraos:${VERSION} ${ARGS}
 
 binaries: FORCE
 	vab build --push -d cmd --ref ${REPO}/terracmd:${VERSION} ${ARGS}
