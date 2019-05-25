@@ -57,12 +57,10 @@ install:
 
 # -------------------- iso -------------------------
 
-iso: clean local live
+iso: clean
 	@mkdir -p build
 	@cd iso && vab build --local ${ARGS}
-	@mv iso/tftp build/tftp
-	@rm -f ./build/terra-${VERSION}.iso
-	@cd ./build && ln -s ./tftp/terra.iso terra-${VERSION}.iso
+	@mv iso/terra.iso build/
 
 live: FORCE
 	@vab build --push -c userland/live -d userland/live --ref ${REPO}/live:${VERSION} ${ARGS}
@@ -74,7 +72,7 @@ kernel: FORCE
 	vab build -c stage0/kernel -d stage0/kernel --push --ref ${REPO}/kernel:${KERNEL} ${ARGS}
 
 pxe: FORCE
-	@vab --push build -c stage0/pxe -d stage0/pxe --ref ${REPO}/pxe:${VERSION}  ${ARGS}
+	@vab build --push -c stage0/pxe -d stage0/pxe --ref ${REPO}/pxe:${VERSION}  ${ARGS}
 
 # -------------------- userland -------------------------
 
@@ -104,7 +102,7 @@ protos:
 	protobuild --quiet ${PACKAGES}
 
 orbit-release: FORCE
-	vab build -p --ref docker.io/stellarproject/orbit:v10
+	vab build --push --ref ${REPO}/orbit:${VERSION}
 
 orbit:
 	go build -o build/orbit-server -v -ldflags '${GO_LDFLAGS}' github.com/stellarproject/terraos/cmd/orbit-server

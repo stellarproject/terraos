@@ -25,11 +25,10 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH
 # THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-ARG KERNEL_VERSION
 ARG VERSION
 ARG REPO
 
-FROM $REPO/kernel:$KERNEL_VERSION as kernel
+FROM $REPO/pxe:$VERSION as pxe
 FROM $REPO/terracmd:$VERSION as terra
 
 FROM alpine:latest as liveos
@@ -61,18 +60,15 @@ RUN ssh-keygen -f /etc/ssh/ssh_host_rsa_key -N '' -t rsa && \
 	echo "PermitRootLogin yes" >> /etc/ssh/sshd_config
 RUN echo 'root:root' | chpasswd
 
+RUN --mount=type=bind,from=pxe,target=/tmp cp -r /tmp/lib/ /lib/
+
 # ------------------ squasher ---------------------------- #
 FROM ubuntu:18.10
-ARG KERNEL_VERSION
 
 RUN apt update && \
 	apt install -y squashfs-tools
 
-RUN --mount=type=bind,from=kernel,target=/tmp dpkg -i \
-	/tmp/linux-headers-$KERNEL_VERSION-terra_$KERNEL_VERSION-terra-1_amd64.deb \
-	/tmp/linux-image-$KERNEL_VERSION-terra_$KERNEL_VERSION-terra-1_amd64.deb
-
 COPY --from=liveos / /rootfs
+
 RUN mkdir -p /rootfs/proc /rootfs/sys /rootfs/run && \
-	cp -R /lib/modules /rootfs/lib/ && \
 	mksquashfs /rootfs live.sqsh

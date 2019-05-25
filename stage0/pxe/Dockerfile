@@ -98,4 +98,4 @@ FROM scratch
 
 COPY --from=pxe /boot /boot
 COPY --from=pxe /tftp /tftp
-COPY --from=pxe /lib/modules /lib/
+COPY --from=pxe /lib/modules/ /lib/modules/
