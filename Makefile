@@ -37,7 +37,7 @@ release: orbit-release cmd defaults os pxe iso
 
 FORCE:
 
-all: iso
+all: local
 
 iso: clean local live
 	@mkdir -p build
