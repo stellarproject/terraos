@@ -65,7 +65,7 @@ iso: clean local live
 	@cd ./build && ln -s ./tftp/terra.iso terra-${VERSION}.iso
 
 live: FORCE
-	@vab build -p -c live -d live --ref ${REPO}/live:${VERSION} ${ARGS}
+	@vab build --push -c userland/live -d userland/live --ref ${REPO}/live:${VERSION} ${ARGS}
 
 # -------------------- stage0 -------------------------
 stage0: kernel pxe
@@ -81,20 +81,20 @@ pxe: FORCE
 userland: defaults binaries os
 
 defaults: wireguard orbit-release FORCE
-	vab build -p -c defaults/containerd -d defaults/containerd --ref ${REPO}/containerd:${VERSION} ${ARGS}
-	vab build -p -c defaults/node_exporter -d defaults/node_exporter --ref ${REPO}/node_exporter:${VERSION} ${ARGS}
-	vab build -p -c defaults/cni -d defaults/cni --ref ${REPO}/cni:${VERSION} ${ARGS}
-	vab build -p -d defaults/criu -c defaults/criu --ref ${REPO}/criu:${VERSION} ${ARGS}
+	vab build -p -c userland/defaults/containerd -d userland/defaults/containerd --ref ${REPO}/containerd:${VERSION} ${ARGS}
+	vab build -p -c userland/defaults/node_exporter -d userland/defaults/node_exporter --ref ${REPO}/node_exporter:${VERSION} ${ARGS}
+	vab build -p -c userland/defaults/cni -d userland/defaults/cni --ref ${REPO}/cni:${VERSION} ${ARGS}
+	vab build -p -d userland/defaults/criu -c userland/defaults/criu --ref ${REPO}/criu:${VERSION} ${ARGS}
 
 wireguard:
-	vab build -p -d defaults/wireguard -c defaults/wireguard --ref ${REPO}/wireguard:${VERSION} ${ARGS}
+	vab build -p -d userland/defaults/wireguard -c userland/defaults/wireguard --ref ${REPO}/wireguard:${VERSION} ${ARGS}
 
 extras: FORCE
-	vab build -p -c extras/buildkit -d extras/buildkit --ref ${REPO}/buildkit:${VERSION} ${ARGS}
-	vab build -p -d extras/docker -c extras/docker --ref ${REPO}/docker:${VERSION} ${ARGS}
+	vab build -p -c userland/extras/buildkit -d userland/extras/buildkit --ref ${REPO}/buildkit:${VERSION} ${ARGS}
+	vab build -p -d userland/extras/docker -c userland/extras/docker --ref ${REPO}/docker:${VERSION} ${ARGS}
 
 os: FORCE
-	vab build -c os -d os --push --ref ${REPO}/terraos:${VERSION} ${ARGS}
+	vab build -c userland/os -d userland/os --push --ref ${REPO}/terraos:${VERSION} ${ARGS}
 
 binaries: FORCE
 	vab build --push -d cmd --ref ${REPO}/terracmd:${VERSION} ${ARGS}
