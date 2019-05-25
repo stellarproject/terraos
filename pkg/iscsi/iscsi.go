@@ -65,6 +65,10 @@ func iscsi(ctx context.Context, args ...string) ([]byte, error) {
 	return cmd.CombinedOutput()
 }
 
+func tgtimg(ctx context.Context, args ...string) ([]byte, error) {
+	return exec.CommandContext(ctx, "tgtimg", args...).CombinedOutput()
+}
+
 func NewTarget(ctx context.Context, iqn IQN, tid int) (*Target, error) {
 	if out, err := iscsi(ctx,
 		"--op", "new",
@@ -150,12 +154,11 @@ func (t *Target) Delete(ctx context.Context, lun *Lun) error {
 
 // NewLun allocates a new lun with the specified size in MB
 func NewLun(ctx context.Context, path string, size int64) (*Lun, error) {
-	out, err := exec.CommandContext(ctx, "dd",
-		"if=/dev/zero",
-		"of="+path,
-		"bs=1M",
-		fmt.Sprintf("count=%d", size),
-	).CombinedOutput()
+	out, err := tgtimg(ctx,
+		"--op", "new",
+		"--device-type", "disk",
+		"--size", strconv.Itoa(int(size)),
+		"--file", path)
 	if err != nil {
 		return nil, errors.Wrapf(err, "%s", out)
 	}
