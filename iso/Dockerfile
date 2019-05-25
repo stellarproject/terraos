@@ -32,53 +32,9 @@ ARG REPO
 # ------------------ imports ------------------------------ #
 FROM $REPO/terracmd:$VERSION as terra
 FROM $REPO/kernel:$KERNEL_VERSION as kernel
+FROM $REPO/live:$VERSION as live
 
 # ------------------ live liveos -------------------------- #
-FROM alpine:latest as liveos
-
-RUN mkdir -p /boot /sd
-
-RUN apk update && \
-	apk add \
-	e2fsprogs \
-	xfsprogs \
-	btrfs-progs \
-	grub \
-	dhclient \
-	openssh \
-	ca-certificates \
-	iptables \
-	grub-bios
-
-COPY --from=terra / /
-ADD interfaces /etc/network/interfaces
-RUN rm /sbin/init
-ADD resolv.conf /etc/resolv.conf
-ADD init /sbin/init
-RUN chmod +x /sbin/init && \
-	touch /etc/default/grub
-
-RUN ssh-keygen -f /etc/ssh/ssh_host_rsa_key -N '' -t rsa && \
-	ssh-keygen -f /etc/ssh/ssh_host_dsa_key -N '' -t dsa && \
-	echo "PermitRootLogin yes" >> /etc/ssh/sshd_config
-RUN echo 'root:root' | chpasswd
-
-# ------------------ squasher ---------------------------- #
-FROM ubuntu:18.10 as squasher
-ARG KERNEL_VERSION
-
-RUN apt update && \
-	apt install -y squashfs-tools
-
-RUN --mount=type=bind,from=kernel,target=/tmp dpkg -i \
-	/tmp/linux-headers-$KERNEL_VERSION-terra_$KERNEL_VERSION-terra-1_amd64.deb \
-	/tmp/linux-image-$KERNEL_VERSION-terra_$KERNEL_VERSION-terra-1_amd64.deb
-
-COPY --from=liveos / /rootfs
-RUN mkdir -p /rootfs/proc /rootfs/sys /rootfs/run && \
-	cp -R /lib/modules /rootfs/lib/ && \
-	mksquashfs /rootfs live.sqsh
-
 # ------------------ iso build --------------------------- #
 FROM ubuntu:18.10 as iso
 ARG KERNEL_VERSION
@@ -119,7 +75,7 @@ RUN cp /syslinux-6.03/bios/core/isolinux.bin /boot/syslinux && \
 ADD live /etc/initramfs-tools/scripts/live
 ADD squashhook /etc/initramfs-tools/hooks/squash
 RUN chmod +x /etc/initramfs-tools/hooks/squash
-COPY --from=squasher /live.sqsh /live.sq
+COPY --from=live /live.sqsh /live.sq
 ADD terra /etc/initramfs-tools/scripts/terra
 ADD modules /etc/initramfs-tools/modules
 RUN touch /etc/iscsi/iscsi.initramfs
