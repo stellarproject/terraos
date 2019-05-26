@@ -8,6 +8,25 @@ Terra is an OS not a distro, we use the best distrobution for the job, and that'
 
 This repo is a mono repo for most, if not all terra && stellar projects.
 
+## Status
+
+**Project Status:** alpha
+
+* alpha - APIs will change, not ready services.
+* beta - APIs may change, can run services.
+* production - APIs stable, can run services.
+
+### Component Status
+
+* `terra`: alpha
+* `terra controller`: alpha
+* `terra-install`: alpha
+* `stage0`: alpha
+* `userland`: alpha
+* `iso`: alpha
+* `live`: beta
+* `orbit`: alpha
+* `vab`: beta
 
 ## Build your own OS
 
