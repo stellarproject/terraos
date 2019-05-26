@@ -43,7 +43,8 @@ import (
 	"github.com/gomodule/redigo/redis"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	v1 "github.com/stellarproject/terraos/api/v1/services"
+	api "github.com/stellarproject/terraos/api/v1/services"
+	v1 "github.com/stellarproject/terraos/api/v1/types"
 	"github.com/stellarproject/terraos/config"
 	"github.com/stellarproject/terraos/pkg/btrfs"
 	"github.com/stellarproject/terraos/pkg/disk"
@@ -148,7 +149,7 @@ func (c *Controller) Close() error {
 	return err
 }
 
-func (c *Controller) Info(ctx context.Context, _ *types.Empty) (*v1.InfoResponse, error) {
+func (c *Controller) Info(ctx context.Context, _ *types.Empty) (*api.InfoResponse, error) {
 	conn, err := c.pool.GetContext(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "get connection")
@@ -159,7 +160,7 @@ func (c *Controller) Info(ctx context.Context, _ *types.Empty) (*v1.InfoResponse
 	if err != nil {
 		return nil, errors.Wrap(err, "get pxe version")
 	}
-	resp := &v1.InfoResponse{
+	resp := &api.InfoResponse{
 		PxeVersion: version,
 		Gateway:    c.ips[Gateway].To4().String(),
 	}
@@ -167,7 +168,7 @@ func (c *Controller) Info(ctx context.Context, _ *types.Empty) (*v1.InfoResponse
 	return resp, nil
 }
 
-func (c *Controller) List(ctx context.Context, _ *types.Empty) (*v1.ListNodeResponse, error) {
+func (c *Controller) List(ctx context.Context, _ *types.Empty) (*api.ListNodeResponse, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -182,7 +183,7 @@ func (c *Controller) List(ctx context.Context, _ *types.Empty) (*v1.ListNodeResp
 	if err != nil {
 		return nil, errors.Wrap(err, "get all nodes from store")
 	}
-	var resp v1.ListNodeResponse
+	var resp api.ListNodeResponse
 	for _, data := range nodes {
 		var node v1.Node
 		if err := proto.Unmarshal(data, &node); err != nil {
@@ -211,7 +212,7 @@ func (c *Controller) get(ctx context.Context, hostname string) (*v1.Node, error)
 	return &node, nil
 }
 
-func (c *Controller) Delete(ctx context.Context, r *v1.DeleteNodeRequest) (*types.Empty, error) {
+func (c *Controller) Delete(ctx context.Context, r *api.DeleteNodeRequest) (*types.Empty, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -279,7 +280,7 @@ func (c *Controller) Delete(ctx context.Context, r *v1.DeleteNodeRequest) (*type
 	return empty, nil
 }
 
-func (c *Controller) InstallPXE(ctx context.Context, r *v1.InstallPXERequest) (*types.Empty, error) {
+func (c *Controller) InstallPXE(ctx context.Context, r *api.InstallPXERequest) (*types.Empty, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -313,7 +314,7 @@ func (c *Controller) InstallPXE(ctx context.Context, r *v1.InstallPXERequest) (*
 	return empty, nil
 }
 
-func (c *Controller) Provision(ctx context.Context, r *v1.ProvisionNodeRequest) (*v1.ProvisionNodeResponse, error) {
+func (c *Controller) Provision(ctx context.Context, r *api.ProvisionNodeRequest) (*api.ProvisionNodeResponse, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -339,7 +340,7 @@ func (c *Controller) Provision(ctx context.Context, r *v1.ProvisionNodeRequest) 
 	if err := c.updateNode(node); err != nil {
 		return nil, err
 	}
-	return &v1.ProvisionNodeResponse{
+	return &api.ProvisionNodeResponse{
 		Node: node,
 	}, nil
 }
