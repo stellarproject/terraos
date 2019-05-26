@@ -53,45 +53,6 @@ type File interface {
 	Write(root string) error
 }
 
-func NewLocalDisk(device string) Disk {
-	return &localDisk{
-		device: device,
-		root:   "/sd",
-	}
-}
-
-type localDisk struct {
-	device     string
-	root       string
-	path       string
-	mounts     []string
-	subvolumes []btrfs.Subvolume
-}
-
-func (l *localDisk) Write(ctx context.Context, repo image.Repo, store content.Store, files []File) error {
-	desc, err := image.Fetch(ctx, false, store, string(repo))
-	if err != nil {
-		return errors.Wrap(err, "fetch image")
-	}
-	if err := image.Unpack(ctx, store, desc, l.path); err != nil {
-		return errors.Wrap(err, "unpack image")
-	}
-	if err := writeVersion(repo.Version(), l.root); err != nil {
-		return errors.Wrap(err, "write version file")
-	}
-	if len(l.subvolumes) > 0 {
-		if err := writeFstab(l.subvolumes, l.path); err != nil {
-			return errors.Wrap(err, "write fstab file")
-		}
-	}
-	for i, f := range files {
-		if err := f.Write(l.path); err != nil {
-			return errors.Wrapf(err, "write file %d", i)
-		}
-	}
-	return nil
-}
-
 func NewLunDisk(lun *iscsi.Lun, client *containerd.Client) Disk {
 	return &lunDisk{
 		lun:    lun,

@@ -20,6 +20,8 @@ message ProvisionNodeRequest {
 	string hostname = 1;
 	string mac = 2;
 	string image = 3;
+	int64 fs_size = 4;
+	repeated types.v1.Subvolume subvolumes = 5;
 }
 
 message ProvisionNodeResponse {

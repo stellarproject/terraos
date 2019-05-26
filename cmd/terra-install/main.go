@@ -75,16 +75,6 @@ Install terra onto a physical disk`
 			Name:  "debug",
 			Usage: "enable debug output in the logs",
 		},
-		cli.StringFlag{
-			Name:  "device",
-			Usage: "device name",
-			Value: "/dev/sda1",
-		},
-		cli.StringSliceFlag{
-			Name:  "subvolumes,s",
-			Usage: "persistent subvolumes format> name:path",
-			Value: &cli.StringSlice{},
-		},
 	}
 	app.Before = func(clix *cli.Context) error {
 		if clix.GlobalBool("debug") {
