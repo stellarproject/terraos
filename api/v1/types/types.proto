@@ -23,17 +23,42 @@ message Node {
 	string mac = 2;
 	string initiator_iqn = 3;
 	string target_iqn = 4;
-	Filesystem fs = 5;
+	repeated DiskGroup disk_groups = 5;
 	string image = 6;
 	int64 target_id = 7;
 	int64 lun_id = 8;
 	string lun_path = 9;
 }
 
-message Filesystem {
-	string backing_uri = 1;
+enum Stage {
+	option (gogoproto.goproto_enum_prefix) = false;
+	option (gogoproto.enum_customname) = "Stage";
+
+	ZERO = 0 [(gogoproto.enumvalue_customname) = "Stage0"];
+	ONE = 1 [(gogoproto.enumvalue_customname) = "Stage1"];
+}
+
+enum DiskGroupType {
+	option (gogoproto.goproto_enum_prefix) = false;
+	option (gogoproto.enum_customname) = "DiskGroupType";
+
+	SINGLE = 0 [(gogoproto.enumvalue_customname) = "Single"];
+	RAID0 = 1 [(gogoproto.enumvalue_customname) = "RAID0"];
+	RAID5 = 2 [(gogoproto.enumvalue_customname) = "RAID5"];
+	RAID10 = 3 [(gogoproto.enumvalue_customname) = "RAID10"];
+}
+
+message DiskGroup {
+	string label = 1;
+	DiskGroupType group_type = 2;
+	Stage stage = 3;
+	repeated Disk disks = 4;
+	repeated Subvolume subvolumes = 5;
+}
+
+message Disk {
+	string device = 1;
 	int64 fs_size = 2;
-	repeated Subvolume subvolumes = 3;
 }
 
 message Subvolume {

@@ -25,28 +25,25 @@
 	THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package mkfs
+package stage1
 
 import (
-	"fmt"
-	"os/exec"
-
-	"github.com/pkg/errors"
+	"github.com/stellarproject/terraos/api/v1/types"
 )
 
-const (
-	Ext4  = "ext4"
-	XFS   = "xfs"
-	Btrfs = "btrfs"
-)
-
-func Mkfs(t string, label string, args ...string) error {
-	ca := append([]string{
-		"-L", label,
-	}, args...)
-	out, err := exec.Command(fmt.Sprintf("mkfs.%s", t), ca...).CombinedOutput()
-	if err != nil {
-		return errors.Wrapf(err, "%s", out)
+func DefaultSubvolumes() []*types.Subvolume {
+	return []*types.Subvolume{
+		{
+			Name: "home",
+			Path: "/home",
+		},
+		{
+			Name: "containerd",
+			Path: "/var/lib/containerd",
+		},
+		{
+			Name: "log",
+			Path: "/var/log",
+		},
 	}
-	return nil
 }

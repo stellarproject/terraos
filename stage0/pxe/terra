@@ -19,6 +19,7 @@ local_mount_root()
 	local_device_setup "${ROOT}" "root file system"
 	ROOT="${DEV}"
 	DISK_LABEL="${disk_label}"
+	VERSION=${version}
 	if [ -z "${DISK_LABEL}" ]; then
 		DISK_LABEL="os"
 	fi
@@ -43,7 +44,7 @@ local_mount_root()
 	mkdir /lower
 	mount -t ${FSTYPE} ${ROOTFLAGS} ${ROOT} /lower || rescue_shell
 	if [ -z "${VERSION}" ]; then
-		VERSION="$(cat /lower/VERSION)"
+		VERSION="os"
 	fi
 	mount -o subvol=/${VERSION} -t btrfs ${ROOT} ${rootmnt} || rescue_shell
 }

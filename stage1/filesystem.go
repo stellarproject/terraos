@@ -25,41 +25,49 @@
 	THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package btrfs
+package stage1
 
 import (
-	"os"
-	"os/exec"
-	"path/filepath"
-
 	"github.com/pkg/errors"
+
 	"github.com/stellarproject/terraos/api/v1/types"
+	"github.com/stellarproject/terraos/pkg/mkfs"
 )
 
-func Check() error {
-	if _, err := exec.LookPath("btrfs"); err != nil {
-		return errors.Wrap(err, "btrfs command cannot be found")
-	}
-	return nil
-}
+const DefaultFilesystem = "btrfs"
 
-func CreateSubvolumes(root string, subvolumes []*types.Subvolume) error {
-	for _, s := range subvolumes {
-		sv := filepath.Join(root, s.Name)
-		if _, err := os.Stat(sv); err == nil {
-			continue
+func Format(g *Group) error {
+	var (
+		devices []string
+		args    = []string{"-f"}
+	)
+	switch g.group.GroupType {
+	case types.Single:
+		if len(g.group.Disks) != 1 {
+			return errors.New("cannot have a single group with multiple disks")
 		}
-		if err := Btrfs("subvolume", "create", sv); err != nil {
-			return errors.Wrap(err, "create sub volume")
+		devices = append(devices, g.group.Disks[0].Device)
+	case types.RAID0:
+		args = append(args, "-d", "raid0")
+		for _, d := range g.group.Disks {
+			devices = append(devices, d.Device)
 		}
+	case types.RAID5:
+		args = append(args, "-d", "raid5", "-m", "raid5")
+		for _, d := range g.group.Disks {
+			devices = append(devices, d.Device)
+		}
+	case types.RAID10:
+		args = append(args, "-d", "raid10", "-m", "raid10")
+		for _, d := range g.group.Disks {
+			devices = append(devices, d.Device)
+		}
+	default:
+		return errors.Errorf("unsupported group type %s", g.group.GroupType)
 	}
-	return nil
-}
-
-func Btrfs(args ...string) error {
-	out, err := exec.Command("btrfs", args...).CombinedOutput()
-	if err != nil {
-		return errors.Wrapf(err, "%s", out)
+	if err := mkfs.Mkfs(DefaultFilesystem, g.group.Label, append(args, devices...)...); err != nil {
+		return errors.Wrapf(err, "mkfs of disk group for %s", g.group.Label)
 	}
+	g.mountDevice = devices[0]
 	return nil
 }

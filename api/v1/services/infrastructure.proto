@@ -20,7 +20,6 @@ message ProvisionNodeRequest {
 	string hostname = 1;
 	string mac = 2;
 	string image = 3;
-	types.v1.Filesystem fs = 4;
 }
 
 message ProvisionNodeResponse {

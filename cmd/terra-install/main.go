@@ -37,7 +37,6 @@ import (
 	"github.com/sirupsen/logrus"
 	v1 "github.com/stellarproject/terraos/api/v1/types"
 	"github.com/stellarproject/terraos/cmd"
-	"github.com/stellarproject/terraos/pkg/disk"
 	"github.com/stellarproject/terraos/pkg/image"
 	"github.com/stellarproject/terraos/version"
 	"github.com/urfave/cli"
@@ -70,7 +69,7 @@ func main() {
          . . . ...."'
          .. . ."'
         .
-Terra OS management`
+Install terra onto a physical disk`
 	app.Flags = []cli.Flag{
 		cli.BoolFlag{
 			Name:  "debug",
@@ -80,11 +79,6 @@ Terra OS management`
 			Name:  "device",
 			Usage: "device name",
 			Value: "/dev/sda1",
-		},
-		cli.StringFlag{
-			Name:  "fs-type",
-			Usage: "set the filesystem type",
-			Value: "btrfs",
 		},
 		cli.StringSliceFlag{
 			Name:  "subvolumes,s",
@@ -103,24 +97,32 @@ Terra OS management`
 		if err != nil {
 			return err
 		}
+
+		node, err := loadNode(clix)
+		if err != nil {
+			return errors.Wrap(err, "load node")
+		}
+
 		var (
-			path   = "/sd"
-			ctx    = cmd.CancelContext()
-			fstype = clix.GlobalString("fs-type")
+			path = "/sd"
+			ctx  = cmd.CancelContext()
 		)
 		if err := os.MkdirAll(path, 0755); err != nil {
 			return errors.Wrap(err, "create /sd")
 		}
-		node := &v1.Node{
-			Image: string(repo),
-			Fs: &v1.Filesystem{
-				Subvolumes: parseSubvolumes(clix.GlobalStringSlice("subvolumes")),
-			},
+
+		disks, err := node.FormatDisks(ctx)
+		if err != nil {
+			return errors.Wrap(err, "format disks")
 		}
-		d := disk.NewLocalDisk(clix.GlobalString("device"))
-		if err := d.Format(ctx, fstype, "os"); err != nil {
-			return errors.Wrap(err, "format disk")
+
+		for _, d := range disks {
+			if err := d.Mount(path); err != nil {
+				return errors.Wrapf(err, "mount disk %s", d)
+			}
+			defer d.Unmount()
 		}
+
 		if err := d.Provision(ctx, fstype, node); err != nil {
 			d.Unmount(ctx)
 			return errors.Wrap(err, "provision disk")

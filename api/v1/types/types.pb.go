@@ -23,6 +23,62 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.GoGoProtoPackageIsVersion2 // please upgrade the proto package
 
+type Stage int32
+
+const (
+	Stage0 Stage = 0
+	Stage1 Stage = 1
+)
+
+var Stage_name = map[int32]string{
+	0: "ZERO",
+	1: "ONE",
+}
+
+var Stage_value = map[string]int32{
+	"ZERO": 0,
+	"ONE":  1,
+}
+
+func (x Stage) String() string {
+	return proto.EnumName(Stage_name, int32(x))
+}
+
+func (Stage) EnumDescriptor() ([]byte, []int) {
+	return fileDescriptor_599a93ecf4797d70, []int{0}
+}
+
+type DiskGroupType int32
+
+const (
+	Single DiskGroupType = 0
+	RAID0  DiskGroupType = 1
+	RAID5  DiskGroupType = 2
+	RAID10 DiskGroupType = 3
+)
+
+var DiskGroupType_name = map[int32]string{
+	0: "SINGLE",
+	1: "RAID0",
+	2: "RAID5",
+	3: "RAID10",
+}
+
+var DiskGroupType_value = map[string]int32{
+	"SINGLE": 0,
+	"RAID0":  1,
+	"RAID5":  2,
+	"RAID10": 3,
+}
+
+func (x DiskGroupType) String() string {
+	return proto.EnumName(DiskGroupType_name, int32(x))
+}
+
+func (DiskGroupType) EnumDescriptor() ([]byte, []int) {
+	return fileDescriptor_599a93ecf4797d70, []int{1}
+}
+
 type Target struct {
 	Iqn                  string   `protobuf:"bytes,1,opt,name=iqn,proto3" json:"iqn,omitempty"`
 	Luns                 []*Lun   `protobuf:"bytes,2,rep,name=luns,proto3" json:"luns,omitempty"`
@@ -106,18 +162,18 @@ func (m *Lun) XXX_DiscardUnknown() {
 var xxx_messageInfo_Lun proto.InternalMessageInfo
 
 type Node struct {
-	Hostname             string      `protobuf:"bytes,1,opt,name=hostname,proto3" json:"hostname,omitempty"`
-	Mac                  string      `protobuf:"bytes,2,opt,name=mac,proto3" json:"mac,omitempty"`
-	InitiatorIqn         string      `protobuf:"bytes,3,opt,name=initiator_iqn,json=initiatorIqn,proto3" json:"initiator_iqn,omitempty"`
-	TargetIqn            string      `protobuf:"bytes,4,opt,name=target_iqn,json=targetIqn,proto3" json:"target_iqn,omitempty"`
-	Fs                   *Filesystem `protobuf:"bytes,5,opt,name=fs,proto3" json:"fs,omitempty"`
-	Image                string      `protobuf:"bytes,6,opt,name=image,proto3" json:"image,omitempty"`
-	TargetID             int64       `protobuf:"varint,7,opt,name=target_id,json=targetId,proto3" json:"target_id,omitempty"`
-	LunID                int64       `protobuf:"varint,8,opt,name=lun_id,json=lunId,proto3" json:"lun_id,omitempty"`
-	LunPath              string      `protobuf:"bytes,9,opt,name=lun_path,json=lunPath,proto3" json:"lun_path,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}    `json:"-"`
-	XXX_unrecognized     []byte      `json:"-"`
-	XXX_sizecache        int32       `json:"-"`
+	Hostname             string       `protobuf:"bytes,1,opt,name=hostname,proto3" json:"hostname,omitempty"`
+	Mac                  string       `protobuf:"bytes,2,opt,name=mac,proto3" json:"mac,omitempty"`
+	InitiatorIqn         string       `protobuf:"bytes,3,opt,name=initiator_iqn,json=initiatorIqn,proto3" json:"initiator_iqn,omitempty"`
+	TargetIqn            string       `protobuf:"bytes,4,opt,name=target_iqn,json=targetIqn,proto3" json:"target_iqn,omitempty"`
+	DiskGroups           []*DiskGroup `protobuf:"bytes,5,rep,name=disk_groups,json=diskGroups,proto3" json:"disk_groups,omitempty"`
+	Image                string       `protobuf:"bytes,6,opt,name=image,proto3" json:"image,omitempty"`
+	TargetID             int64        `protobuf:"varint,7,opt,name=target_id,json=targetId,proto3" json:"target_id,omitempty"`
+	LunID                int64        `protobuf:"varint,8,opt,name=lun_id,json=lunId,proto3" json:"lun_id,omitempty"`
+	LunPath              string       `protobuf:"bytes,9,opt,name=lun_path,json=lunPath,proto3" json:"lun_path,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}     `json:"-"`
+	XXX_unrecognized     []byte       `json:"-"`
+	XXX_sizecache        int32        `json:"-"`
 }
 
 func (m *Node) Reset()      { *m = Node{} }
@@ -152,26 +208,28 @@ func (m *Node) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_Node proto.InternalMessageInfo
 
-type Filesystem struct {
-	BackingUri           string       `protobuf:"bytes,1,opt,name=backing_uri,json=backingUri,proto3" json:"backing_uri,omitempty"`
-	FsSize               int64        `protobuf:"varint,2,opt,name=fs_size,json=fsSize,proto3" json:"fs_size,omitempty"`
-	Subvolumes           []*Subvolume `protobuf:"bytes,3,rep,name=subvolumes,proto3" json:"subvolumes,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}     `json:"-"`
-	XXX_unrecognized     []byte       `json:"-"`
-	XXX_sizecache        int32        `json:"-"`
+type DiskGroup struct {
+	Label                string        `protobuf:"bytes,1,opt,name=label,proto3" json:"label,omitempty"`
+	GroupType            DiskGroupType `protobuf:"varint,2,opt,name=group_type,json=groupType,proto3,enum=io.stellarproject.types.v1.DiskGroupType" json:"group_type,omitempty"`
+	Stage                Stage         `protobuf:"varint,3,opt,name=stage,proto3,enum=io.stellarproject.types.v1.Stage" json:"stage,omitempty"`
+	Disks                []*Disk       `protobuf:"bytes,4,rep,name=disks,proto3" json:"disks,omitempty"`
+	Subvolumes           []*Subvolume  `protobuf:"bytes,5,rep,name=subvolumes,proto3" json:"subvolumes,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}      `json:"-"`
+	XXX_unrecognized     []byte        `json:"-"`
+	XXX_sizecache        int32         `json:"-"`
 }
 
-func (m *Filesystem) Reset()      { *m = Filesystem{} }
-func (*Filesystem) ProtoMessage() {}
-func (*Filesystem) Descriptor() ([]byte, []int) {
+func (m *DiskGroup) Reset()      { *m = DiskGroup{} }
+func (*DiskGroup) ProtoMessage() {}
+func (*DiskGroup) Descriptor() ([]byte, []int) {
 	return fileDescriptor_599a93ecf4797d70, []int{3}
 }
-func (m *Filesystem) XXX_Unmarshal(b []byte) error {
+func (m *DiskGroup) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
-func (m *Filesystem) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+func (m *DiskGroup) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	if deterministic {
-		return xxx_messageInfo_Filesystem.Marshal(b, m, deterministic)
+		return xxx_messageInfo_DiskGroup.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
 		n, err := m.MarshalTo(b)
@@ -181,17 +239,57 @@ func (m *Filesystem) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return b[:n], nil
 	}
 }
-func (m *Filesystem) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Filesystem.Merge(m, src)
+func (m *DiskGroup) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_DiskGroup.Merge(m, src)
 }
-func (m *Filesystem) XXX_Size() int {
+func (m *DiskGroup) XXX_Size() int {
 	return m.Size()
 }
-func (m *Filesystem) XXX_DiscardUnknown() {
-	xxx_messageInfo_Filesystem.DiscardUnknown(m)
+func (m *DiskGroup) XXX_DiscardUnknown() {
+	xxx_messageInfo_DiskGroup.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_Filesystem proto.InternalMessageInfo
+var xxx_messageInfo_DiskGroup proto.InternalMessageInfo
+
+type Disk struct {
+	Device               string   `protobuf:"bytes,1,opt,name=device,proto3" json:"device,omitempty"`
+	FsSize               int64    `protobuf:"varint,2,opt,name=fs_size,json=fsSize,proto3" json:"fs_size,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *Disk) Reset()      { *m = Disk{} }
+func (*Disk) ProtoMessage() {}
+func (*Disk) Descriptor() ([]byte, []int) {
+	return fileDescriptor_599a93ecf4797d70, []int{4}
+}
+func (m *Disk) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *Disk) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_Disk.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalTo(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *Disk) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Disk.Merge(m, src)
+}
+func (m *Disk) XXX_Size() int {
+	return m.Size()
+}
+func (m *Disk) XXX_DiscardUnknown() {
+	xxx_messageInfo_Disk.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_Disk proto.InternalMessageInfo
 
 type Subvolume struct {
 	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
@@ -204,7 +302,7 @@ type Subvolume struct {
 func (m *Subvolume) Reset()      { *m = Subvolume{} }
 func (*Subvolume) ProtoMessage() {}
 func (*Subvolume) Descriptor() ([]byte, []int) {
-	return fileDescriptor_599a93ecf4797d70, []int{4}
+	return fileDescriptor_599a93ecf4797d70, []int{5}
 }
 func (m *Subvolume) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -234,10 +332,13 @@ func (m *Subvolume) XXX_DiscardUnknown() {
 var xxx_messageInfo_Subvolume proto.InternalMessageInfo
 
 func init() {
+	proto.RegisterEnum("io.stellarproject.types.v1.Stage", Stage_name, Stage_value)
+	proto.RegisterEnum("io.stellarproject.types.v1.DiskGroupType", DiskGroupType_name, DiskGroupType_value)
 	proto.RegisterType((*Target)(nil), "io.stellarproject.types.v1.Target")
 	proto.RegisterType((*Lun)(nil), "io.stellarproject.types.v1.Lun")
 	proto.RegisterType((*Node)(nil), "io.stellarproject.types.v1.Node")
-	proto.RegisterType((*Filesystem)(nil), "io.stellarproject.types.v1.Filesystem")
+	proto.RegisterType((*DiskGroup)(nil), "io.stellarproject.types.v1.DiskGroup")
+	proto.RegisterType((*Disk)(nil), "io.stellarproject.types.v1.Disk")
 	proto.RegisterType((*Subvolume)(nil), "io.stellarproject.types.v1.Subvolume")
 }
 
@@ -246,39 +347,50 @@ func init() {
 }
 
 var fileDescriptor_599a93ecf4797d70 = []byte{
-	// 507 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x53, 0x4f, 0x6b, 0x13, 0x41,
-	0x14, 0xcf, 0x66, 0xf3, 0x6f, 0x5f, 0x2a, 0xc8, 0x50, 0x70, 0x0d, 0xb8, 0x09, 0x11, 0x25, 0x5e,
-	0x76, 0x69, 0x23, 0x1e, 0x14, 0x2f, 0xa5, 0x0a, 0x81, 0x50, 0x64, 0xab, 0x20, 0x5e, 0xc2, 0x24,
-	0x3b, 0xd9, 0x8c, 0xce, 0xce, 0x6c, 0x77, 0x66, 0x02, 0xf5, 0xe4, 0x17, 0xf0, 0xab, 0xf8, 0x39,
-	0x7a, 0xf4, 0xe8, 0xa9, 0xd8, 0xfd, 0x24, 0x32, 0xb3, 0x69, 0x1a, 0x41, 0x0b, 0xbd, 0x0c, 0xbf,
-	0x79, 0xef, 0xf7, 0x7e, 0x6f, 0xdf, 0xfb, 0xcd, 0xc2, 0xcb, 0x94, 0xaa, 0x95, 0x9e, 0x87, 0x0b,
-	0x91, 0x45, 0x52, 0x11, 0xc6, 0x70, 0x91, 0x17, 0xe2, 0x33, 0x59, 0xa8, 0x48, 0x91, 0xa2, 0xc0,
-	0x42, 0x46, 0x38, 0xa7, 0xd1, 0xfa, 0x20, 0x52, 0xe7, 0x39, 0x91, 0xd5, 0x19, 0xe6, 0x85, 0x50,
-	0x02, 0xf5, 0xa8, 0x08, 0xff, 0xae, 0x09, 0xab, 0xf4, 0xfa, 0xa0, 0xb7, 0x9f, 0x8a, 0x54, 0x58,
-	0x5a, 0x64, 0x50, 0x55, 0x31, 0xc4, 0xd0, 0x7a, 0x8f, 0x8b, 0x94, 0x28, 0x74, 0x1f, 0x5c, 0x7a,
-	0xc6, 0x7d, 0x67, 0xe0, 0x8c, 0xbc, 0xd8, 0x40, 0x34, 0x86, 0x06, 0xd3, 0x5c, 0xfa, 0xf5, 0x81,
-	0x3b, 0xea, 0x1e, 0xf6, 0xc3, 0xff, 0x8b, 0x87, 0x53, 0xcd, 0x63, 0x4b, 0x36, 0x32, 0x8a, 0x26,
-	0xbe, 0x3b, 0x70, 0x46, 0x6e, 0x6c, 0xe0, 0xf0, 0x35, 0xb8, 0x53, 0xcd, 0xff, 0xa1, 0x8f, 0xa0,
-	0x21, 0xe9, 0x57, 0xe2, 0xd7, 0x2d, 0xd7, 0x62, 0xc3, 0x62, 0x37, 0xe5, 0x8c, 0x26, 0xc3, 0x1f,
-	0x75, 0x68, 0x9c, 0x88, 0x84, 0xa0, 0x1e, 0x74, 0x56, 0x42, 0x2a, 0x8e, 0x33, 0xb2, 0x51, 0xd9,
-	0xde, 0x4d, 0x59, 0x86, 0x17, 0x56, 0xc9, 0x8b, 0x0d, 0x44, 0x8f, 0xe1, 0x1e, 0xe5, 0x54, 0x51,
-	0xac, 0x44, 0x31, 0x33, 0x8d, 0x5d, 0x9b, 0xdb, 0xdb, 0x06, 0x27, 0x67, 0x1c, 0x3d, 0x02, 0x50,
-	0x76, 0x7a, 0xcb, 0x68, 0x58, 0x86, 0x57, 0x45, 0x4c, 0xfa, 0x05, 0xd4, 0x97, 0xd2, 0x6f, 0x0e,
-	0x9c, 0x51, 0xf7, 0xf0, 0xe9, 0x6d, 0xe3, 0xbf, 0xa5, 0x8c, 0xc8, 0x73, 0xa9, 0x48, 0x16, 0xd7,
-	0x97, 0x12, 0xed, 0x43, 0x93, 0x66, 0x38, 0x25, 0x7e, 0xcb, 0x2a, 0x56, 0x17, 0xf4, 0x0c, 0xbc,
-	0xeb, 0x66, 0x89, 0xdf, 0x36, 0x03, 0x1e, 0xed, 0x95, 0x97, 0xfd, 0x4e, 0xb5, 0xff, 0xc9, 0x71,
-	0xdc, 0xd9, 0x74, 0x4e, 0xd0, 0x00, 0x5a, 0x4c, 0x73, 0xc3, 0xeb, 0x58, 0x9e, 0x57, 0x5e, 0xf6,
-	0x9b, 0x53, 0xcd, 0x27, 0xc7, 0x71, 0x93, 0x69, 0x3e, 0x49, 0xd0, 0x43, 0xe8, 0x18, 0x46, 0x8e,
-	0xd5, 0xca, 0xf7, 0x6c, 0x97, 0x36, 0xd3, 0xfc, 0x1d, 0x56, 0xab, 0xe1, 0x77, 0x07, 0xe0, 0xe6,
-	0x83, 0x50, 0x1f, 0xba, 0x73, 0xbc, 0xf8, 0x42, 0x79, 0x3a, 0xd3, 0x05, 0xdd, 0x6c, 0x0e, 0x36,
-	0xa1, 0x0f, 0x05, 0x45, 0x0f, 0xa0, 0xbd, 0x94, 0xb3, 0x1d, 0x27, 0x5a, 0x4b, 0x79, 0x6a, 0xbc,
-	0x78, 0x03, 0x20, 0xf5, 0x7c, 0x2d, 0x98, 0xce, 0x88, 0xf4, 0x5d, 0xfb, 0x0a, 0x9e, 0xdc, 0xb6,
-	0x86, 0xd3, 0x6b, 0x76, 0xbc, 0x53, 0x38, 0x1c, 0x83, 0xb7, 0x4d, 0x18, 0xcf, 0x77, 0x0c, 0xb4,
-	0xd8, 0xc4, 0xec, 0x1c, 0x95, 0x7b, 0x16, 0x1f, 0x9d, 0x5c, 0x5c, 0x05, 0xb5, 0x5f, 0x57, 0x41,
-	0xed, 0x5b, 0x19, 0x38, 0x17, 0x65, 0xe0, 0xfc, 0x2c, 0x03, 0xe7, 0x77, 0x19, 0x38, 0x9f, 0x9e,
-	0xdf, 0xed, 0xff, 0x78, 0x65, 0xcf, 0x8f, 0xb5, 0x79, 0xcb, 0x3e, 0xf8, 0xf1, 0x9f, 0x00, 0x00,
-	0x00, 0xff, 0xff, 0x5a, 0x03, 0x7d, 0xeb, 0x60, 0x03, 0x00, 0x00,
+	// 679 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x54, 0x41, 0x4f, 0x13, 0x41,
+	0x14, 0xee, 0x76, 0xbb, 0xa5, 0xfb, 0x00, 0xd3, 0x8c, 0xa8, 0x6b, 0x13, 0x97, 0xb5, 0xc6, 0x04,
+	0x38, 0xb4, 0x14, 0x44, 0x12, 0x8d, 0x07, 0x48, 0x2b, 0x36, 0x69, 0x8a, 0xd9, 0x72, 0x30, 0x5c,
+	0x9a, 0x6d, 0x77, 0xd8, 0x8e, 0x6c, 0x77, 0x97, 0x9d, 0xd9, 0x26, 0x70, 0x32, 0x9e, 0x0c, 0xff,
+	0x81, 0x13, 0xfe, 0x0a, 0x0f, 0x9e, 0x39, 0x7a, 0xf4, 0x44, 0xa4, 0xbf, 0xc4, 0xcc, 0x4c, 0x5b,
+	0x4a, 0xa2, 0x88, 0x97, 0xcd, 0xf7, 0xde, 0x7c, 0xef, 0xfb, 0xe6, 0xbd, 0x79, 0x59, 0x78, 0xe5,
+	0x11, 0xd6, 0x4b, 0x3a, 0xa5, 0x6e, 0xd8, 0x2f, 0x53, 0x86, 0x7d, 0xdf, 0x89, 0xa3, 0x38, 0xfc,
+	0x88, 0xbb, 0xac, 0xcc, 0x70, 0x1c, 0x3b, 0x21, 0x2d, 0x3b, 0x11, 0x29, 0x0f, 0x2a, 0x65, 0x76,
+	0x1c, 0x61, 0x2a, 0xbf, 0xa5, 0x28, 0x0e, 0x59, 0x88, 0x0a, 0x24, 0x2c, 0xdd, 0xac, 0x29, 0xc9,
+	0xe3, 0x41, 0xa5, 0xb0, 0xe0, 0x85, 0x5e, 0x28, 0x68, 0x65, 0x8e, 0x64, 0x45, 0xd1, 0x81, 0xec,
+	0x9e, 0x13, 0x7b, 0x98, 0xa1, 0x3c, 0xa8, 0xe4, 0x28, 0x30, 0x14, 0x4b, 0x59, 0xd2, 0x6d, 0x0e,
+	0xd1, 0x3a, 0x64, 0xfc, 0x24, 0xa0, 0x46, 0xda, 0x52, 0x97, 0x66, 0xd7, 0x16, 0x4b, 0x7f, 0x17,
+	0x2f, 0x35, 0x92, 0xc0, 0x16, 0x64, 0x2e, 0xc3, 0x88, 0x6b, 0xa8, 0x96, 0xb2, 0xa4, 0xda, 0x1c,
+	0x16, 0xdf, 0x80, 0xda, 0x48, 0x82, 0x3f, 0xe8, 0x23, 0xc8, 0x50, 0x72, 0x82, 0x8d, 0xb4, 0xe0,
+	0x0a, 0xcc, 0x59, 0xfe, 0x75, 0xb9, 0x4f, 0xdc, 0xe2, 0xf7, 0x34, 0x64, 0x9a, 0xa1, 0x8b, 0x51,
+	0x01, 0x72, 0xbd, 0x90, 0xb2, 0xc0, 0xe9, 0xe3, 0x91, 0xca, 0x24, 0xe6, 0x65, 0x7d, 0xa7, 0x2b,
+	0x94, 0x74, 0x9b, 0x43, 0xf4, 0x0c, 0xe6, 0x49, 0x40, 0x18, 0x71, 0x58, 0x18, 0xb7, 0xb9, 0xb1,
+	0x2a, 0xce, 0xe6, 0x26, 0xc9, 0xfa, 0x51, 0x80, 0x9e, 0x00, 0x30, 0xd1, 0xbd, 0x60, 0x64, 0x04,
+	0x43, 0x97, 0x19, 0x7e, 0xfc, 0x16, 0x66, 0x5d, 0x42, 0x0f, 0xdb, 0x5e, 0x1c, 0x26, 0x11, 0x35,
+	0x34, 0x31, 0x87, 0xe7, 0xb7, 0xcd, 0xa1, 0x4a, 0xe8, 0xe1, 0x0e, 0x67, 0xdb, 0xe0, 0x8e, 0x21,
+	0x45, 0x0b, 0xa0, 0x91, 0xbe, 0xe3, 0x61, 0x23, 0x2b, 0x1c, 0x64, 0x80, 0x96, 0x41, 0x1f, 0x9b,
+	0xbb, 0xc6, 0x0c, 0x6f, 0x78, 0x7b, 0x6e, 0x78, 0xb9, 0x98, 0x93, 0xef, 0x51, 0xaf, 0xda, 0xb9,
+	0xd1, 0x4d, 0x5c, 0x64, 0x41, 0xd6, 0x4f, 0x02, 0xce, 0xcb, 0x09, 0x9e, 0x3e, 0xbc, 0x5c, 0xd4,
+	0x1a, 0x49, 0x50, 0xaf, 0xda, 0x9a, 0x9f, 0x04, 0x75, 0x17, 0x3d, 0x86, 0x1c, 0x67, 0x44, 0x0e,
+	0xeb, 0x19, 0xba, 0x70, 0x99, 0xf1, 0x93, 0xe0, 0xbd, 0xc3, 0x7a, 0xc5, 0xf3, 0x34, 0xe8, 0x93,
+	0x7b, 0xf1, 0xbb, 0xf8, 0x4e, 0x07, 0xfb, 0xa3, 0x11, 0xca, 0x00, 0xbd, 0x03, 0x10, 0x4d, 0xb6,
+	0x79, 0x27, 0x62, 0x8c, 0xf7, 0xd6, 0x96, 0xef, 0xd4, 0xe8, 0xde, 0x71, 0x84, 0x6d, 0xdd, 0x1b,
+	0x43, 0xb4, 0x09, 0x1a, 0x65, 0xbc, 0x57, 0x55, 0x88, 0x3c, 0xbd, 0x4d, 0xa4, 0xc5, 0x89, 0xb6,
+	0xe4, 0xa3, 0x97, 0xa0, 0xf1, 0x91, 0x51, 0x23, 0x23, 0xc6, 0x6c, 0xfd, 0xcb, 0xdd, 0x96, 0x74,
+	0x54, 0x03, 0xa0, 0x49, 0x67, 0x10, 0xfa, 0x49, 0x1f, 0xdf, 0xe9, 0x8d, 0x5a, 0x63, 0xb6, 0x3d,
+	0x55, 0x58, 0xdc, 0x84, 0x0c, 0x57, 0x45, 0x0f, 0x21, 0xeb, 0xe2, 0x01, 0xe9, 0x8e, 0x77, 0x6c,
+	0x14, 0xa1, 0x47, 0x30, 0x73, 0x40, 0xdb, 0x53, 0xfb, 0x9a, 0x3d, 0xa0, 0x2d, 0x72, 0x82, 0x8b,
+	0xeb, 0xa0, 0x4f, 0x14, 0xf9, 0x4a, 0x4f, 0xed, 0xa7, 0xc0, 0x3c, 0x27, 0x9e, 0x45, 0x2e, 0xa7,
+	0xc0, 0x2b, 0x5b, 0xa0, 0x89, 0xe6, 0xd1, 0x02, 0x64, 0xf6, 0x6b, 0xf6, 0x6e, 0x3e, 0x55, 0x80,
+	0xd3, 0x33, 0x2b, 0x2b, 0x92, 0xab, 0xe8, 0x3e, 0xa8, 0xbb, 0xcd, 0x5a, 0x5e, 0x99, 0x4a, 0x56,
+	0x0a, 0xf3, 0x5f, 0xce, 0xcd, 0xd4, 0xb7, 0xaf, 0xa6, 0xac, 0x5c, 0xf9, 0xac, 0xc0, 0xfc, 0x8d,
+	0x57, 0xe0, 0x57, 0x6f, 0xd5, 0x9b, 0x3b, 0x8d, 0xda, 0x44, 0x8d, 0x04, 0x9e, 0xcf, 0x3d, 0x34,
+	0x7b, 0xab, 0x5e, 0x5d, 0xcd, 0x2b, 0x05, 0xfd, 0xf4, 0xcc, 0x92, 0xc1, 0x38, 0xbb, 0x91, 0x4f,
+	0x5f, 0x67, 0x37, 0xb8, 0x06, 0x07, 0x95, 0xd5, 0xbc, 0x2a, 0x35, 0x64, 0x54, 0x78, 0x30, 0x32,
+	0xbf, 0x69, 0xb9, 0xdd, 0xbc, 0xb8, 0x32, 0x53, 0x3f, 0xaf, 0xcc, 0xd4, 0xa7, 0xa1, 0xa9, 0x5c,
+	0x0c, 0x4d, 0xe5, 0xc7, 0xd0, 0x54, 0x7e, 0x0d, 0x4d, 0x65, 0xff, 0xc5, 0xff, 0xfd, 0xc6, 0x5e,
+	0x8b, 0xef, 0x87, 0x54, 0x27, 0x2b, 0xfe, 0x4b, 0xeb, 0xbf, 0x03, 0x00, 0x00, 0xff, 0xff, 0xfc,
+	0xc7, 0x28, 0x15, 0x07, 0x05, 0x00, 0x00,
 }
 
 func (m *Target) Marshal() (dAtA []byte, err error) {
@@ -401,15 +513,17 @@ func (m *Node) MarshalTo(dAtA []byte) (int, error) {
 		i = encodeVarintTypes(dAtA, i, uint64(len(m.TargetIqn)))
 		i += copy(dAtA[i:], m.TargetIqn)
 	}
-	if m.Fs != nil {
-		dAtA[i] = 0x2a
-		i++
-		i = encodeVarintTypes(dAtA, i, uint64(m.Fs.Size()))
-		n1, err := m.Fs.MarshalTo(dAtA[i:])
-		if err != nil {
-			return 0, err
+	if len(m.DiskGroups) > 0 {
+		for _, msg := range m.DiskGroups {
+			dAtA[i] = 0x2a
+			i++
+			i = encodeVarintTypes(dAtA, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(dAtA[i:])
+			if err != nil {
+				return 0, err
+			}
+			i += n
 		}
-		i += n1
 	}
 	if len(m.Image) > 0 {
 		dAtA[i] = 0x32
@@ -439,7 +553,7 @@ func (m *Node) MarshalTo(dAtA []byte) (int, error) {
 	return i, nil
 }
 
-func (m *Filesystem) Marshal() (dAtA []byte, err error) {
+func (m *DiskGroup) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -449,25 +563,30 @@ func (m *Filesystem) Marshal() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *Filesystem) MarshalTo(dAtA []byte) (int, error) {
+func (m *DiskGroup) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
-	if len(m.BackingUri) > 0 {
+	if len(m.Label) > 0 {
 		dAtA[i] = 0xa
 		i++
-		i = encodeVarintTypes(dAtA, i, uint64(len(m.BackingUri)))
-		i += copy(dAtA[i:], m.BackingUri)
+		i = encodeVarintTypes(dAtA, i, uint64(len(m.Label)))
+		i += copy(dAtA[i:], m.Label)
 	}
-	if m.FsSize != 0 {
+	if m.GroupType != 0 {
 		dAtA[i] = 0x10
 		i++
-		i = encodeVarintTypes(dAtA, i, uint64(m.FsSize))
+		i = encodeVarintTypes(dAtA, i, uint64(m.GroupType))
 	}
-	if len(m.Subvolumes) > 0 {
-		for _, msg := range m.Subvolumes {
-			dAtA[i] = 0x1a
+	if m.Stage != 0 {
+		dAtA[i] = 0x18
+		i++
+		i = encodeVarintTypes(dAtA, i, uint64(m.Stage))
+	}
+	if len(m.Disks) > 0 {
+		for _, msg := range m.Disks {
+			dAtA[i] = 0x22
 			i++
 			i = encodeVarintTypes(dAtA, i, uint64(msg.Size()))
 			n, err := msg.MarshalTo(dAtA[i:])
@@ -476,6 +595,50 @@ func (m *Filesystem) MarshalTo(dAtA []byte) (int, error) {
 			}
 			i += n
 		}
+	}
+	if len(m.Subvolumes) > 0 {
+		for _, msg := range m.Subvolumes {
+			dAtA[i] = 0x2a
+			i++
+			i = encodeVarintTypes(dAtA, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(dAtA[i:])
+			if err != nil {
+				return 0, err
+			}
+			i += n
+		}
+	}
+	if m.XXX_unrecognized != nil {
+		i += copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	return i, nil
+}
+
+func (m *Disk) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *Disk) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if len(m.Device) > 0 {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintTypes(dAtA, i, uint64(len(m.Device)))
+		i += copy(dAtA[i:], m.Device)
+	}
+	if m.FsSize != 0 {
+		dAtA[i] = 0x10
+		i++
+		i = encodeVarintTypes(dAtA, i, uint64(m.FsSize))
 	}
 	if m.XXX_unrecognized != nil {
 		i += copy(dAtA[i:], m.XXX_unrecognized)
@@ -594,9 +757,11 @@ func (m *Node) Size() (n int) {
 	if l > 0 {
 		n += 1 + l + sovTypes(uint64(l))
 	}
-	if m.Fs != nil {
-		l = m.Fs.Size()
-		n += 1 + l + sovTypes(uint64(l))
+	if len(m.DiskGroups) > 0 {
+		for _, e := range m.DiskGroups {
+			l = e.Size()
+			n += 1 + l + sovTypes(uint64(l))
+		}
 	}
 	l = len(m.Image)
 	if l > 0 {
@@ -618,24 +783,52 @@ func (m *Node) Size() (n int) {
 	return n
 }
 
-func (m *Filesystem) Size() (n int) {
+func (m *DiskGroup) Size() (n int) {
 	if m == nil {
 		return 0
 	}
 	var l int
 	_ = l
-	l = len(m.BackingUri)
+	l = len(m.Label)
 	if l > 0 {
 		n += 1 + l + sovTypes(uint64(l))
 	}
-	if m.FsSize != 0 {
-		n += 1 + sovTypes(uint64(m.FsSize))
+	if m.GroupType != 0 {
+		n += 1 + sovTypes(uint64(m.GroupType))
+	}
+	if m.Stage != 0 {
+		n += 1 + sovTypes(uint64(m.Stage))
+	}
+	if len(m.Disks) > 0 {
+		for _, e := range m.Disks {
+			l = e.Size()
+			n += 1 + l + sovTypes(uint64(l))
+		}
 	}
 	if len(m.Subvolumes) > 0 {
 		for _, e := range m.Subvolumes {
 			l = e.Size()
 			n += 1 + l + sovTypes(uint64(l))
 		}
+	}
+	if m.XXX_unrecognized != nil {
+		n += len(m.XXX_unrecognized)
+	}
+	return n
+}
+
+func (m *Disk) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Device)
+	if l > 0 {
+		n += 1 + l + sovTypes(uint64(l))
+	}
+	if m.FsSize != 0 {
+		n += 1 + sovTypes(uint64(m.FsSize))
 	}
 	if m.XXX_unrecognized != nil {
 		n += len(m.XXX_unrecognized)
@@ -711,7 +904,7 @@ func (this *Node) String() string {
 		`Mac:` + fmt.Sprintf("%v", this.Mac) + `,`,
 		`InitiatorIqn:` + fmt.Sprintf("%v", this.InitiatorIqn) + `,`,
 		`TargetIqn:` + fmt.Sprintf("%v", this.TargetIqn) + `,`,
-		`Fs:` + strings.Replace(fmt.Sprintf("%v", this.Fs), "Filesystem", "Filesystem", 1) + `,`,
+		`DiskGroups:` + strings.Replace(fmt.Sprintf("%v", this.DiskGroups), "DiskGroup", "DiskGroup", 1) + `,`,
 		`Image:` + fmt.Sprintf("%v", this.Image) + `,`,
 		`TargetID:` + fmt.Sprintf("%v", this.TargetID) + `,`,
 		`LunID:` + fmt.Sprintf("%v", this.LunID) + `,`,
@@ -721,14 +914,28 @@ func (this *Node) String() string {
 	}, "")
 	return s
 }
-func (this *Filesystem) String() string {
+func (this *DiskGroup) String() string {
 	if this == nil {
 		return "nil"
 	}
-	s := strings.Join([]string{`&Filesystem{`,
-		`BackingUri:` + fmt.Sprintf("%v", this.BackingUri) + `,`,
-		`FsSize:` + fmt.Sprintf("%v", this.FsSize) + `,`,
+	s := strings.Join([]string{`&DiskGroup{`,
+		`Label:` + fmt.Sprintf("%v", this.Label) + `,`,
+		`GroupType:` + fmt.Sprintf("%v", this.GroupType) + `,`,
+		`Stage:` + fmt.Sprintf("%v", this.Stage) + `,`,
+		`Disks:` + strings.Replace(fmt.Sprintf("%v", this.Disks), "Disk", "Disk", 1) + `,`,
 		`Subvolumes:` + strings.Replace(fmt.Sprintf("%v", this.Subvolumes), "Subvolume", "Subvolume", 1) + `,`,
+		`XXX_unrecognized:` + fmt.Sprintf("%v", this.XXX_unrecognized) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *Disk) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&Disk{`,
+		`Device:` + fmt.Sprintf("%v", this.Device) + `,`,
+		`FsSize:` + fmt.Sprintf("%v", this.FsSize) + `,`,
 		`XXX_unrecognized:` + fmt.Sprintf("%v", this.XXX_unrecognized) + `,`,
 		`}`,
 	}, "")
@@ -1176,7 +1383,7 @@ func (m *Node) Unmarshal(dAtA []byte) error {
 			iNdEx = postIndex
 		case 5:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Fs", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field DiskGroups", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -1203,10 +1410,8 @@ func (m *Node) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if m.Fs == nil {
-				m.Fs = &Filesystem{}
-			}
-			if err := m.Fs.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+			m.DiskGroups = append(m.DiskGroups, &DiskGroup{})
+			if err := m.DiskGroups[len(m.DiskGroups)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -1337,7 +1542,7 @@ func (m *Node) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *Filesystem) Unmarshal(dAtA []byte) error {
+func (m *DiskGroup) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -1360,15 +1565,15 @@ func (m *Filesystem) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: Filesystem: wiretype end group for non-group")
+			return fmt.Errorf("proto: DiskGroup: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: Filesystem: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: DiskGroup: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field BackingUri", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Label", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
@@ -1396,13 +1601,13 @@ func (m *Filesystem) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.BackingUri = string(dAtA[iNdEx:postIndex])
+			m.Label = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 2:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field FsSize", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field GroupType", wireType)
 			}
-			m.FsSize = 0
+			m.GroupType = 0
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowTypes
@@ -1412,12 +1617,65 @@ func (m *Filesystem) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.FsSize |= int64(b&0x7F) << shift
+				m.GroupType |= DiskGroupType(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
 		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Stage", wireType)
+			}
+			m.Stage = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTypes
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Stage |= Stage(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Disks", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTypes
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthTypes
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthTypes
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Disks = append(m.Disks, &Disk{})
+			if err := m.Disks[len(m.Disks)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 5:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Subvolumes", wireType)
 			}
@@ -1451,6 +1709,111 @@ func (m *Filesystem) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipTypes(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthTypes
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthTypes
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.XXX_unrecognized = append(m.XXX_unrecognized, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *Disk) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowTypes
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: Disk: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: Disk: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Device", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTypes
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthTypes
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthTypes
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Device = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field FsSize", wireType)
+			}
+			m.FsSize = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTypes
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.FsSize |= int64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := skipTypes(dAtA[iNdEx:])

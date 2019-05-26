@@ -1,0 +1,150 @@
+/*
+	Copyright (c) 2019 Stellar Project
+
+	Permission is hereby granted, free of charge, to any person
+	obtaining a copy of this software and associated documentation
+	files (the "Software"), to deal in the Software without
+	restriction, including without limitation the rights to use, copy,
+	modify, merge, publish, distribute, sublicense, and/or sell copies
+	of the Software, and to permit persons to whom the Software is
+	furnished to do so, subject to the following conditions:
+
+	The above copyright notice and this permission notice shall be
+	included in all copies or substantial portions of the Software.
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+	EXPRESS OR IMPLIED,
+	INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+	IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+	HOLDERS BE LIABLE FOR ANY CLAIM,
+	DAMAGES OR OTHER LIABILITY,
+	WHETHER IN AN ACTION OF CONTRACT,
+	TORT OR OTHERWISE,
+	ARISING FROM, OUT OF OR IN CONNECTION WITH
+	THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+
+package stage1
+
+import (
+	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+
+	"github.com/pkg/errors"
+	"github.com/stellarproject/terraos/api/v1/types"
+	"github.com/stellarproject/terraos/pkg/btrfs"
+	"github.com/stellarproject/terraos/pkg/fstab"
+	"github.com/stellarproject/terraos/pkg/mkfs"
+	"golang.org/x/sys/unix"
+)
+
+const (
+	OSLabel  = "os"
+	OSVolume = "os"
+)
+
+func NewGroup(group *types.DiskGroup) (*Group, error) {
+	if group.Stage != types.Stage1 {
+		return nil, errors.Errorf("unsupported stage %s", group.Stage)
+	}
+	return &Group{
+		group: group,
+	}, nil
+}
+
+type Group struct {
+	group       *types.DiskGroup
+	mountDevice string
+	mounts      []string
+}
+
+func (d *Group) String() string {
+	return d.group.Label
+}
+
+// Init the entire group returning the path to access the group
+func (d *Group) Init() (string, error) {
+	if d.mountDevice == "" {
+		return "", errors.New("disk group not formatted")
+	}
+	root, err := ioutil.TempDir("/run", "group-mount.")
+	if err != nil {
+		return "", errors.Wrap(err, "create root path")
+	}
+	// mount the entire root group before subsystems
+	if err := unix.Mount(d.mountDevice, root, DefaultFilesystem, 0, ""); err != nil {
+		return "", errors.Wrapf(err, "mount %s to %s", d.mountDevice, root)
+	}
+	d.mounts = append(d.mounts, root)
+
+	// create subvolumes
+	subvolumes := d.group.Subvolumes
+	if d.group.Label == OSLabel {
+		subvolumes = append([]*types.Subvolume{
+			{
+				Name: OSVolume,
+			},
+		},
+			subvolumes...,
+		)
+	}
+	if err := btrfs.CreateSubvolumes(root, subvolumes); err != nil {
+		return "", errors.Wrap(err, "create subvolumes")
+	}
+	// overlay subvolumes
+	overlay := root
+	for _, s := range subvolumes {
+		if s.Name == OSVolume {
+			overlay = filepath.Join(root, s.Name)
+			continue
+		}
+		subPath := filepath.Join(overlay, s.Path)
+		if err := os.MkdirAll(subPath, 0711); err != nil {
+			return "", errors.Wrapf(err, "mkdir subvolumes %s", subPath)
+		}
+		if err := unix.Mount(filepath.Join(root, s.Name), subPath, "none", unix.MS_BIND, ""); err != nil {
+			return "", errors.Wrapf(err, "mount subvolume %s", s.Name)
+		}
+		d.mounts = append(d.mounts, subPath)
+	}
+	return overlay, nil
+}
+
+// Close the group
+func (d *Group) Close() error {
+	var last string
+	for _, path := range reverse(d.mounts) {
+		if err := unix.Unmount(path, 0); err != nil {
+			return errors.Wrapf(err, "unmount %s", path)
+		}
+		last = path
+	}
+	return os.RemoveAll(last)
+}
+
+// Entries returns the fstab entries for the group
+func (d *Group) Entries() []*fstab.Entry {
+	var entries []*fstab.Entry
+	for _, s := range d.group.Subvolumes {
+		entries = append(entries, &fstab.Entry{
+			Type:   mkfs.Btrfs,
+			Device: fmt.Sprintf("LABEL=%s", d.group.Label),
+			Path:   s.Path,
+			Pass:   2,
+			Options: []string{
+				fmt.Sprintf("subvol=/%s", s.Name),
+			},
+		})
+	}
+	return entries
+}
+
+func reverse(mounts []string) []string {
+	for i, j := 0, len(mounts)-1; i < j; i, j = i+1, j-1 {
+		mounts[i], mounts[j] = mounts[j], mounts[i]
+	}
+	return mounts
+}
