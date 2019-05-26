@@ -1,11 +1,11 @@
 syntax = "proto3";
 
-package io.stellarproject.v1;
+package io.stellarproject.services.v1;
 
 import weak "gogoproto/gogo.proto";
 import "google/protobuf/empty.proto";
 
-option go_package = "github.com/stellarproject/terraos/api/v1;v1";
+option go_package = "github.com/stellarproject/terraos/api/v1/services;services";
 
 service Infrastructure {
 	rpc Provision(ProvisionNodeRequest) returns (ProvisionNodeResponse);
