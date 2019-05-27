@@ -106,8 +106,8 @@ Install terra onto a physical disk`
 			return errors.Wrap(err, "load node")
 		}
 		var (
-			diskmount = "/sd/mnt"
-			dest      = "/sd/dest"
+			diskmount = "/tmp/mnt"
+			dest      = "/tmp/dest"
 			ctx       = cmd.CancelContext()
 		)
 		for _, p := range []string{diskmount, dest} {
@@ -127,6 +127,9 @@ Install terra onto a physical disk`
 			path := filepath.Join(diskmount, g.Label)
 			if err := os.MkdirAll(path, 0755); err != nil {
 				return errors.Wrapf(err, "mkdir %s", path)
+			}
+			if err := stage0.Format(g); err != nil {
+				return errors.Wrap(err, "format group")
 			}
 			// mount the entire diskmount group before subsystems
 			if err := unix.Mount(g.Disks[0].Device, path, stage0.DefaultFilesystem, 0, ""); err != nil {

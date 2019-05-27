@@ -55,6 +55,7 @@ type DiskGroup struct {
 	Subvolumes []Subvolume `toml:"subvolumes"`
 	Stage      string      `toml:"stage"`
 	Disks      []Disk      `toml:"disk"`
+	Mbr        bool        `toml:"mbr"`
 }
 
 type Subvolume struct {
@@ -95,6 +96,7 @@ func (n *Node) ToProto() *v1.Node {
 			Label:      g.Label,
 			Subvolumes: subvolumes(g.Subvolumes),
 			Disks:      disks(g.Disks),
+			Mbr:        g.Mbr,
 		})
 	}
 
