@@ -28,6 +28,8 @@
 package cmd
 
 import (
+	"net/http"
+	"net/url"
 	"os"
 
 	"github.com/BurntSushi/toml"
@@ -121,8 +123,25 @@ func subvolumes(subvolumes []Subvolume) (out []*v1.Subvolume) {
 
 func LoadNode(path string) (*v1.Node, error) {
 	var node Node
-	if _, err := toml.DecodeFile(path, &node); err != nil {
-		return nil, errors.Wrap(err, "load node file")
+
+	uri, err := url.Parse(path)
+	if err != nil {
+		return nil, errors.Wrap(err, "parse path")
+	}
+	switch uri.Scheme {
+	case "http", "https":
+		r, err := http.Get(path)
+		if err != nil {
+			return nil, errors.Wrap(err, "http get node")
+		}
+		defer r.Body.Close()
+		if _, err := toml.DecodeReader(r.Body, &node); err != nil {
+			return nil, errors.Wrap(err, "load node file")
+		}
+	default:
+		if _, err := toml.DecodeFile(path, &node); err != nil {
+			return nil, errors.Wrap(err, "load node file")
+		}
 	}
 	return node.ToProto(), nil
 }
