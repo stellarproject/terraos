@@ -33,7 +33,7 @@ WIREGUARD=0.0.20190406
 
 ARGS=--arg KERNEL_VERSION=${KERNEL} --arg VERSION=${VERSION} --arg REPO=${REPO} --arg WIREGUARD=${WIREGUARD}
 
-release: stage0 userland iso
+release: stage0 stage1 iso
 
 all: local
 
@@ -63,7 +63,7 @@ iso: clean
 	@mv iso/terra.iso build/
 
 live: FORCE
-	@vab build --push -c userland/live -d userland/live --ref ${REPO}/live:${VERSION} ${ARGS}
+	@vab build --push -c stage1/live -d stage1/live --ref ${REPO}/live:${VERSION} ${ARGS}
 
 # -------------------- stage0 -------------------------
 stage0: kernel pxe
@@ -74,25 +74,25 @@ kernel: FORCE
 pxe: FORCE
 	@vab build --push -c stage0/pxe -d stage0/pxe --ref ${REPO}/pxe:${VERSION}  ${ARGS}
 
-# -------------------- userland -------------------------
+# -------------------- stage1 -------------------------
 
-userland: defaults binaries terraos
+stage1: defaults binaries terraos
 
 defaults: wireguard orbit-release FORCE
-	vab build -p -c userland/defaults/containerd -d userland/defaults/containerd --ref ${REPO}/containerd:${VERSION} ${ARGS}
-	vab build -p -c userland/defaults/node_exporter -d userland/defaults/node_exporter --ref ${REPO}/node_exporter:${VERSION} ${ARGS}
-	vab build -p -c userland/defaults/cni -d userland/defaults/cni --ref ${REPO}/cni:${VERSION} ${ARGS}
-	vab build -p -d userland/defaults/criu -c userland/defaults/criu --ref ${REPO}/criu:${VERSION} ${ARGS}
+	vab build -p -c stage1/defaults/containerd -d stage1/defaults/containerd --ref ${REPO}/containerd:${VERSION} ${ARGS}
+	vab build -p -c stage1/defaults/node_exporter -d stage1/defaults/node_exporter --ref ${REPO}/node_exporter:${VERSION} ${ARGS}
+	vab build -p -c stage1/defaults/cni -d stage1/defaults/cni --ref ${REPO}/cni:${VERSION} ${ARGS}
+	vab build -p -d stage1/defaults/criu -c stage1/defaults/criu --ref ${REPO}/criu:${VERSION} ${ARGS}
 
 wireguard:
-	vab build -p -d userland/defaults/wireguard -c userland/defaults/wireguard --ref ${REPO}/wireguard:${VERSION} ${ARGS}
+	vab build -p -d stage1/defaults/wireguard -c stage1/defaults/wireguard --ref ${REPO}/wireguard:${VERSION} ${ARGS}
 
 extras: FORCE
-	vab build -p -c userland/extras/buildkit -d userland/extras/buildkit --ref ${REPO}/buildkit:${VERSION} ${ARGS}
-	vab build -p -d userland/extras/docker -c userland/extras/docker --ref ${REPO}/docker:${VERSION} ${ARGS}
+	vab build -p -c stage1/extras/buildkit -d stage1/extras/buildkit --ref ${REPO}/buildkit:${VERSION} ${ARGS}
+	vab build -p -d stage1/extras/docker -c stage1/extras/docker --ref ${REPO}/docker:${VERSION} ${ARGS}
 
 terraos: FORCE
-	vab build -c userland/terraos -d userland/terraos --push --ref ${REPO}/terraos:${VERSION} ${ARGS}
+	vab build -c stage1/terraos -d stage1/terraos --push --ref ${REPO}/terraos:${VERSION} ${ARGS}
 
 binaries: FORCE
 	vab build --push -d cmd --ref ${REPO}/terracmd:${VERSION} ${ARGS}
