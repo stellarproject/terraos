@@ -39,5 +39,4 @@ message DeleteNodeRequest {
 message InfoResponse {
 	string pxe_version = 1;
 	string gateway = 2;
-	repeated types.v1.Target targets = 3;
 }

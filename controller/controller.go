@@ -30,6 +30,7 @@ package controller
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"os"
 	"os/exec"
@@ -208,7 +209,9 @@ func (c *Controller) Info(ctx context.Context, _ *types.Empty) (*api.InfoRespons
 
 	version, err := redis.String(conn.Do("GET", KeyPXEVersion))
 	if err != nil {
-		return nil, errors.Wrap(err, "get pxe version")
+		if err != redis.ErrNil {
+			return nil, errors.Wrap(err, "get pxe version")
+		}
 	}
 	resp := &api.InfoResponse{
 		PxeVersion: version,
@@ -281,24 +284,31 @@ func (c *Controller) Delete(ctx context.Context, r *api.DeleteNodeRequest) (*typ
 	if err != nil {
 		return nil, errors.Wrap(err, "get node information")
 	}
+	return empty, c.delete(ctx, node)
+}
 
+func (c *Controller) delete(ctx context.Context, node *v1.Node) error {
 	conn, err := c.pool.GetContext(ctx)
 	if err != nil {
-		return nil, errors.Wrap(err, "get connection")
+		return errors.Wrap(err, "get connection")
 	}
 	defer conn.Close()
 
 	for _, group := range node.DiskGroups {
 		// TODO: muti disk support
-		if err := iscsi.Delete(ctx, group.Target, group.Disks[0]); err != nil {
-			return nil, errors.Wrap(err, "delete target and lun from tgt")
+		if group.Target == nil {
+			continue
 		}
-		if err := iscsi.DeleteLun(group.Disks[0]); err != nil {
-			return nil, errors.Wrap(err, "delete lun file")
+		if err := iscsi.Delete(ctx, group.Target, group.Disks[0]); err != nil {
+			return errors.Wrap(err, "delete target and lun from tgt")
+		}
+		path := filepath.Join(ISCSIPath, node.Hostname)
+		if err := os.RemoveAll(path); err != nil {
+			return errors.Wrap(err, "delete luns")
 		}
 	}
-	if _, err := conn.Do("HDEL", KeyNodes, hostname); err != nil {
-		return nil, errors.Wrap(err, "delete node from kv")
+	if _, err := conn.Do("HDEL", KeyNodes, node.Hostname); err != nil {
+		return errors.Wrap(err, "delete node from kv")
 	}
 
 	p := &pxe.PXE{
@@ -307,10 +317,10 @@ func (c *Controller) Delete(ctx context.Context, r *api.DeleteNodeRequest) (*typ
 	path := filepath.Join(TFTPPath, "pxelinux.cfg", p.Filename())
 	if err := os.Remove(path); err != nil {
 		if !os.IsNotExist(err) {
-			return nil, errors.Wrap(err, "delete pxe config")
+			return errors.Wrap(err, "delete pxe config")
 		}
 	}
-	return empty, nil
+	return nil
 }
 
 func (c *Controller) InstallPXE(ctx context.Context, r *api.InstallPXERequest) (*types.Empty, error) {
@@ -334,8 +344,17 @@ func (c *Controller) InstallPXE(ctx context.Context, r *api.InstallPXERequest) (
 		return nil, errors.Wrapf(err, "fetch pxe image %s", r.Image)
 	}
 	log.Debug("unpacking image")
-	if err := image.Unpack(ctx, c.client.ContentStore(), &i.Target, "/"); err != nil {
+	path, err := ioutil.TempDir("", "terra-pxe-install")
+	if err != nil {
+		return nil, errors.Wrap(err, "create tmp pxe dir")
+	}
+	defer os.RemoveAll(path)
+
+	if err := image.Unpack(ctx, c.client.ContentStore(), &i.Target, path); err != nil {
 		return nil, errors.Wrap(err, "unpack pxe image")
+	}
+	if err := syncDir(ctx, filepath.Join(path, "tftp")+"/", TFTPPath+"/"); err != nil {
+		return nil, errors.Wrap(err, "sync tftp dir")
 	}
 	conn, err := c.pool.GetContext(ctx)
 	if err != nil {
@@ -347,7 +366,15 @@ func (c *Controller) InstallPXE(ctx context.Context, r *api.InstallPXERequest) (
 	return empty, nil
 }
 
-func (c *Controller) Provision(ctx context.Context, r *api.ProvisionNodeRequest) (*api.ProvisionNodeResponse, error) {
+func syncDir(ctx context.Context, source, target string) error {
+	out, err := exec.CommandContext(ctx, "rsync", "-a", source, target).CombinedOutput()
+	if err != nil {
+		return errors.Wrapf(err, "%s", out)
+	}
+	return nil
+}
+
+func (c *Controller) Provision(ctx context.Context, r *api.ProvisionNodeRequest) (_ *api.ProvisionNodeResponse, err error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -367,6 +394,13 @@ func (c *Controller) Provision(ctx context.Context, r *api.ProvisionNodeRequest)
 	if err := c.saveNode(node); err != nil {
 		return nil, err
 	}
+	defer func() {
+		if err != nil {
+			if err := c.delete(ctx, node); err != nil {
+				log.WithError(err).Error("delete failed node")
+			}
+		}
+	}()
 	ctx = namespaces.WithNamespace(ctx, "controller")
 	log.Debug("provision disk")
 	if err := c.provisionTarget(ctx, node, image); err != nil {
@@ -399,7 +433,7 @@ func (c *Controller) fetch(ctx context.Context, repo string) (containerd.Image, 
 	return image, nil
 }
 
-func (c *Controller) provisionTarget(ctx context.Context, node *v1.Node, image containerd.Image) error {
+func (c *Controller) provisionTarget(ctx context.Context, node *v1.Node, image containerd.Image) (err error) {
 	if len(node.DiskGroups) != 1 {
 		return errors.Errorf("only 1 disk group supported with iscsi: %d groups", len(node.DiskGroups))
 	}
@@ -420,11 +454,23 @@ func (c *Controller) provisionTarget(ctx context.Context, node *v1.Node, image c
 	if err != nil {
 		return errors.Wrap(err, "create target")
 	}
+	defer func() {
+		if err != nil {
+			iscsi.Delete(ctx, target, nil)
+		}
+	}()
 	group.Target = target
 
 	if err := c.createGroupLuns(ctx, node, group); err != nil {
 		return errors.Wrapf(err, "provision disk group %s", group.Label)
 	}
+	defer func() {
+		if err != nil {
+			for _, disk := range group.Disks {
+				iscsi.DeleteLun(disk)
+			}
+		}
+	}()
 	if err := stage0.Format(group); err != nil {
 		return errors.Wrap(err, "format group")
 	}
@@ -448,7 +494,8 @@ func (c *Controller) createGroupLuns(ctx context.Context, node *v1.Node, group *
 	for i, disk := range group.Disks {
 		// assign the file path as the disk device
 		disk.Device = filepath.Join(dir, fmt.Sprintf("%d.lun", i))
-		if err := iscsi.NewLun(ctx, int64(i), disk); err != nil {
+		disk.ID = int64(i + 1)
+		if err := iscsi.NewLun(ctx, disk); err != nil {
 			return errors.Wrapf(err, "create lun %d", i)
 		}
 	}

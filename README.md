@@ -20,11 +20,10 @@ This repo is a mono repo for most, if not all terra && stellar projects.
 
 * `terra`: alpha
 * `terra controller`: alpha
-* `terra-install`: alpha
+* `terra-install`: beta
 * `stage0`: alpha
-* `userland`: alpha
+* `stage1`: alpha
 * `iso`: alpha
-* `live`: beta
 * `orbit`: alpha
 * `vab`: beta
 

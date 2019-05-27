@@ -62,7 +62,9 @@ RUN apt update && apt upgrade -y && \
 	openssh-server \
 	curl \
 	pigz \
-	git \
+	htop \
+	tmux \
+	rsync \
 	vim \
 	apparmor \
 	libnl-3-dev \

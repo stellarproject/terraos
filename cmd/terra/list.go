@@ -71,12 +71,16 @@ var listCommand = cli.Command{
 		const tfmt = "%s\t%s\t%s\t%s\t%s\n"
 		fmt.Fprint(w, "HOSTNAME\tMAC\tIMAGE\tINITIATOR\tTARGET\n")
 		for _, n := range resp.Nodes {
+			var iqn string
+			if n.DiskGroups[0].Target != nil {
+				iqn = n.DiskGroups[0].Target.Iqn
+			}
 			fmt.Fprintf(w, tfmt,
 				n.Hostname,
 				n.Mac,
 				n.Image,
 				n.InitiatorIqn,
-				n.DiskGroups[0].Target.Iqn,
+				iqn,
 			)
 		}
 		return w.Flush()

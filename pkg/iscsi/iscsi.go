@@ -148,10 +148,11 @@ func Delete(ctx context.Context, t *types.Target, lun *types.Disk) error {
 }
 
 // NewLun allocates a new lun with the specified size in MB
-func NewLun(ctx context.Context, id int64, disk *types.Disk) error {
+func NewLun(ctx context.Context, disk *types.Disk) error {
 	args := []string{
 		"--op", "new",
 		"--device-type", "disk",
+		"--type", "disk",
 		"--size", strconv.Itoa(int(disk.FsSize)),
 		"--file", disk.Device,
 	}
@@ -168,5 +169,8 @@ func NewLun(ctx context.Context, id int64, disk *types.Disk) error {
 }
 
 func DeleteLun(l *types.Disk) error {
+	if l.Device == "" {
+		return nil
+	}
 	return os.Remove(l.Device)
 }

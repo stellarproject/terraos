@@ -8,17 +8,5 @@ image = "docker.io/stellarproject/example:6"
   stage = "stage1"
 
   [[groups.disk]]
-    device = "/dev/sda1"
-    size = 0
-
-[[groups]]
-  label = "data"
-  type = "single"
-  stage = "stage1"
-
-  [[groups.subvolumes]]
-    name = "data"
-    path = "/var/lib/containerd"
-
-  [[groups.disk]]
-    device = "/dev/sdb"
+    device = "/dev/sda"
+    size = 2048
