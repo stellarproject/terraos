@@ -40,6 +40,7 @@ import (
 	"github.com/stellarproject/terraos/pkg/fstab"
 	"github.com/stellarproject/terraos/pkg/image"
 	"github.com/stellarproject/terraos/pkg/resolvconf"
+	"github.com/stellarproject/terraos/pkg/syslinux"
 	"github.com/stellarproject/terraos/stage0"
 	"github.com/stellarproject/terraos/stage1"
 	"github.com/stellarproject/terraos/version"
@@ -131,6 +132,7 @@ Install terra onto a physical disk`
 			if err := stage0.Format(g); err != nil {
 				return errors.Wrap(err, "format group")
 			}
+
 			// mount the entire diskmount group before subsystems
 			if err := unix.Mount(g.Disks[0].Device, path, stage0.DefaultFilesystem, 0, ""); err != nil {
 				return errors.Wrapf(err, "mount %s to %s", g.Disks[0].Device, path)
@@ -140,7 +142,6 @@ Install terra onto a physical disk`
 				if store, err = image.NewContentStore(storePath); err != nil {
 					return errors.Wrap(err, "new content store")
 				}
-				defer os.RemoveAll(storePath)
 			}
 			group, err := stage1.NewGroup(g, dest)
 			if err != nil {
@@ -165,24 +166,40 @@ Install terra onto a physical disk`
 			return errors.Wrap(err, "unpack image")
 		}
 
+		for _, g := range node.DiskGroups {
+			if g.Mbr {
+				/*
+					entries = append(entries, &fstab.Entry{
+						Type:   mkfs.Btrfs,
+						Device: fmt.Sprintf("LABEL=%s", d.Label),
+						Path:   "/boot",
+						Pass:   2,
+						Options: []string{
+							"bind",
+						},
+					})
+				*/
+
+				path := filepath.Join(diskmount, g.Label)
+				if err := os.MkdirAll(path, 0755); err != nil {
+					return errors.Wrap(err, "make boot path")
+				}
+				if err := syslinux.Copy(path); err != nil {
+					return errors.Wrap(err, "copy syslinux from live cd")
+				}
+				if err := syslinux.ExtlinuxInstall(filepath.Join(path, "boot", "syslinux")); err != nil {
+					return errors.Wrap(err, "install extlinux")
+				}
+				if err := syslinux.InstallMBR(g.Disks[0].Device, "/boot/syslinux/mbr.bin"); err != nil {
+					return errors.Wrap(err, "install mbr")
+				}
+			}
+		}
 		if err := writeFstab(entries, dest); err != nil {
 			return errors.Wrap(err, "write fstab")
 		}
 		if err := writeResolvconf(dest, gateway); err != nil {
 			return errors.Wrap(err, "write resolv.conf")
-		}
-		for _, g := range node.DiskGroups {
-			if g.Mbr {
-				boot := filepath.Join(dest, "boot")
-				closer, err := stage0.MountBoot(boot)
-				if err != nil {
-					return errors.Wrap(err, "mount boot")
-				}
-				defer closer()
-				if err := stage0.MBR(g.Disks[0].Device, boot); err != nil {
-					return errors.Wrap(err, "install mbr")
-				}
-			}
 		}
 		return nil
 	}

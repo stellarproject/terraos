@@ -31,10 +31,11 @@ ARG REPO
 
 # ------------------ imports ------------------------------ #
 FROM stellarproject/kernel:$KERNEL_VERSION as kernel
+FROM $REPO/live:$VERSION as live
 
-# ------------------ pxe build --------------------------- #
+# ------------------ boot build --------------------------- #
 
-FROM ubuntu:18.10 as pxe
+FROM ubuntu:18.10 as boot
 
 ARG KERNEL_VERSION
 
@@ -43,6 +44,7 @@ RUN apt-get update && apt-get install -y \
 	curl \
 	ca-certificates \
 	xz-utils \
+	squashfs-tools \
 	syslinux-utils \
 	open-iscsi \
 	isc-dhcp-common \
@@ -57,7 +59,7 @@ RUN --mount=type=bind,from=kernel,target=/tmp dpkg -i \
 RUN curl -sSL https://mirrors.edge.kernel.org/pub/linux/utils/boot/syslinux/syslinux-6.03.tar.xz -o /tmp/syslinux.tar.xz && \
 	tar xf /tmp/syslinux.tar.xz -C /
 
-RUN mkdir -p /tftp/syslinux /tftp/pxelinux.cfg
+RUN mkdir -p /boot/syslinux
 
 WORKDIR /syslinux-6.03
 
@@ -69,34 +71,32 @@ RUN cp -r bios/core/isolinux.bin \
 	bios/com32/chain/chain.c32 \
 	bios/com32/libutil/libutil.c32 \
 	bios/com32/lib/libcom32.c32 \
-	bios/com32/modules/sanboot.c32 /tftp/syslinux/
-
-ADD syslinux.cfg /tftp/syslinux/syslinux.cfg
-ADD splash.png /tftp/syslinux/splash.png
-
-RUN cp -r bios/core/pxelinux.0 \
-	bios/com32/cmenu/libmenu/libmenu.c32 \
-	bios/com32/menu/menu.c32 \
-	bios/com32/modules/sanboot.c32 \
-	bios/memdisk/memdisk \
-	bios/com32/elflink/ldlinux/ldlinux.c32 \
-	bios/com32/libutil/libutil.c32 /tftp/
+	bios/com32/modules/sanboot.c32 /boot/syslinux/
 
 WORKDIR /
 
+COPY --from=live / /rootfs
+
+RUN mkdir -p /rootfs/proc /rootfs/sys /rootfs/run && \
+	mksquashfs /rootfs live.sq
+
+ADD live /etc/initramfs-tools/scripts/live
 ADD terra /etc/initramfs-tools/scripts/terra
 ADD modules /etc/initramfs-tools/modules
 RUN touch /etc/iscsi/iscsi.initramfs
-ADD default /tftp/pxelinux.cfg/default
+ADD squashhook /etc/initramfs-tools/hooks/squash
+RUN chmod +x /etc/initramfs-tools/hooks/squash
+ADD syslinux.cfg /boot/syslinux/syslinux.cfg
+ADD splash.png /boot/syslinux/splash.png
 
 RUN update-initramfs -u
 
-RUN mv /boot/vmlinuz-$KERNEL_VERSION-terra /tftp/vmlinuz && \
-	mv /boot/initrd.img-$KERNEL_VERSION-terra /tftp/initrd.img
+RUN mv /boot/vmlinuz-$KERNEL_VERSION-terra /boot/vmlinuz && \
+	mv /boot/initrd.img-$KERNEL_VERSION-terra /boot/initrd.img
 
 # ------------------------ output -----------------------------
 
 FROM scratch
 
-COPY --from=pxe /tftp/ /tftp/
-COPY --from=pxe /lib/modules/ /lib/modules/
+COPY --from=boot /boot/ /boot/
+COPY --from=boot /lib/modules/ /lib/modules/

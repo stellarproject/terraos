@@ -62,7 +62,7 @@ iso: clean
 	@cd iso && vab build --local --http ${ARGS}
 	@mv iso/terra.iso build/
 
-live: FORCE
+live:
 	@vab build --push -c stage1/live -d stage1/live --ref ${REPO}/live:${VERSION} ${ARGS}
 
 # -------------------- stage0 -------------------------
@@ -73,6 +73,9 @@ kernel: FORCE
 
 pxe: FORCE
 	@vab build --push -c stage0/pxe -d stage0/pxe --ref ${REPO}/pxe:${VERSION}  ${ARGS}
+
+boot: FORCE
+	@vab build --push -c stage0/boot -d stage0/boot --ref ${REPO}/boot:${VERSION}  ${ARGS}
 
 # -------------------- stage1 -------------------------
 
@@ -94,7 +97,7 @@ extras: FORCE
 terraos: FORCE
 	vab build -c stage1/terraos -d stage1/terraos --push --ref ${REPO}/terraos:${VERSION} ${ARGS}
 
-binaries: FORCE
+binaries:
 	vab build --push -d cmd --ref ${REPO}/terracmd:${VERSION} ${ARGS}
 
 # ----------------------- ORBIT --------------------------------

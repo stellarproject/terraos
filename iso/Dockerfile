@@ -30,7 +30,7 @@ ARG REPO
 
 # ------------------ imports ------------------------------ #
 FROM $REPO/terracmd:$VERSION as terra
-FROM $REPO/pxe:$VERSION as pxe
+FROM $REPO/boot:$VERSION as boot
 
 # ------------------ iso build --------------------------- #
 FROM ubuntu:18.10 as iso
@@ -46,7 +46,7 @@ RUN apt-get update && apt-get install -y \
 	xorriso \
 	syslinux-utils
 
-COPY --from=pxe / /
+COPY --from=boot / /
 
 RUN mkisofs -o /terra.iso \
    -b syslinux/isolinux.bin -c syslinux/boot.cat \

@@ -28,10 +28,10 @@
 ARG VERSION
 ARG REPO
 
-FROM $REPO/pxe:$VERSION as pxe
 FROM $REPO/terracmd:$VERSION as terra
+FROM $REPO/pxe:$VERSION as pxe
 
-FROM alpine:latest as liveos
+FROM alpine:latest
 
 RUN mkdir -p /boot /sd
 
@@ -40,35 +40,24 @@ RUN apk update && \
 	e2fsprogs \
 	xfsprogs \
 	btrfs-progs \
-	grub \
 	dhclient \
 	openssh \
 	ca-certificates \
 	iptables \
-	grub-bios
+	syslinux
 
 COPY --from=terra / /
+COPY --from=pxe /tftp /boot
+COPY --from=pxe /lib/modules/ /lib/modules/
+RUN rm -rf /boot/*.c32 /boot/pxelinux.0 /boot/pxelinux.cfg
+
 ADD interfaces /etc/network/interfaces
 RUN rm /sbin/init
 ADD resolv.conf /etc/resolv.conf
 ADD init /sbin/init
-RUN chmod +x /sbin/init && \
-	touch /etc/default/grub
+RUN chmod +x /sbin/init
 
 RUN ssh-keygen -f /etc/ssh/ssh_host_rsa_key -N '' -t rsa && \
 	ssh-keygen -f /etc/ssh/ssh_host_dsa_key -N '' -t dsa && \
 	echo "PermitRootLogin yes" >> /etc/ssh/sshd_config
 RUN echo 'root:root' | chpasswd
-
-RUN --mount=type=bind,from=pxe,target=/tmp cp -r /tmp/lib/modules/ /lib/modules/
-
-# ------------------ squasher ---------------------------- #
-FROM ubuntu:18.10
-
-RUN apt update && \
-	apt install -y squashfs-tools
-
-COPY --from=liveos / /rootfs
-
-RUN mkdir -p /rootfs/proc /rootfs/sys /rootfs/run && \
-	mksquashfs /rootfs live.sqsh
