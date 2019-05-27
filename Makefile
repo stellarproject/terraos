@@ -35,6 +35,10 @@ ARGS=--arg KERNEL_VERSION=${KERNEL} --arg VERSION=${VERSION} --arg REPO=${REPO} 
 
 release: stage0 stage1 iso
 
+stage0: pxe binaries live boot
+
+stage1: defaults terraos
+
 all: local
 
 clean:
@@ -66,7 +70,6 @@ live:
 	@vab build --push -c stage1/live -d stage1/live --ref ${REPO}/live:${VERSION} ${ARGS}
 
 # -------------------- stage0 -------------------------
-stage0: pxe
 
 kernel: FORCE
 	vab build -c stage0/kernel -d stage0/kernel --push --ref stellarproject/kernel:${KERNEL} ${ARGS}
@@ -78,8 +81,6 @@ boot: FORCE
 	@vab build --push -c stage0/boot -d stage0/boot --ref ${REPO}/boot:${VERSION}  ${ARGS}
 
 # -------------------- stage1 -------------------------
-
-stage1: defaults binaries terraos
 
 defaults: wireguard orbit-release FORCE
 	vab build -p -c stage1/defaults/containerd -d stage1/defaults/containerd --ref ${REPO}/containerd:${VERSION} ${ARGS}
