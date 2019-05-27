@@ -35,11 +35,11 @@ import (
 	"github.com/containerd/containerd/content"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"github.com/stellarproject/orbit/pkg/resolvconf"
 	v1 "github.com/stellarproject/terraos/api/v1/types"
 	"github.com/stellarproject/terraos/cmd"
 	"github.com/stellarproject/terraos/pkg/fstab"
 	"github.com/stellarproject/terraos/pkg/image"
+	"github.com/stellarproject/terraos/pkg/resolvconf"
 	"github.com/stellarproject/terraos/stage0"
 	"github.com/stellarproject/terraos/stage1"
 	"github.com/stellarproject/terraos/version"
@@ -203,10 +203,16 @@ func writeFstab(entries []*fstab.Entry, root string) error {
 
 func writeResolvconf(root, gateway string) error {
 	path := filepath.Join(root, resolvconf.DefaultPath)
+	f, err := os.Create(path)
+	if err != nil {
+		return errors.Wrapf(err, "create resolv.conf file %s", path)
+	}
+	defer f.Close()
+
 	conf := &resolvconf.Conf{
 		Nameservers: []string{
 			gateway,
 		},
 	}
-	return conf.Write(path)
+	return conf.Write(f)
 }

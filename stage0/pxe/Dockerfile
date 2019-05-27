@@ -26,10 +26,12 @@
 # THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 ARG KERNEL_VERSION
+ARG VERSION
 ARG REPO
 
 # ------------------ imports ------------------------------ #
 FROM stellarproject/kernel:$KERNEL_VERSION as kernel
+FROM $REPO/live:$VERSION as live
 
 # ------------------ pxe build --------------------------- #
 
@@ -80,16 +82,23 @@ RUN cp -r bios/core/pxelinux.0 \
 
 WORKDIR /
 
-ADD terra /etc/initramfs-tools/scripts/terra
-ADD default /tftp/pxelinux.cfg/default
-ADD modules /etc/initramfs-tools/modules
+COPY --from=live /live.sqsh /live.sq
 
+ADD live /etc/initramfs-tools/scripts/live
+ADD terra /etc/initramfs-tools/scripts/terra
+ADD modules /etc/initramfs-tools/modules
 RUN touch /etc/iscsi/iscsi.initramfs
+ADD squashhook /etc/initramfs-tools/hooks/squash
+RUN chmod +x /etc/initramfs-tools/hooks/squash
+ADD syslinux.cfg /boot/syslinux/syslinux.cfg
+ADD splash.png /boot/syslinux/splash.png
+ADD default /tftp/pxelinux.cfg/default
 
 RUN update-initramfs -u
 
 RUN mv /boot/vmlinuz-$KERNEL_VERSION-terra /boot/vmlinuz && \
 	mv /boot/initrd.img-$KERNEL_VERSION-terra /boot/initrd.img
+
 RUN cp /boot/vmlinuz /boot/initrd.img /tftp/
 
 # ------------------------ output -----------------------------
@@ -99,3 +108,5 @@ FROM scratch
 COPY --from=pxe /boot /boot
 COPY --from=pxe /tftp /tftp
 COPY --from=pxe /lib/modules/ /lib/modules/
+COPY --from=pxe /etc/initramfs-tools/ /etc/initramfs-tools/
+COPY --from=pxe /etc/iscsi/ /etc/iscsi/

@@ -31,7 +31,6 @@ ARG REPO
 # ------------------ imports ------------------------------ #
 FROM $REPO/terracmd:$VERSION as terra
 FROM $REPO/pxe:$VERSION as pxe
-FROM $REPO/live:$VERSION as live
 
 # ------------------ iso build --------------------------- #
 FROM ubuntu:18.10 as iso
@@ -45,20 +44,9 @@ RUN apt-get update && apt-get install -y \
 	ca-certificates \
 	xz-utils \
 	xorriso \
-	syslinux-utils \
-	open-iscsi \
-	isc-dhcp-common \
-	isc-dhcp-client \
-	initramfs-tools
+	syslinux-utils
 
 COPY --from=pxe / /
-
-ADD live /etc/initramfs-tools/scripts/live
-ADD squashhook /etc/initramfs-tools/hooks/squash
-RUN chmod +x /etc/initramfs-tools/hooks/squash
-COPY --from=live /live.sqsh /live.sq
-
-RUN update-initramfs -u
 
 RUN mkisofs -o /terra.iso \
    -b syslinux/isolinux.bin -c syslinux/boot.cat \

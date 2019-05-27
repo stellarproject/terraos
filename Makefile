@@ -28,7 +28,7 @@ REVISION=$(shell git rev-parse HEAD)
 VERSION=v11
 GO_LDFLAGS=-s -w -X github.com/stellarproject/terraos/version.Version=$(VERSION) -X github.com/stellarproject/terraos/version.Revision=$(REVISION)
 KERNEL=5.0.18
-REPO=stellarproject
+REPO=$(shell cat REPO || echo "stellarproject")
 WIREGUARD=0.0.20190406
 
 ARGS=--arg KERNEL_VERSION=${KERNEL} --arg VERSION=${VERSION} --arg REPO=${REPO} --arg WIREGUARD=${WIREGUARD}
@@ -59,7 +59,7 @@ install:
 
 iso: clean
 	@mkdir -p build
-	@cd iso && vab build --local ${ARGS}
+	@cd iso && vab build --local --http ${ARGS}
 	@mv iso/terra.iso build/
 
 live: FORCE

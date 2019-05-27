@@ -60,7 +60,7 @@ RUN ssh-keygen -f /etc/ssh/ssh_host_rsa_key -N '' -t rsa && \
 	echo "PermitRootLogin yes" >> /etc/ssh/sshd_config
 RUN echo 'root:root' | chpasswd
 
-RUN --mount=type=bind,from=pxe,target=/tmp cp -r /tmp/lib/ /lib/
+RUN --mount=type=bind,from=pxe,target=/tmp cp -r /tmp/lib/modules/ /lib/modules/
 
 # ------------------ squasher ---------------------------- #
 FROM ubuntu:18.10
