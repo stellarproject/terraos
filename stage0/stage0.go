@@ -25,49 +25,35 @@
 	THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package stage1
+package stage0
 
 import (
 	"github.com/pkg/errors"
-
 	"github.com/stellarproject/terraos/api/v1/types"
-	"github.com/stellarproject/terraos/pkg/mkfs"
+	"github.com/stellarproject/terraos/pkg/grub"
+	"golang.org/x/sys/unix"
 )
 
-const DefaultFilesystem = "btrfs"
+const (
+	Image      = "docker.io/stellarproject/pxe"
+	Stage0Path = "/boot"
+)
 
-func Format(g *Group) error {
-	var (
-		devices []string
-		args    = []string{"-f"}
-	)
-	switch g.group.GroupType {
-	case types.Single:
-		if len(g.group.Disks) != 1 {
-			return errors.New("cannot have a single group with multiple disks")
-		}
-		devices = append(devices, g.group.Disks[0].Device)
-	case types.RAID0:
-		args = append(args, "-d", "raid0")
-		for _, d := range g.group.Disks {
-			devices = append(devices, d.Device)
-		}
-	case types.RAID5:
-		args = append(args, "-d", "raid5", "-m", "raid5")
-		for _, d := range g.group.Disks {
-			devices = append(devices, d.Device)
-		}
-	case types.RAID10:
-		args = append(args, "-d", "raid10", "-m", "raid10")
-		for _, d := range g.group.Disks {
-			devices = append(devices, d.Device)
-		}
-	default:
-		return errors.Errorf("unsupported group type %s", g.group.GroupType)
+func Overlay(group *types.DiskGroup) (func() error, error) {
+	if err := unix.Mount(group.Disks[0].Device, Stage0Path, stage0Filesystem, 0, ""); err != nil {
+		return nil, errors.Wrap(err, "overlay stage0")
 	}
-	if err := mkfs.Mkfs(DefaultFilesystem, g.group.Label, append(args, devices...)...); err != nil {
-		return errors.Wrapf(err, "mkfs of disk group for %s", g.group.Label)
+	return func() error {
+		return unix.Unmount(Stage0Path, 0)
+	}, nil
+}
+
+func MBR(device string) error {
+	if err := grub.MkConfig(Stage0Path); err != nil {
+		return errors.Wrap(err, "make grub config")
 	}
-	g.mountDevice = devices[0]
+	if err := grub.Install(device); err != nil {
+		return errors.Wrapf(err, "install grub to %s", device)
+	}
 	return nil
 }

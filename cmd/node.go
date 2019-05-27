@@ -36,17 +36,77 @@ import (
 )
 
 type Node struct {
-	Hostname   string      `toml:"hostname"`
-	MAC        string      `toml:"mac"`
-	Image      string      `toml:"image"`
-	BackingURI string      `toml:"fs_uri"`
-	Size       int64       `toml:"fs_size"`
-	Subvolumes []Subvolume `toml:"fs_subvolumes"`
+	Hostname string      `toml:"hostname"`
+	Mac      string      `toml:"mac"`
+	Image    string      `toml:"image"`
+	Groups   []DiskGroup `toml:"groups"`
+}
+
+type Disk struct {
+	Device string `toml:"device"`
+	Size   int64  `toml:"size"`
+}
+
+type DiskGroup struct {
+	Label      string      `toml:"label"`
+	Type       string      `toml:"type"`
+	Subvolumes []Subvolume `toml:"subvolumes"`
+	Stage      string      `toml:"stage"`
+	Disks      []Disk      `toml:"disk"`
 }
 
 type Subvolume struct {
 	Name string `toml:"name"`
 	Path string `toml:"path"`
+}
+
+func (n *Node) ToProto() *v1.Node {
+	p := &v1.Node{
+		Hostname: n.Hostname,
+		Mac:      n.Mac,
+		Image:    n.Image,
+	}
+	for _, g := range n.Groups {
+		var (
+			stage v1.Stage
+			t     v1.DiskGroupType
+		)
+		switch g.Stage {
+		case "stage0":
+			stage = v1.Stage0
+		case "stage1":
+			stage = v1.Stage1
+		}
+		switch g.Type {
+		case "single":
+			t = v1.Single
+		case "raid0":
+			t = v1.RAID0
+		case "raid5":
+			t = v1.RAID5
+		case "raid10":
+			t = v1.RAID10
+		}
+		p.DiskGroups = append(p.DiskGroups, &v1.DiskGroup{
+			GroupType:  t,
+			Stage:      stage,
+			Label:      g.Label,
+			Subvolumes: subvolumes(g.Subvolumes),
+			Disks:      disks(g.Disks),
+		})
+	}
+
+	return p
+}
+
+func disks(disks []Disk) (out []*v1.Disk) {
+	for _, d := range disks {
+		out = append(out, &v1.Disk{
+			Device: d.Device,
+			FsSize: d.Size,
+		})
+	}
+	return out
 }
 
 func subvolumes(subvolumes []Subvolume) (out []*v1.Subvolume) {
@@ -64,21 +124,43 @@ func LoadNode(path string) (*v1.Node, error) {
 	if _, err := toml.DecodeFile(path, &node); err != nil {
 		return nil, errors.Wrap(err, "load node file")
 	}
-	n := &v1.Node{}
-	return n, nil
+	return node.ToProto(), nil
 }
 
 func DumpNodeConfig() error {
 	c := &Node{
-		Hostname:   "terra-01",
-		MAC:        "66:xx:ss:bb:f1:b1",
-		Image:      "docker.io/stellarproject/example:v4",
-		BackingURI: "iscsi://btrfs",
-		Size:       512,
-		Subvolumes: []Subvolume{
+		Hostname: "terra-01",
+		Mac:      "66:xx:ss:bb:f1:b1",
+		Image:    "docker.io/stellarproject/example:v4",
+		Groups: []DiskGroup{
 			{
-				Name: "tftp",
-				Path: "/tftp",
+				Stage: "stage0",
+				Type:  "single",
+				Disks: []Disk{
+					{
+						Device: "/dev/sda1",
+					},
+				},
+			},
+			{
+				Label: "os",
+				Stage: "stage1",
+				Type:  "raid0",
+				Disks: []Disk{
+					{
+						Device: "/dev/sda2",
+					},
+					{
+						Device: "/dev/sdb",
+						Size:   512,
+					},
+				},
+				Subvolumes: []Subvolume{
+					{
+						Name: "tftp",
+						Path: "/tftp",
+					},
+				},
 			},
 		},
 	}

@@ -33,11 +33,15 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/containerd/containerd/content"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	v1 "github.com/stellarproject/terraos/api/v1/types"
 	"github.com/stellarproject/terraos/cmd"
+	"github.com/stellarproject/terraos/pkg/fstab"
 	"github.com/stellarproject/terraos/pkg/image"
+	"github.com/stellarproject/terraos/stage0"
+	"github.com/stellarproject/terraos/stage1"
 	"github.com/stellarproject/terraos/version"
 	"github.com/urfave/cli"
 )
@@ -88,51 +92,74 @@ Install terra onto a physical disk`
 			return err
 		}
 
-		node, err := loadNode(clix)
+		node, err := cmd.LoadNode(clix.Args().First())
 		if err != nil {
 			return errors.Wrap(err, "load node")
 		}
-
 		var (
-			path = "/sd"
+			root = "/sd"
 			ctx  = cmd.CancelContext()
 		)
-		if err := os.MkdirAll(path, 0755); err != nil {
+		if err := os.MkdirAll(root, 0755); err != nil {
 			return errors.Wrap(err, "create /sd")
 		}
 
-		disks, err := node.FormatDisks(ctx)
-		if err != nil {
-			return errors.Wrap(err, "format disks")
-		}
+		var (
+			stage0Goup *v1.DiskGroup
+			groups     []*stage1.Group
+			entries    []*fstab.Entry
+			store      content.Store
+		)
+		for _, group := range node.DiskGroups {
+			switch group.Stage {
+			case v1.Stage0:
+				stage0Goup = group
+			case v1.Stage1:
+				ng, err := stage1.NewGroup(group)
+				if err != nil {
+					return errors.Wrap(err, "new stage1 disk group")
+				}
+				defer ng.Close()
 
-		for _, d := range disks {
-			if err := d.Mount(path); err != nil {
-				return errors.Wrapf(err, "mount disk %s", d)
+				groups = append(groups, ng)
 			}
-			defer d.Unmount()
+			if err := stage0.Format(group); err != nil {
+				return errors.Wrapf(err, "format group %s", group.Label)
+			}
 		}
-
-		if err := d.Provision(ctx, fstype, node); err != nil {
-			d.Unmount(ctx)
-			return errors.Wrap(err, "provision disk")
+		for _, group := range groups {
+			path, err := group.Init(root)
+			if err != nil {
+				return
+			}
+			// path is only different if the os volume is created
+			if path != root {
+				// create the content store on the osgroup
+				storePath := filepath.Join(path, "terra-content")
+				if store, err = image.NewContentStore(storePath); err != nil {
+					return errors.Wrap(err, "new content store")
+				}
+				defer os.RemoveAll(storePath)
+				root = path
+			}
 		}
-		storePath := filepath.Join(path, "terra-content")
-		store, err := image.NewContentStore(storePath)
-		if err != nil {
-			return errors.Wrap(err, "new content store")
+		if stage0Goup != nil {
+			if err := stage0.Overlay(root, stage0Goup); err != nil {
+				return errors.Wrap(err, "overlay stage0 group")
+			}
+			closer, err := stage0.Overlay(stage0Goup)
+			if err != nil {
+				return err
+			}
+			defer closer()
 		}
-		if err := d.Write(ctx, image.Repo(node.Image), store, nil); err != nil {
-			os.RemoveAll(storePath)
-			d.Unmount(ctx)
-			return errors.Wrap(err, "write image to disk")
+		if store == nil {
+			return errors.New("store not created on any group")
 		}
-		if err := os.RemoveAll(storePath); err != nil {
-			d.Unmount(ctx)
-			return errors.Wrap(err, "remove store path")
-		}
-		if err := d.Unmount(ctx); err != nil {
-			return errors.Wrap(err, "unmount disk")
+		if stage0Goup != nil {
+			if err := stage0.MBR(stage0Goup.Disks[0].Device); err != nil {
+				return errors.Wrap(err, "unable to install mbr")
+			}
 		}
 		return nil
 	}

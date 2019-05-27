@@ -29,7 +29,6 @@ package stage1
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -66,13 +65,9 @@ func (d *Group) String() string {
 }
 
 // Init the entire group returning the path to access the group
-func (d *Group) Init() (string, error) {
+func (d *Group) Init(root string) (string, error) {
 	if d.mountDevice == "" {
 		return "", errors.New("disk group not formatted")
-	}
-	root, err := ioutil.TempDir("/run", "group-mount.")
-	if err != nil {
-		return "", errors.Wrap(err, "create root path")
 	}
 	// mount the entire root group before subsystems
 	if err := unix.Mount(d.mountDevice, root, DefaultFilesystem, 0, ""); err != nil {

@@ -6,28 +6,13 @@ import weak "gogoproto/gogo.proto";
 
 option go_package = "github.com/stellarproject/terraos/api/v1/types;types";
 
-message Target {
-	string iqn = 1;
-	repeated Lun luns = 2;
-	int64 tid = 3;
-}
-
-message Lun {
-	string iqn = 1;
-	int64 size = 2;
-	int64 lid = 3;
-}
-
 message Node {
 	string hostname = 1;
 	string mac = 2;
-	string initiator_iqn = 3;
-	string target_iqn = 4;
-	repeated DiskGroup disk_groups = 5;
-	string image = 6;
-	int64 target_id = 7;
-	int64 lun_id = 8;
-	string lun_path = 9;
+	string image = 3;
+	repeated DiskGroup disk_groups = 4;
+	Target target = 5;
+	string initiator_iqn = 6;
 }
 
 enum Stage {
@@ -64,4 +49,8 @@ message Disk {
 message Subvolume {
 	string name = 1;
 	string path = 2;
+}
+
+message Target {
+	string iqn = 1;
 }

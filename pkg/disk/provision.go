@@ -27,28 +27,7 @@
 
 package disk
 
-import (
-	"context"
-	"fmt"
-	"os"
-	"path/filepath"
-	"syscall"
-
-	"github.com/containerd/containerd"
-	"github.com/containerd/containerd/content"
-	"github.com/containerd/containerd/errdefs"
-	"github.com/pkg/errors"
-	v1 "github.com/stellarproject/terraos/api/v1/types"
-	"github.com/stellarproject/terraos/pkg/btrfs"
-	"github.com/stellarproject/terraos/pkg/image"
-	"github.com/stellarproject/terraos/pkg/iscsi"
-	"github.com/stellarproject/terraos/pkg/mkfs"
-)
-
-type Disk interface {
-	Write(context.Context, image.Repo, content.Store, []File) error
-}
-
+/*
 type File interface {
 	Write(root string) error
 }
@@ -172,15 +151,4 @@ func (l *lunDisk) Provision(ctx context.Context, fstype string, node *v1.Node) e
 	return nil
 }
 
-func writeVersion(version, root string) error {
-	path := filepath.Join(root, "VERSION")
-	f, err := os.Create(path)
-	if err != nil {
-		return errors.Wrapf(err, "create version file %s", path)
-	}
-	defer f.Close()
-	if _, err := fmt.Fprint(f, version); err != nil {
-		return errors.Wrapf(err, "write version to file %s", path)
-	}
-	return nil
-}
+*/
