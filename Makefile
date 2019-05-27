@@ -66,10 +66,10 @@ live: FORCE
 	@vab build --push -c stage1/live -d stage1/live --ref ${REPO}/live:${VERSION} ${ARGS}
 
 # -------------------- stage0 -------------------------
-stage0: kernel pxe
+stage0: pxe
 
 kernel: FORCE
-	vab build -c stage0/kernel -d stage0/kernel --push --ref ${REPO}/kernel:${KERNEL} ${ARGS}
+	vab build -c stage0/kernel -d stage0/kernel --push --ref stellarproject/kernel:${KERNEL} ${ARGS}
 
 pxe: FORCE
 	@vab build --push -c stage0/pxe -d stage0/pxe --ref ${REPO}/pxe:${VERSION}  ${ARGS}

@@ -63,12 +63,11 @@ const (
 	ISCSIPath = "/iscsi"
 	TFTPPath  = "/tftp"
 
-	KeyTargetIDs  = "stellarproject.io/controller/target/ids"
-	KeyTarget     = "stellarproject.io/controller/target/%d"
-	KeyLUN        = "stellarproject.io/controller/lun/%d"
-	KeyTargetLuns = "stellarproject.io/controller/target/%d/luns"
-	KeyNodes      = "stellarproject.io/controller/nodes"
-	KeyPXEVersion = "stellarproject.io/controller/pxe/version"
+	ControllerBootFile = "/run/stellarproject.controller.boot"
+
+	KeyTargetCounter = "stellarproject.io/controller/target/counter"
+	KeyNodes         = "stellarproject.io/controller/nodes"
+	KeyPXEVersion    = "stellarproject.io/controller/pxe/version"
 )
 
 type IPType int
@@ -102,14 +101,63 @@ func New(client *containerd.Client, ipConfig map[IPType]net.IP, pool *redis.Pool
 			return nil, errors.Wrapf(err, "mkdir %s", p)
 		}
 	}
-	return &Controller{
+	var restore bool
+	f, err := os.OpenFile(ControllerBootFile, os.O_CREATE|os.O_WRONLY, 0666)
+	if err == nil {
+		f.Close()
+		restore = true
+
+		conn := pool.Get()
+		defer conn.Close()
+		if _, err := conn.Do("DEL", KeyTargetCounter); err != nil {
+			logrus.WithError(err).Error("remove target counter")
+		}
+	}
+	c := &Controller{
 		ips:    ipConfig,
 		client: client,
 		orbit:  orbit,
 		pool:   pool,
 		kernel: "/vmlinuz",
 		initrd: "/initrd.img",
-	}, nil
+	}
+	if restore {
+		if err := c.restoreTargets(context.Background()); err != nil {
+			return nil, errors.Wrap(err, "restore targets")
+		}
+	}
+	return c, nil
+}
+
+func (c *Controller) restoreTargets(ctx context.Context) error {
+	nodes, err := c.nodes(ctx)
+	if err != nil {
+		return err
+	}
+	for _, node := range nodes {
+		if node.InitiatorIqn == "" {
+			continue
+		}
+		for _, group := range node.DiskGroups {
+			if group.Target != nil {
+				if err := iscsi.SetTarget(ctx, group.Target); err != nil {
+					return errors.Wrap(err, "set target")
+				}
+				for _, disk := range group.Disks {
+					// > 0 means a lun disk
+					if disk.ID > 0 {
+						if err := iscsi.Attach(ctx, group.Target, disk); err != nil {
+							return errors.Wrap(err, "attach disk to target")
+						}
+					}
+				}
+				if err := iscsi.Accept(ctx, group.Target, node.InitiatorIqn); err != nil {
+					return errors.Wrap(err, "accept node iqn")
+				}
+			}
+		}
+	}
+	return nil
 }
 
 func startContainers(orbit *util.LocalAgent, ip net.IP) error {
@@ -166,7 +214,6 @@ func (c *Controller) Info(ctx context.Context, _ *types.Empty) (*api.InfoRespons
 		PxeVersion: version,
 		Gateway:    c.ips[Gateway].To4().String(),
 	}
-
 	return resp, nil
 }
 
@@ -175,6 +222,17 @@ func (c *Controller) List(ctx context.Context, _ *types.Empty) (*api.ListNodeRes
 	defer c.mu.Unlock()
 
 	logrus.Debug("listing nodes")
+	nodes, err := c.nodes(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return &api.ListNodeResponse{
+		Nodes: nodes,
+	}, nil
+}
+
+func (c *Controller) nodes(ctx context.Context) ([]*v1.Node, error) {
+	var out []*v1.Node
 	conn, err := c.pool.GetContext(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "get connection")
@@ -185,15 +243,14 @@ func (c *Controller) List(ctx context.Context, _ *types.Empty) (*api.ListNodeRes
 	if err != nil {
 		return nil, errors.Wrap(err, "get all nodes from store")
 	}
-	var resp api.ListNodeResponse
 	for _, data := range nodes {
 		var node v1.Node
 		if err := proto.Unmarshal(data, &node); err != nil {
 			return nil, errors.Wrap(err, "unmarshal node")
 		}
-		resp.Nodes = append(resp.Nodes, &node)
+		out = append(out, &node)
 	}
-	return &resp, nil
+	return out, nil
 }
 
 func (c *Controller) get(ctx context.Context, hostname string) (*v1.Node, error) {
@@ -318,7 +375,6 @@ func (c *Controller) Provision(ctx context.Context, r *api.ProvisionNodeRequest)
 	if err := c.writePXEConfig(node); err != nil {
 		return nil, errors.Wrap(err, "write pxe config")
 	}
-
 	log.Debug("save node information")
 	if err := c.updateNode(node); err != nil {
 		return nil, err
@@ -479,7 +535,6 @@ func (c *Controller) createTarget(ctx context.Context, node *v1.Node) (*v1.Targe
 	if node.InitiatorIqn == "" {
 		return nil, errors.New("node does not have an initiator id")
 	}
-	// TODO: reset target ids on reboot
 	targetID, err := c.getNextTargetID()
 	if err != nil {
 		return nil, err
@@ -533,7 +588,7 @@ func (c *Controller) getNextTargetID() (int64, error) {
 	conn := c.pool.Get()
 	defer conn.Close()
 
-	id, err := redis.Int64(conn.Do("INCR", KeyTargetIDs))
+	id, err := redis.Int64(conn.Do("INCR", KeyTargetCounter))
 	if err != nil {
 		return -1, errors.Wrap(err, "get next target id")
 	}

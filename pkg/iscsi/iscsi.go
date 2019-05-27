@@ -69,18 +69,23 @@ func tgtimg(ctx context.Context, args ...string) ([]byte, error) {
 }
 
 func NewTarget(ctx context.Context, iqn string, tid int64) (*types.Target, error) {
+	t := &types.Target{
+		Iqn: string(iqn),
+		ID:  tid,
+	}
+	return t, SetTarget(ctx, t)
+}
+
+func SetTarget(ctx context.Context, t *types.Target) error {
 	if out, err := iscsi(ctx,
 		"--op", "new",
 		"--mode", "target",
-		"--tid", strconv.Itoa(int(tid)),
-		"-T", iqn,
+		"--tid", strconv.Itoa(int(t.ID)),
+		"-T", t.Iqn,
 	); err != nil {
-		return nil, errors.Wrapf(err, "%s", out)
+		return errors.Wrapf(err, "%s", out)
 	}
-	return &types.Target{
-		Iqn: string(iqn),
-		ID:  tid,
-	}, nil
+	return nil
 }
 
 func AcceptAllInitiators(ctx context.Context, t *types.Target) error {

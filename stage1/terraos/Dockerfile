@@ -29,7 +29,7 @@ ARG VERSION
 ARG KERNEL_VERSION
 ARG REPO
 
-FROM ${REPO}/kernel:${KERNEL_VERSION} as kernel
+FROM stellarproject/kernel:${KERNEL_VERSION} as kernel
 FROM ${REPO}/orbit:${VERSION} as orbit
 FROM ${REPO}/containerd:${VERSION} as containerd
 
