@@ -181,17 +181,14 @@ Install terra onto a physical disk`
 				*/
 
 				path := filepath.Join(diskmount, g.Label)
-				if err := os.MkdirAll(path, 0755); err != nil {
-					return errors.Wrap(err, "make boot path")
-				}
 				if err := syslinux.Copy(path); err != nil {
 					return errors.Wrap(err, "copy syslinux from live cd")
 				}
-				if err := syslinux.ExtlinuxInstall(filepath.Join(path, "boot", "syslinux")); err != nil {
-					return errors.Wrap(err, "install extlinux")
-				}
 				if err := syslinux.InstallMBR(g.Disks[0].Device, "/boot/syslinux/mbr.bin"); err != nil {
 					return errors.Wrap(err, "install mbr")
+				}
+				if err := syslinux.ExtlinuxInstall(filepath.Join(path, "boot", "syslinux")); err != nil {
+					return errors.Wrap(err, "install extlinux")
 				}
 			}
 		}
