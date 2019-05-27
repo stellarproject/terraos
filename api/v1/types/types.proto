@@ -11,7 +11,6 @@ message Node {
 	string mac = 2;
 	string image = 3;
 	repeated DiskGroup disk_groups = 4;
-	Target target = 5;
 	string initiator_iqn = 6;
 }
 
@@ -39,11 +38,14 @@ message DiskGroup {
 	Stage stage = 3;
 	repeated Disk disks = 4;
 	repeated Subvolume subvolumes = 5;
+	Target target = 6;
+	bool mbr = 7;
 }
 
 message Disk {
-	string device = 1;
-	int64 fs_size = 2;
+	int64 id = 1 [(gogoproto.customname) = "ID"];
+	string device = 2;
+	int64 fs_size = 3;
 }
 
 message Subvolume {
@@ -53,4 +55,5 @@ message Subvolume {
 
 message Target {
 	string iqn = 1;
+	int64 id = 2 [(gogoproto.customname) = "ID"];
 }

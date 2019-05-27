@@ -35,10 +35,11 @@ import (
 	"strconv"
 
 	"github.com/pkg/errors"
+	"github.com/stellarproject/terraos/api/v1/types"
 )
 
 const (
-	targetIqnFmt = "iqn.%d.%s.%s:%d"
+	targetIqnFmt = "iqn.%d.%s.%s:fs"
 	nodeIqnFmt   = "iqn.%d.%s:%s"
 )
 
@@ -49,13 +50,11 @@ func Check() error {
 	return nil
 }
 
-type IQN string
-
-func NewIQN(year int, domain, machine string, disk int) IQN {
-	if disk > -1 {
-		return IQN(fmt.Sprintf(targetIqnFmt, year, domain, machine, disk))
+func NewIQN(year int, domain, machine string, fs bool) string {
+	if fs {
+		return fmt.Sprintf(targetIqnFmt, year, domain, machine)
 	}
-	return IQN(fmt.Sprintf(nodeIqnFmt, year, domain, machine))
+	return fmt.Sprintf(nodeIqnFmt, year, domain, machine)
 }
 
 func iscsi(ctx context.Context, args ...string) ([]byte, error) {
@@ -69,46 +68,26 @@ func tgtimg(ctx context.Context, args ...string) ([]byte, error) {
 	return exec.CommandContext(ctx, "tgtimg", args...).CombinedOutput()
 }
 
-func NewTarget(ctx context.Context, iqn IQN, tid int) (*Target, error) {
+func NewTarget(ctx context.Context, iqn string, tid int64) (*types.Target, error) {
 	if out, err := iscsi(ctx,
 		"--op", "new",
 		"--mode", "target",
-		"--tid", strconv.Itoa(tid),
-		"-T", string(iqn),
+		"--tid", strconv.Itoa(int(tid)),
+		"-T", iqn,
 	); err != nil {
 		return nil, errors.Wrapf(err, "%s", out)
 	}
-	return &Target{
-		iqn: iqn,
-		tid: tid,
+	return &types.Target{
+		Iqn: string(iqn),
+		ID:  tid,
 	}, nil
 }
 
-func LoadTarget(iqn IQN, tid int) *Target {
-	return &Target{
-		iqn: iqn,
-		tid: tid,
-	}
-}
-
-type Target struct {
-	iqn IQN
-	tid int
-}
-
-func (t *Target) IQN() IQN {
-	return t.iqn
-}
-
-func (t *Target) ID() int {
-	return t.tid
-}
-
-func (t *Target) AcceptAllInitiators(ctx context.Context) error {
+func AcceptAllInitiators(ctx context.Context, t *types.Target) error {
 	if out, err := iscsi(ctx,
 		"--op", "bind",
 		"--mode", "target",
-		"--tid", strconv.Itoa(t.tid),
+		"--tid", strconv.Itoa(int(t.ID)),
 		"-I", "ALL",
 	); err != nil {
 		return errors.Wrapf(err, "%s", out)
@@ -116,28 +95,39 @@ func (t *Target) AcceptAllInitiators(ctx context.Context) error {
 	return nil
 }
 
-// Attach a lun to the target
-func (t *Target) Attach(ctx context.Context, l *Lun, lunID int) error {
+func Accept(ctx context.Context, t *types.Target, iqn string) error {
 	if out, err := iscsi(ctx,
-		"--op", "new",
-		"--mode", "logicalunit",
-		"--tid", strconv.Itoa(t.tid),
-		"--lun", strconv.Itoa(lunID),
-		"-b", l.path,
+		"--op", "bind",
+		"--mode", "target",
+		"--tid", strconv.Itoa(int(t.ID)),
+		"-I", iqn,
 	); err != nil {
 		return errors.Wrapf(err, "%s", out)
 	}
-	l.lid = lunID
 	return nil
 }
 
-func (t *Target) Delete(ctx context.Context, lun *Lun) error {
+// Attach a lun to the target
+func Attach(ctx context.Context, t *types.Target, l *types.Disk) error {
+	if out, err := iscsi(ctx,
+		"--op", "new",
+		"--mode", "logicalunit",
+		"--tid", strconv.Itoa(int(t.ID)),
+		"--lun", strconv.Itoa(int(l.ID)),
+		"-b", l.Device,
+	); err != nil {
+		return errors.Wrapf(err, "%s", out)
+	}
+	return nil
+}
+
+func Delete(ctx context.Context, t *types.Target, lun *types.Disk) error {
 	if lun != nil {
 		if out, err := iscsi(ctx,
 			"--op", "delete",
 			"--mode", "logicalunit",
-			"--tid", strconv.Itoa(t.tid),
-			"--lun", strconv.Itoa(lun.lid),
+			"--tid", strconv.Itoa(int(t.ID)),
+			"--lun", strconv.Itoa(int(lun.ID)),
 		); err != nil {
 			return errors.Wrapf(err, "%s", out)
 		}
@@ -145,7 +135,7 @@ func (t *Target) Delete(ctx context.Context, lun *Lun) error {
 	if out, err := iscsi(ctx,
 		"--op", "delete",
 		"--mode", "target",
-		"--tid", strconv.Itoa(t.tid),
+		"--tid", strconv.Itoa(int(t.ID)),
 	); err != nil {
 		return errors.Wrapf(err, "%s", out)
 	}
@@ -153,62 +143,25 @@ func (t *Target) Delete(ctx context.Context, lun *Lun) error {
 }
 
 // NewLun allocates a new lun with the specified size in MB
-func NewLun(ctx context.Context, path string, size int64, thin bool) (*Lun, error) {
+func NewLun(ctx context.Context, id int64, disk *types.Disk) error {
 	args := []string{
 		"--op", "new",
 		"--device-type", "disk",
-		"--size", strconv.Itoa(int(size)),
-		"--file", path,
+		"--size", strconv.Itoa(int(disk.FsSize)),
+		"--file", disk.Device,
 	}
+	/* TODO: opts for thin
 	if thin {
 		args = append(args, "--thin-provisioning")
 	}
+	*/
 	out, err := tgtimg(ctx, args...)
-	if err != nil {
-		return nil, errors.Wrapf(err, "%s", out)
-	}
-	return &Lun{
-		path: path,
-		size: size,
-	}, nil
-}
-
-func LoadLun(lid int, path string, size int64) *Lun {
-	return &Lun{
-		lid:  lid,
-		path: path,
-		size: size,
-	}
-}
-
-type Lun struct {
-	lid  int
-	path string
-	size int64
-}
-
-func (l *Lun) ID() int {
-	return l.lid
-}
-
-func (l *Lun) Path() string {
-	return l.path
-}
-
-// Size in MB
-func (l *Lun) Size() int64 {
-	return l.size
-}
-
-func (l *Lun) LocalMount(ctx context.Context, t, path string) error {
-	// TODO: make into syscall mount command
-	out, err := exec.CommandContext(ctx, "mount", "-t", t, "-o", "loop", l.path, path).CombinedOutput()
 	if err != nil {
 		return errors.Wrapf(err, "%s", out)
 	}
 	return nil
 }
 
-func (l *Lun) Delete() error {
-	return os.Remove(l.path)
+func DeleteLun(l *types.Disk) error {
+	return os.Remove(l.Device)
 }

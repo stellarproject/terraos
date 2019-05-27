@@ -73,7 +73,7 @@ func Format(g *types.DiskGroup) error {
 	default:
 		return errors.Errorf("unsupported group type %s", g.GroupType)
 	}
-	if err := mkfs.Mkfs(DefaultFilesystem, g.Label, append(args, devices...)...); err != nil {
+	if err := mkfs.Mkfs(t, g.Label, append(args, devices...)...); err != nil {
 		return errors.Wrapf(err, "mkfs of disk group for %s", g.Label)
 	}
 	return nil

@@ -65,11 +65,7 @@ var provisionCommand = cli.Command{
 		ctx := cmd.CancelContext()
 
 		resp, err := client.Provision(ctx, &api.ProvisionNodeRequest{
-			Hostname:   node.Hostname,
-			Mac:        node.MAC,
-			Image:      node.Image,
-			FsSize:     node.Size,
-			Subvolumes: subvolumes(node.Subvolumes),
+			Node: node,
 		})
 		if err != nil {
 			return errors.Wrap(err, "provision node from controller")

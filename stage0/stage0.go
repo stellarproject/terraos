@@ -29,27 +29,25 @@ package stage0
 
 import (
 	"github.com/pkg/errors"
-	"github.com/stellarproject/terraos/api/v1/types"
 	"github.com/stellarproject/terraos/pkg/grub"
 	"golang.org/x/sys/unix"
 )
 
 const (
-	Image      = "docker.io/stellarproject/pxe"
-	Stage0Path = "/boot"
+	Image = "docker.io/stellarproject/pxe"
 )
 
-func Overlay(group *types.DiskGroup) (func() error, error) {
-	if err := unix.Mount(group.Disks[0].Device, Stage0Path, stage0Filesystem, 0, ""); err != nil {
+func MountBoot(dest string) (func() error, error) {
+	if err := unix.Mount(dest, "/boot", "none", unix.MS_BIND, ""); err != nil {
 		return nil, errors.Wrap(err, "overlay stage0")
 	}
 	return func() error {
-		return unix.Unmount(Stage0Path, 0)
+		return unix.Unmount("/boot", 0)
 	}, nil
 }
 
-func MBR(device string) error {
-	if err := grub.MkConfig(Stage0Path); err != nil {
+func MBR(device, path string) error {
+	if err := grub.MkConfig(path); err != nil {
 		return errors.Wrap(err, "make grub config")
 	}
 	if err := grub.Install(device); err != nil {

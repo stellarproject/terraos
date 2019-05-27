@@ -68,18 +68,16 @@ var listCommand = cli.Command{
 			return json.NewEncoder(os.Stdout).Encode(resp.Nodes)
 		}
 		w := tabwriter.NewWriter(os.Stdout, 10, 1, 3, ' ', 0)
-		const tfmt = "%s\t%s\t%s\t%s\t%s\t%s\n"
-		fmt.Fprint(w, "HOSTNAME\tMAC\tIMAGE\tINITIATOR\tTARGET\tFS\n")
+		const tfmt = "%s\t%s\t%s\t%s\t%s\n"
+		fmt.Fprint(w, "HOSTNAME\tMAC\tIMAGE\tINITIATOR\tTARGET\n")
 		for _, n := range resp.Nodes {
 			fmt.Fprintf(w, tfmt,
 				n.Hostname,
 				n.Mac,
 				n.Image,
 				n.InitiatorIqn,
-				n.TargetIqn,
-				n.Fs.BackingUri,
+				n.DiskGroups[0].Target.Iqn,
 			)
-
 		}
 		return w.Flush()
 	},

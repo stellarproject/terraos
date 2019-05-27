@@ -31,11 +31,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/containerd/containerd/content"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"github.com/stellarproject/orbit/pkg/resolvconf"
 	v1 "github.com/stellarproject/terraos/api/v1/types"
 	"github.com/stellarproject/terraos/cmd"
 	"github.com/stellarproject/terraos/pkg/fstab"
@@ -44,6 +44,7 @@ import (
 	"github.com/stellarproject/terraos/stage1"
 	"github.com/stellarproject/terraos/version"
 	"github.com/urfave/cli"
+	"golang.org/x/sys/unix"
 )
 
 func main() {
@@ -79,6 +80,14 @@ Install terra onto a physical disk`
 			Name:  "debug",
 			Usage: "enable debug output in the logs",
 		},
+		cli.BoolFlag{
+			Name:  "http",
+			Usage: "fetch image over http",
+		},
+		cli.StringFlag{
+			Name:  "gateway",
+			Usage: "gateway ip",
+		},
 	}
 	app.Before = func(clix *cli.Context) error {
 		if clix.GlobalBool("debug") {
@@ -87,9 +96,9 @@ Install terra onto a physical disk`
 		return nil
 	}
 	app.Action = func(clix *cli.Context) error {
-		repo, err := image.GetRepo(clix)
-		if err != nil {
-			return err
+		gateway := clix.GlobalString("gateway")
+		if gateway == "" {
+			return errors.New("--gateway not specified")
 		}
 
 		node, err := cmd.LoadNode(clix.Args().First())
@@ -97,68 +106,79 @@ Install terra onto a physical disk`
 			return errors.Wrap(err, "load node")
 		}
 		var (
-			root = "/sd"
-			ctx  = cmd.CancelContext()
+			diskmount = "/sd/mnt"
+			dest      = "/sd/dest"
+			ctx       = cmd.CancelContext()
 		)
-		if err := os.MkdirAll(root, 0755); err != nil {
-			return errors.Wrap(err, "create /sd")
+		for _, p := range []string{diskmount, dest} {
+			if err := os.MkdirAll(p, 0755); err != nil {
+				return errors.Wrapf(err, "mkdir %s", p)
+			}
 		}
 
 		var (
-			stage0Goup *v1.DiskGroup
-			groups     []*stage1.Group
-			entries    []*fstab.Entry
-			store      content.Store
+			entries []*fstab.Entry
+			store   content.Store
 		)
-		for _, group := range node.DiskGroups {
-			switch group.Stage {
-			case v1.Stage0:
-				stage0Goup = group
-			case v1.Stage1:
-				ng, err := stage1.NewGroup(group)
-				if err != nil {
-					return errors.Wrap(err, "new stage1 disk group")
-				}
-				defer ng.Close()
-
-				groups = append(groups, ng)
+		for _, g := range node.DiskGroups {
+			if g.Stage != v1.Stage1 {
+				continue
 			}
-			if err := stage0.Format(group); err != nil {
-				return errors.Wrapf(err, "format group %s", group.Label)
+			path := filepath.Join(diskmount, g.Label)
+			if err := os.MkdirAll(path, 0755); err != nil {
+				return errors.Wrapf(err, "mkdir %s", path)
 			}
-		}
-		for _, group := range groups {
-			path, err := group.Init(root)
-			if err != nil {
-				return
+			// mount the entire diskmount group before subsystems
+			if err := unix.Mount(g.Disks[0].Device, path, stage0.DefaultFilesystem, 0, ""); err != nil {
+				return errors.Wrapf(err, "mount %s to %s", g.Disks[0].Device, path)
 			}
-			// path is only different if the os volume is created
-			if path != root {
-				// create the content store on the osgroup
-				storePath := filepath.Join(path, "terra-content")
+			if store == nil {
+				storePath := filepath.Join(path, "terra-install-content")
 				if store, err = image.NewContentStore(storePath); err != nil {
 					return errors.Wrap(err, "new content store")
 				}
 				defer os.RemoveAll(storePath)
-				root = path
 			}
-		}
-		if stage0Goup != nil {
-			if err := stage0.Overlay(root, stage0Goup); err != nil {
-				return errors.Wrap(err, "overlay stage0 group")
-			}
-			closer, err := stage0.Overlay(stage0Goup)
+			group, err := stage1.NewGroup(g, dest)
 			if err != nil {
+				return errors.Wrap(err, "new stage1 disk group")
+			}
+			defer group.Close()
+
+			if err := group.Init(path); err != nil {
 				return err
 			}
-			defer closer()
+			entries = append(entries, group.Entries()...)
 		}
 		if store == nil {
 			return errors.New("store not created on any group")
 		}
-		if stage0Goup != nil {
-			if err := stage0.MBR(stage0Goup.Disks[0].Device); err != nil {
-				return errors.Wrap(err, "unable to install mbr")
+		// install
+		desc, err := image.Fetch(ctx, clix.GlobalBool("http"), store, node.Image)
+		if err != nil {
+			return errors.Wrap(err, "fetch image")
+		}
+		if err := image.Unpack(ctx, store, desc, dest); err != nil {
+			return errors.Wrap(err, "unpack image")
+		}
+
+		if err := writeFstab(entries, dest); err != nil {
+			return errors.Wrap(err, "write fstab")
+		}
+		if err := writeResolvconf(dest, gateway); err != nil {
+			return errors.Wrap(err, "write resolv.conf")
+		}
+		for _, g := range node.DiskGroups {
+			if g.Mbr {
+				boot := filepath.Join(dest, "boot")
+				closer, err := stage0.MountBoot(boot)
+				if err != nil {
+					return errors.Wrap(err, "mount boot")
+				}
+				defer closer()
+				if err := stage0.MBR(g.Disks[0].Device, boot); err != nil {
+					return errors.Wrap(err, "install mbr")
+				}
 			}
 		}
 		return nil
@@ -169,13 +189,24 @@ Install terra onto a physical disk`
 	}
 }
 
-func parseSubvolumes(raw []string) (out []*v1.Subvolume) {
-	for _, s := range raw {
-		parts := strings.SplitN(s, ":", 2)
-		out = append(out, &v1.Subvolume{
-			Name: parts[0],
-			Path: parts[1],
-		})
+func writeFstab(entries []*fstab.Entry, root string) error {
+	f, err := os.Create(filepath.Join(root, fstab.Path))
+	if err != nil {
+		return errors.Wrap(err, "create fstab file")
 	}
-	return out
+	defer f.Close()
+	if err := fstab.Write(f, entries); err != nil {
+		return errors.Wrap(err, "write fstab")
+	}
+	return nil
+}
+
+func writeResolvconf(root, gateway string) error {
+	path := filepath.Join(root, resolvconf.DefaultPath)
+	conf := &resolvconf.Conf{
+		Nameservers: []string{
+			gateway,
+		},
+	}
+	return conf.Write(path)
 }

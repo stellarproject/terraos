@@ -45,19 +45,20 @@ const (
 	OSVolume = "os"
 )
 
-func NewGroup(group *types.DiskGroup) (*Group, error) {
+func NewGroup(group *types.DiskGroup, dest string) (*Group, error) {
 	if group.Stage != types.Stage1 {
 		return nil, errors.Errorf("unsupported stage %s", group.Stage)
 	}
 	return &Group{
 		group: group,
+		dest:  dest,
 	}, nil
 }
 
 type Group struct {
-	group       *types.DiskGroup
-	mountDevice string
-	mounts      []string
+	group  *types.DiskGroup
+	mounts []string
+	dest   string
 }
 
 func (d *Group) String() string {
@@ -65,15 +66,8 @@ func (d *Group) String() string {
 }
 
 // Init the entire group returning the path to access the group
-func (d *Group) Init(root string) (string, error) {
-	if d.mountDevice == "" {
-		return "", errors.New("disk group not formatted")
-	}
-	// mount the entire root group before subsystems
-	if err := unix.Mount(d.mountDevice, root, DefaultFilesystem, 0, ""); err != nil {
-		return "", errors.Wrapf(err, "mount %s to %s", d.mountDevice, root)
-	}
-	d.mounts = append(d.mounts, root)
+func (d *Group) Init(diskMount string) error {
+	d.mounts = append(d.mounts, diskMount)
 
 	// create subvolumes
 	subvolumes := d.group.Subvolumes
@@ -81,31 +75,26 @@ func (d *Group) Init(root string) (string, error) {
 		subvolumes = append([]*types.Subvolume{
 			{
 				Name: OSVolume,
+				Path: "/",
 			},
 		},
 			subvolumes...,
 		)
 	}
-	if err := btrfs.CreateSubvolumes(root, subvolumes); err != nil {
-		return "", errors.Wrap(err, "create subvolumes")
+	if err := btrfs.CreateSubvolumes(diskMount, subvolumes); err != nil {
+		return errors.Wrap(err, "create subvolumes")
 	}
-	// overlay subvolumes
-	overlay := root
 	for _, s := range subvolumes {
-		if s.Name == OSVolume {
-			overlay = filepath.Join(root, s.Name)
-			continue
+		dest := filepath.Join(d.dest, s.Path)
+		if err := os.MkdirAll(dest, 0711); err != nil {
+			return errors.Wrapf(err, "mkdir subvolumes %s", dest)
 		}
-		subPath := filepath.Join(overlay, s.Path)
-		if err := os.MkdirAll(subPath, 0711); err != nil {
-			return "", errors.Wrapf(err, "mkdir subvolumes %s", subPath)
+		if err := unix.Mount(filepath.Join(diskMount, s.Name), dest, "none", unix.MS_BIND, ""); err != nil {
+			return errors.Wrapf(err, "mount subvolume %s", s.Name)
 		}
-		if err := unix.Mount(filepath.Join(root, s.Name), subPath, "none", unix.MS_BIND, ""); err != nil {
-			return "", errors.Wrapf(err, "mount subvolume %s", s.Name)
-		}
-		d.mounts = append(d.mounts, subPath)
+		d.mounts = append(d.mounts, dest)
 	}
-	return overlay, nil
+	return nil
 }
 
 // Close the group
