@@ -1,5 +1,5 @@
 id = "terra-vhost"
-image = "docker.io/stellarproject/example:5"
+image = "docker.io/stellarproject/example:6"
 
 uid = 0
 gid = 0

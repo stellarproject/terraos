@@ -1,5 +1,15 @@
 # stage0
 
-`stage0` contains the kernel and pxe images and code.
+`stage0` contains the kernel and initrd code
 
-This is the preboot code including the terra initrd.
+## kernel
+
+Linux kernel build filesystem.
+
+## pxe
+
+Small kernel that is used for PXE boot node installation.
+
+## boot
+
+Large kernel including the live rootfs for a live cd.
