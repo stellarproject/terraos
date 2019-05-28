@@ -31,27 +31,12 @@ import (
 	"encoding/json"
 	"os"
 
-	"github.com/BurntSushi/toml"
 	"github.com/pkg/errors"
-	v1 "github.com/stellarproject/terraos/api/v1"
+	api "github.com/stellarproject/terraos/api/v1/services"
 	"github.com/stellarproject/terraos/cmd"
 	"github.com/urfave/cli"
 	"google.golang.org/grpc"
 )
-
-type Subvolume struct {
-	Name string `toml:"name"`
-	Path string `toml:"path"`
-}
-
-type Node struct {
-	Hostname   string      `toml:"hostname"`
-	MAC        string      `toml:"mac"`
-	Image      string      `toml:"image"`
-	BackingURI string      `toml:"fs_uri"`
-	Size       int64       `toml:"fs_size"`
-	Subvolumes []Subvolume `toml:"fs_subvolumes"`
-}
 
 var provisionCommand = cli.Command{
 	Name:        "provision",
@@ -64,31 +49,23 @@ var provisionCommand = cli.Command{
 	},
 	Action: func(clix *cli.Context) error {
 		if clix.Bool("dump") {
-			return dumpNodeConfig()
+			return cmd.DumpNodeConfig()
 		}
-		var node Node
-		if _, err := toml.DecodeFile(clix.Args().First(), &node); err != nil {
-			return errors.Wrap(err, "load node file")
+		node, err := cmd.LoadNode(clix.Args().First())
+		if err != nil {
+			return err
 		}
-
 		address := clix.GlobalString("controller") + ":9000"
 		conn, err := grpc.Dial(address, grpc.WithInsecure())
 		if err != nil {
 			return errors.Wrap(err, "dial controller")
 		}
 		defer conn.Close()
-		client := v1.NewInfrastructureClient(conn)
+		client := api.NewInfrastructureClient(conn)
 		ctx := cmd.CancelContext()
 
-		resp, err := client.Provision(ctx, &v1.ProvisionNodeRequest{
-			Hostname: node.Hostname,
-			Mac:      node.MAC,
-			Image:    node.Image,
-			Fs: &v1.Filesystem{
-				BackingUri: node.BackingURI,
-				FsSize:     node.Size,
-				Subvolumes: subvolumes(node.Subvolumes),
-			},
+		resp, err := client.Provision(ctx, &api.ProvisionNodeRequest{
+			Node: node,
 		})
 		if err != nil {
 			return errors.Wrap(err, "provision node from controller")
@@ -97,31 +74,4 @@ var provisionCommand = cli.Command{
 		e.SetIndent("", " ")
 		return e.Encode(resp.Node)
 	},
-}
-
-func subvolumes(subvolumes []Subvolume) (out []*v1.Subvolume) {
-	for _, s := range subvolumes {
-		out = append(out, &v1.Subvolume{
-			Name: s.Name,
-			Path: s.Path,
-		})
-	}
-	return out
-}
-
-func dumpNodeConfig() error {
-	c := &Node{
-		Hostname:   "terra-01",
-		MAC:        "66:xx:ss:bb:f1:b1",
-		Image:      "docker.io/stellarproject/example:v4",
-		BackingURI: "iscsi://btrfs",
-		Size:       512,
-		Subvolumes: []Subvolume{
-			{
-				Name: "tftp",
-				Path: "/tftp",
-			},
-		},
-	}
-	return toml.NewEncoder(os.Stdout).Encode(c)
 }

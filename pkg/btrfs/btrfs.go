@@ -28,19 +28,13 @@
 package btrfs
 
 import (
-	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"syscall"
 
 	"github.com/pkg/errors"
+	"github.com/stellarproject/terraos/api/v1/types"
 )
-
-type Subvolume struct {
-	Name string
-	Path string
-}
 
 func Check() error {
 	if _, err := exec.LookPath("btrfs"); err != nil {
@@ -49,66 +43,20 @@ func Check() error {
 	return nil
 }
 
-func CreateSubvolumes(subvolumes []Subvolume, path string) error {
+func CreateSubvolumes(root string, subvolumes []*types.Subvolume) error {
 	for _, s := range subvolumes {
-		sv := filepath.Join(path, s.Name)
+		sv := filepath.Join(root, s.Name)
 		if _, err := os.Stat(sv); err == nil {
 			continue
 		}
-		if err := btrfs("subvolume", "create", sv); err != nil {
+		if err := Btrfs("subvolume", "create", sv); err != nil {
 			return errors.Wrap(err, "create sub volume")
 		}
 	}
 	return nil
 }
 
-func OverlaySubvolumes(installPath string, subvolumes []Subvolume, deviceMount string) (paths []string, err error) {
-	defer func() {
-		if err != nil {
-			for _, p := range paths {
-				syscall.Unmount(p, 0)
-			}
-		}
-	}()
-	for _, s := range subvolumes {
-		subPath := filepath.Join(installPath, s.Path)
-		if err := os.MkdirAll(subPath, 0755); err != nil {
-			return nil, errors.Wrapf(err, "mkdir subvolume %s", subPath)
-		}
-		devMount := filepath.Join(deviceMount, s.Name)
-		if err := syscall.Mount(devMount, subPath, "none", syscall.MS_BIND, ""); err != nil {
-			return nil, errors.Wrapf(err, "mount %s to %s", devMount, subPath)
-		}
-		paths = append(paths, subPath)
-	}
-	// add the root path
-	paths = append(paths, installPath)
-	return paths, nil
-}
-
-func MountSubvolumes(subvolumes map[string]string, device, path string) (paths []string, err error) {
-	defer func() {
-		if err != nil {
-			for _, p := range paths {
-				syscall.Unmount(p, 0)
-			}
-		}
-	}()
-	for k, v := range subvolumes {
-		subPath := filepath.Join(path, v)
-		if err := os.MkdirAll(subPath, 0755); err != nil {
-			return nil, errors.Wrapf(err, "mkdir subvolume %s", subPath)
-		}
-		if err := syscall.Mount(device, subPath, "btrfs", 0, fmt.Sprintf("subvol=%s", k)); err != nil {
-			return nil, errors.Wrapf(err, "mount %s:%s", k, subPath)
-		}
-		paths = append(paths, subPath)
-	}
-	paths = append(paths, path)
-	return paths, nil
-}
-
-func btrfs(args ...string) error {
+func Btrfs(args ...string) error {
 	out, err := exec.Command("btrfs", args...).CombinedOutput()
 	if err != nil {
 		return errors.Wrapf(err, "%s", out)

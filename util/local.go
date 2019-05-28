@@ -28,7 +28,7 @@
 package util
 
 import (
-	v1 "github.com/stellarproject/terraos/api/v1"
+	v1 "github.com/stellarproject/terraos/api/v1/services"
 	"google.golang.org/grpc"
 )
 

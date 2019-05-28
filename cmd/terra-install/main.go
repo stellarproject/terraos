@@ -31,16 +31,23 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
+	"github.com/containerd/containerd/content"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	v1 "github.com/stellarproject/terraos/api/v1"
+	v1 "github.com/stellarproject/terraos/api/v1/types"
 	"github.com/stellarproject/terraos/cmd"
-	"github.com/stellarproject/terraos/pkg/disk"
+	"github.com/stellarproject/terraos/pkg/fstab"
 	"github.com/stellarproject/terraos/pkg/image"
+	"github.com/stellarproject/terraos/pkg/resolvconf"
+	"github.com/stellarproject/terraos/pkg/syslinux"
+	"github.com/stellarproject/terraos/stage0"
+	"github.com/stellarproject/terraos/stage1"
 	"github.com/stellarproject/terraos/version"
 	"github.com/urfave/cli"
+	"golang.org/x/sys/unix"
 )
 
 func main() {
@@ -70,26 +77,19 @@ func main() {
          . . . ...."'
          .. . ."'
         .
-Terra OS management`
+Install terra onto a physical disk`
 	app.Flags = []cli.Flag{
 		cli.BoolFlag{
 			Name:  "debug",
 			Usage: "enable debug output in the logs",
 		},
-		cli.StringFlag{
-			Name:  "device",
-			Usage: "device name",
-			Value: "/dev/sda1",
+		cli.BoolFlag{
+			Name:  "http",
+			Usage: "fetch image over http",
 		},
 		cli.StringFlag{
-			Name:  "fs-type",
-			Usage: "set the filesystem type",
-			Value: "btrfs",
-		},
-		cli.StringSliceFlag{
-			Name:  "subvolumes,s",
-			Usage: "persistent subvolumes format> name:path",
-			Value: &cli.StringSlice{},
+			Name:  "gateway",
+			Usage: "gateway ip",
 		},
 	}
 	app.Before = func(clix *cli.Context) error {
@@ -99,48 +99,106 @@ Terra OS management`
 		return nil
 	}
 	app.Action = func(clix *cli.Context) error {
-		repo, err := image.GetRepo(clix)
+		gateway := clix.GlobalString("gateway")
+		if gateway == "" {
+			return errors.New("--gateway not specified")
+		}
+
+		node, err := cmd.LoadNode(clix.Args().First())
 		if err != nil {
-			return err
+			return errors.Wrap(err, "load node")
 		}
 		var (
-			path   = "/sd"
-			ctx    = cmd.CancelContext()
-			fstype = clix.GlobalString("fs-type")
+			diskmount = "/tmp/mnt"
+			dest      = "/tmp/dest"
+			ctx       = cmd.CancelContext()
 		)
-		if err := os.MkdirAll(path, 0755); err != nil {
-			return errors.Wrap(err, "create /sd")
+		for _, p := range []string{diskmount, dest} {
+			if err := os.MkdirAll(p, 0755); err != nil {
+				return errors.Wrapf(err, "mkdir %s", p)
+			}
 		}
-		node := &v1.Node{
-			Image: string(repo),
-			Fs: &v1.Filesystem{
-				Subvolumes: parseSubvolumes(clix.GlobalStringSlice("subvolumes")),
-			},
+
+		var (
+			entries []*fstab.Entry
+			store   content.Store
+		)
+		for _, g := range node.DiskGroups {
+			if g.Stage != v1.Stage1 {
+				continue
+			}
+			path := filepath.Join(diskmount, g.Label)
+			if err := os.MkdirAll(path, 0755); err != nil {
+				return errors.Wrapf(err, "mkdir %s", path)
+			}
+			if err := stage0.Format(g); err != nil {
+				return errors.Wrap(err, "format group")
+			}
+
+			// mount the entire diskmount group before subsystems
+			if err := unix.Mount(g.Disks[0].Device, path, stage0.DefaultFilesystem, 0, ""); err != nil {
+				return errors.Wrapf(err, "mount %s to %s", g.Disks[0].Device, path)
+			}
+			if store == nil {
+				storePath := filepath.Join(path, "terra-install-content")
+				if store, err = image.NewContentStore(storePath); err != nil {
+					return errors.Wrap(err, "new content store")
+				}
+			}
+			group, err := stage1.NewGroup(g, dest)
+			if err != nil {
+				return errors.Wrap(err, "new stage1 disk group")
+			}
+			defer group.Close()
+
+			if err := group.Init(path); err != nil {
+				return err
+			}
+			entries = append(entries, group.Entries()...)
 		}
-		d := disk.NewLocalDisk(clix.GlobalString("device"))
-		if err := d.Format(ctx, fstype, "os"); err != nil {
-			return errors.Wrap(err, "format disk")
+		if store == nil {
+			return errors.New("store not created on any group")
 		}
-		if err := d.Provision(ctx, fstype, node); err != nil {
-			d.Unmount(ctx)
-			return errors.Wrap(err, "provision disk")
-		}
-		storePath := filepath.Join(path, "terra-content")
-		store, err := image.NewContentStore(storePath)
+		// install
+		desc, err := image.Fetch(ctx, clix.GlobalBool("http"), store, node.Image)
 		if err != nil {
-			return errors.Wrap(err, "new content store")
+			return errors.Wrap(err, "fetch image")
 		}
-		if err := d.Write(ctx, image.Repo(node.Image), store, nil); err != nil {
-			os.RemoveAll(storePath)
-			d.Unmount(ctx)
-			return errors.Wrap(err, "write image to disk")
+		if err := image.Unpack(ctx, store, desc, dest); err != nil {
+			return errors.Wrap(err, "unpack image")
 		}
-		if err := os.RemoveAll(storePath); err != nil {
-			d.Unmount(ctx)
-			return errors.Wrap(err, "remove store path")
+
+		for _, g := range node.DiskGroups {
+			if g.Mbr {
+				/*
+					entries = append(entries, &fstab.Entry{
+						Type:   mkfs.Btrfs,
+						Device: fmt.Sprintf("LABEL=%s", d.Label),
+						Path:   "/boot",
+						Pass:   2,
+						Options: []string{
+							"bind",
+						},
+					})
+				*/
+
+				path := filepath.Join(diskmount, g.Label)
+				if err := syslinux.Copy(path); err != nil {
+					return errors.Wrap(err, "copy syslinux from live cd")
+				}
+				if err := syslinux.InstallMBR(removePartition(g.Disks[0].Device), "/boot/syslinux/mbr.bin"); err != nil {
+					return errors.Wrap(err, "install mbr")
+				}
+				if err := syslinux.ExtlinuxInstall(filepath.Join(path, "boot", "syslinux")); err != nil {
+					return errors.Wrap(err, "install extlinux")
+				}
+			}
 		}
-		if err := d.Unmount(ctx); err != nil {
-			return errors.Wrap(err, "unmount disk")
+		if err := writeFstab(entries, dest); err != nil {
+			return errors.Wrap(err, "write fstab")
+		}
+		if err := writeResolvconf(dest, gateway); err != nil {
+			return errors.Wrap(err, "write resolv.conf")
 		}
 		return nil
 	}
@@ -150,13 +208,41 @@ Terra OS management`
 	}
 }
 
-func parseSubvolumes(raw []string) (out []*v1.Subvolume) {
-	for _, s := range raw {
-		parts := strings.SplitN(s, ":", 2)
-		out = append(out, &v1.Subvolume{
-			Name: parts[0],
-			Path: parts[1],
-		})
+func removePartition(device string) string {
+	partition := string(device[len(device)-1])
+	if _, err := strconv.Atoi(partition); err != nil {
+		return device
 	}
-	return out
+	if strings.Contains(device, "nvme") {
+		partition = "p" + partition
+	}
+	return strings.TrimSuffix(device, partition)
+}
+
+func writeFstab(entries []*fstab.Entry, root string) error {
+	f, err := os.Create(filepath.Join(root, fstab.Path))
+	if err != nil {
+		return errors.Wrap(err, "create fstab file")
+	}
+	defer f.Close()
+	if err := fstab.Write(f, entries); err != nil {
+		return errors.Wrap(err, "write fstab")
+	}
+	return nil
+}
+
+func writeResolvconf(root, gateway string) error {
+	path := filepath.Join(root, resolvconf.DefaultPath)
+	f, err := os.Create(path)
+	if err != nil {
+		return errors.Wrapf(err, "create resolv.conf file %s", path)
+	}
+	defer f.Close()
+
+	conf := &resolvconf.Conf{
+		Nameservers: []string{
+			gateway,
+		},
+	}
+	return conf.Write(f)
 }

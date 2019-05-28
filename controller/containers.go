@@ -36,7 +36,7 @@ import (
 	"github.com/containerd/typeurl"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	v1 "github.com/stellarproject/terraos/api/v1"
+	v1 "github.com/stellarproject/terraos/api/v1/services"
 	"github.com/stellarproject/terraos/opts"
 	"github.com/stellarproject/terraos/util"
 )
@@ -64,7 +64,7 @@ func (r *redisContainer) Start(ctx context.Context) error {
 	args := []string{
 		"docker-entrypoint.sh",
 		"redis-server",
-		"--save", "5", "1",
+		"--appendonly", "yes",
 		"--bind", r.ip.To4().String(),
 	}
 	if r.ip.To4().String() != "127.0.0.1" {

@@ -34,6 +34,8 @@ import (
 	"text/tabwriter"
 )
 
+const Path = "/etc/fstab"
+
 type Entry struct {
 	Device  string
 	Path    string

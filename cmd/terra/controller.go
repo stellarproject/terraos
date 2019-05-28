@@ -39,7 +39,7 @@ import (
 	"github.com/gomodule/redigo/redis"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	v1 "github.com/stellarproject/terraos/api/v1"
+	v1 "github.com/stellarproject/terraos/api/v1/services"
 	"github.com/stellarproject/terraos/cmd"
 	"github.com/stellarproject/terraos/controller"
 	"github.com/stellarproject/terraos/util"

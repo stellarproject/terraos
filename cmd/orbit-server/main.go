@@ -44,7 +44,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/stellarproject/terraos/agent"
-	v1 "github.com/stellarproject/terraos/api/v1"
+	v1 "github.com/stellarproject/terraos/api/v1/services"
 	"github.com/stellarproject/terraos/cmd"
 	"github.com/stellarproject/terraos/config"
 	"github.com/stellarproject/terraos/util"

@@ -29,7 +29,7 @@ package main
 
 import (
 	"github.com/BurntSushi/toml"
-	api "github.com/stellarproject/terraos/api/v1"
+	api "github.com/stellarproject/terraos/api/v1/services"
 	v1 "github.com/stellarproject/terraos/config/v1"
 	"github.com/urfave/cli"
 )

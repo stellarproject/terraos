@@ -25,4 +25,34 @@
 	THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package v1
+package syslinux
+
+import (
+	"os/exec"
+
+	"github.com/pkg/errors"
+)
+
+func InstallMBR(device, mbrPath string) error {
+	out, err := exec.Command("dd", "bs=440", "count=1", "conv=notrunc", "if="+mbrPath, "of="+device).CombinedOutput()
+	if err != nil {
+		return errors.Wrapf(err, "%s", out)
+	}
+	return nil
+}
+
+func ExtlinuxInstall(path string) error {
+	out, err := exec.Command("extlinux", "--install", path).CombinedOutput()
+	if err != nil {
+		return errors.Wrapf(err, "%s", out)
+	}
+	return nil
+}
+
+func Copy(path string) error {
+	out, err := exec.Command("cp", "-r", "/boot", path).CombinedOutput()
+	if err != nil {
+		return errors.Wrapf(err, "%s", out)
+	}
+	return nil
+}

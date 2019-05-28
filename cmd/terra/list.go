@@ -35,7 +35,7 @@ import (
 
 	"github.com/gogo/protobuf/types"
 	"github.com/pkg/errors"
-	v1 "github.com/stellarproject/terraos/api/v1"
+	v1 "github.com/stellarproject/terraos/api/v1/services"
 	"github.com/stellarproject/terraos/cmd"
 	"github.com/urfave/cli"
 	"google.golang.org/grpc"
@@ -68,18 +68,20 @@ var listCommand = cli.Command{
 			return json.NewEncoder(os.Stdout).Encode(resp.Nodes)
 		}
 		w := tabwriter.NewWriter(os.Stdout, 10, 1, 3, ' ', 0)
-		const tfmt = "%s\t%s\t%s\t%s\t%s\t%s\n"
-		fmt.Fprint(w, "HOSTNAME\tMAC\tIMAGE\tINITIATOR\tTARGET\tFS\n")
+		const tfmt = "%s\t%s\t%s\t%s\t%s\n"
+		fmt.Fprint(w, "HOSTNAME\tMAC\tIMAGE\tINITIATOR\tTARGET\n")
 		for _, n := range resp.Nodes {
+			var iqn string
+			if n.DiskGroups[0].Target != nil {
+				iqn = n.DiskGroups[0].Target.Iqn
+			}
 			fmt.Fprintf(w, tfmt,
 				n.Hostname,
 				n.Mac,
 				n.Image,
 				n.InitiatorIqn,
-				n.TargetIqn,
-				n.Fs.BackingUri,
+				iqn,
 			)
-
 		}
 		return w.Flush()
 	},

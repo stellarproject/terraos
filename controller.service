@@ -3,7 +3,7 @@ Description=terra controller
 After=containerd.service orbit.service network.target
 
 [Service]
-ExecStart=/usr/local/sbin/terra-controller
+ExecStart=/usr/local/sbin/terra --debug --controller 10.0.10.3 controller --gateway 10.0.10.1 --iscsi 10.0.10.4
 Restart=always
 RestartSec=5
 

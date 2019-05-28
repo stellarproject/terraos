@@ -25,48 +25,32 @@
 
 PACKAGES=$(shell go list ./... | grep -v /vendor/)
 REVISION=$(shell git rev-parse HEAD)
-VERSION=v10
+VERSION=v11
 GO_LDFLAGS=-s -w -X github.com/stellarproject/terraos/version.Version=$(VERSION) -X github.com/stellarproject/terraos/version.Revision=$(REVISION)
 KERNEL=5.0.18
-REPO=stellarproject
+REPO=$(shell cat REPO || echo "stellarproject")
+WIREGUARD=0.0.20190406
 
-release: orbit-release cmd extras os pxe iso
+ARGS=--arg KERNEL_VERSION=${KERNEL} --arg VERSION=${VERSION} --arg REPO=${REPO} --arg WIREGUARD=${WIREGUARD}
+
+release: stage0 stage1 iso
+
+stage0: pxe binaries live boot
+
+stage1: defaults terraos
+
+all: local
+
+clean:
+	@rm -fr build/
 
 FORCE:
 
-all: iso
-
-iso: clean local
-	@mkdir -p build
-	@cd iso && vab build --local --arg KERNEL_VERSION=${KERNEL} --arg VERSION=${VERSION} --arg REPO=${REPO}
-	@mv iso/tftp build/tftp
-	@rm -f ./build/terra-${VERSION}.iso
-	@cd ./build && ln -s ./tftp/terra.iso terra-${VERSION}.iso
-
-pxe: FORCE
-	@vab build -p -c iso -d iso --ref ${REPO}/pxe:${VERSION} --arg KERNEL_VERSION=${KERNEL} --arg VERSION=${VERSION} --arg REPO=${REPO}
-
-extras: FORCE
-	vab build -p -c extras/containerd -d extras/containerd --ref ${REPO}/containerd:${VERSION}
-	vab build -p -c extras/cni -d extras/cni --ref ${REPO}/cni:${VERSION}
-	vab build -p -c extras/node_exporter -d extras/node_exporter --ref ${REPO}/node_exporter:${VERSION}
-	vab build -p -c extras/buildkit -d extras/buildkit --ref ${REPO}/buildkit:${VERSION}
-	vab build -p -d extras/criu -c extras/criu --ref ${REPO}/criu:${VERSION}
-	vab build -p -d extras/docker -c extras/docker --ref ${REPO}/docker:${VERSION}
-
-kernel: FORCE
-	vab build --arg KERNEL_VERSION=${KERNEL} -c kernel -d kernel --push --ref ${REPO}/kernel:${KERNEL}
-
-os: FORCE
-	vab build -c os -d os --push --ref ${REPO}/terraos:${VERSION} --arg KERNEL_VERSION=${KERNEL} --arg VERSION=${VERSION} --arg REPO=${REPO}
-
-local: orbit FORCE
+# -------------------- local -------------------------
+local: orbit
 	@cd cmd/terra && CGO_ENABLED=0 go build -v -ldflags '${GO_LDFLAGS}' -o ../../build/terra
 	@cd cmd/terra-install && CGO_ENABLED=0 go build -v -ldflags '${GO_LDFLAGS}' -o ../../build/terra-install
 	@cd cmd/rdns && CGO_ENABLED=0 go build -v -ldflags '${GO_LDFLAGS}' -o ../../build/rdns
-
-cmd: FORCE
-	vab build --push -d cmd --ref ${REPO}/terracmd:${VERSION}
 
 install:
 	@install build/terra* /usr/local/sbin/
@@ -75,17 +59,54 @@ install:
 	@install build/orbit-server /usr/local/bin/
 	@install build/orbit-network /usr/local/bin/
 
-clean:
-	@rm -fr build/
+# -------------------- iso -------------------------
 
+iso: clean
+	@mkdir -p build
+	@cd iso && vab build --local --http ${ARGS}
+	@mv iso/terra.iso build/
+
+live:
+	@vab build --push -c stage1/live -d stage1/live --ref ${REPO}/live:${VERSION} ${ARGS}
+
+# -------------------- stage0 -------------------------
+
+kernel: FORCE
+	vab build -c stage0/kernel -d stage0/kernel --push --ref stellarproject/kernel:${KERNEL} ${ARGS}
+
+pxe: FORCE
+	@vab build --push -c stage0/pxe -d stage0/pxe --ref ${REPO}/pxe:${VERSION}  ${ARGS}
+
+boot: FORCE
+	@vab build --push -c stage0/boot -d stage0/boot --ref ${REPO}/boot:${VERSION}  ${ARGS}
+
+# -------------------- stage1 -------------------------
+
+defaults: wireguard orbit-release FORCE
+	vab build -p -c stage1/defaults/containerd -d stage1/defaults/containerd --ref ${REPO}/containerd:${VERSION} ${ARGS}
+	vab build -p -c stage1/defaults/node_exporter -d stage1/defaults/node_exporter --ref ${REPO}/node_exporter:${VERSION} ${ARGS}
+	vab build -p -c stage1/defaults/cni -d stage1/defaults/cni --ref ${REPO}/cni:${VERSION} ${ARGS}
+	vab build -p -d stage1/defaults/criu -c stage1/defaults/criu --ref ${REPO}/criu:${VERSION} ${ARGS}
+
+wireguard:
+	vab build -p -d stage1/defaults/wireguard -c stage1/defaults/wireguard --ref ${REPO}/wireguard:${VERSION} ${ARGS}
+
+extras: FORCE
+	vab build -p -c stage1/extras/buildkit -d stage1/extras/buildkit --ref ${REPO}/buildkit:${VERSION} ${ARGS}
+	vab build -p -d stage1/extras/docker -c stage1/extras/docker --ref ${REPO}/docker:${VERSION} ${ARGS}
+
+terraos: FORCE
+	vab build -c stage1/terraos -d stage1/terraos --push --ref ${REPO}/terraos:${VERSION} ${ARGS}
+
+binaries:
+	vab build --push -d cmd --ref ${REPO}/terracmd:${VERSION} ${ARGS}
+
+# ----------------------- ORBIT --------------------------------
 protos:
 	protobuild --quiet ${PACKAGES}
 
 orbit-release: FORCE
-	vab build -p --ref docker.io/stellarproject/orbit:v10
-
-orbit-latest: FORCE
-	vab build -p --ref docker.io/stellarproject/orbit:latest
+	vab build --push --ref ${REPO}/orbit:${VERSION}
 
 orbit:
 	go build -o build/orbit-server -v -ldflags '${GO_LDFLAGS}' github.com/stellarproject/terraos/cmd/orbit-server

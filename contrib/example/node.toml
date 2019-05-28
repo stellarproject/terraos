@@ -1,9 +1,12 @@
 hostname = "terra-01"
 mac = "xx:xx:xx:xx:xx:xx"
-image = "docker.io/stellarproject/example:5"
-fs_uri = "iscsi://btrfs"
-fs_size = 2048
+image = "docker.io/stellarproject/example:6"
 
-[[fs_subvolumes]]
-  name = "data"
-  path = "/data"
+[[groups]]
+  label = "os"
+  type = "single"
+  stage = "stage1"
+
+  [[groups.disk]]
+    device = "/dev/sda"
+    size = 2048

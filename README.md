@@ -4,38 +4,305 @@
 
 Modern, minimal operating system (we've heard that before) optimized for containers within the Stellar Project.
 
-This repo is a mono repo for most, if not all terra/stellar projects.
+Terra is an OS not a distro, we use the best distrobution for the job, and that's an Ubuntu base.
 
+This repo is a mono repo for most, if not all terra && stellar projects.
 
-## Build your own OS
+## Status
 
-Terra is a toolkit for building your own OS for your servers.
-Each server can be created as an image that can be run via Docker or containerd to test the install and functionality.
+**Project Status:** alpha
+
+* alpha - APIs will change, not ready services.
+* beta - APIs may change, can run services.
+* production - APIs stable, can run services.
+
+### Component Status
+
+* `terra`: alpha
+* `terra controller`: alpha
+* `terra-install`: beta
+* `stage0`: alpha
+* `stage1`: alpha
+* `iso`: alpha
+* `orbit`: alpha
+* `vab`: beta
+
+## Build a machine image
 
 To create a new server image, create a toml file with an id and any other information needed.
+The common name for this file is `server.toml`.
 
 ```toml
-id = "example"
-version = "v1"
-os = "docker.io/stellarproject/terraos:v9"
+hostname = "example"
+version = "6"
+os = "docker.io/stellarproject/terraos:v11"
 repo = "docker.io/stellarproject"
-userland = "RUN echo 'terra:terra' | chpasswd"
+userland = """
+RUN echo 'terra:terra' | chpasswd
+ADD sshd_config /etc/ssh/
+"""
+
+[netplan]
+  [[netplan.interfaces]]
+    name = "eth0"
+
+[resolvconf]
+  nameservers = ["8.8.8.8", "8.8.4.4"]
 ```
 
-After you have your toml file created with the settings that you want for your OS just run:
+To build the image type:
 
 ```bash
-> terra create <my.toml>
+> terra create --push server.toml
 ```
 
-If you want to push your resulting image to a registry then use the `--push` flag on the create command.
+### Test your image
 
-## Global Images
+If you have `orbit` installed on your system, you can run your entire server image as a
+container and test the install.
 
-Terra OS publishes two global images for use.
+Create a vhost.toml file for orbit.
 
-* `stellarproject/kernel:<version>` - Kernel build for terra
-* `stellarproject/terraos:<version>` - Terra userland of the distro
+```toml
+id = "terra-vhost"
+image = "docker.io/stellarproject/example:6"
+
+uid = 0
+gid = 0
+privileged = true
+# systemd will try to setup the interface
+masked_paths = ["/etc/netplan"]
+
+[[networks]]
+	type = "macvlan"
+	name = "ob0"
+	[networks.ipam]
+		type = "dhcp"
+
+[resources]
+	cpu = 1.0
+	memory = 128
+```
+
+To run the image as a container type:
+
+```bash
+> ob create vhost.toml
+```
+
+You are now able to exec or ssh into that container by its ip.
+
+## Installation
+
+To install a server image on a machine you need to create a `node.toml` file.
+This file specifies the image, mac, hostname, and disk groups.
+Terra supports `btrfs` out of the box and sets up subvolumes as well as raid support.
+
+**Simple Node:**
+
+```toml
+hostname = "terra-01"
+image = "docker.io/stellarproject/example:6"
+
+[[groups]]
+  label = "os"
+  type = "single"
+  stage = "stage1"
+  mbr = true
+
+  [[groups.disk]]
+    device = "/dev/sda"
+```
+
+**Complex Node:**
+
+```toml
+hostname = "mt-01"
+image = "docker.io/crosbymichael/mt-01:v2"
+
+[[groups]]
+  label = "os"
+  type = "single"
+  stage = "stage1"
+  mbr = true
+
+  [[groups.disk]]
+    device = "/dev/nvme0n1p1"
+
+  [[groups.subvolumes]]
+    name = "home"
+    path = "/home"
+
+  [[groups.subvolumes]]
+    name = "log"
+    path = "/var/log"
+
+  [[groups.subvolumes]]
+    name = "containerd"
+    path = "/var/lib/containerd"
+
+
+[[groups]]
+  label = "storage"
+  type = "raid10"
+  stage = "stage1"
+
+  [[groups.subvolumes]]
+    name = "luns"
+    path = "/iscsi"
+
+  [[groups.subvolumes]]
+    name = "tftp"
+    path = "/tftp"
+
+  [[groups.disk]]
+    device = "/dev/sda"
+
+  [[groups.disk]]
+    device = "/dev/sdb"
+
+  [[groups.disk]]
+    device = "/dev/sdd"
+
+  [[groups.disk]]
+    device = "/dev/sde"
+```
+
+### Bare Metal
+
+To install your server image on a bare metal machine, write the `terra.iso` to a USB and boot into the live setup cd.
+
+Either host your `node.toml` or scp it to the live machine over the builtin ssh server when it boots.
+
+```bash
+> terra-install --gateway <yourgatewayip> node.toml
+```
+
+```bash
+> terra-install --gateway <yourgatewayip> https://nodes/node.toml
+```
+
+### PXE
+
+For running in a PXE environment terra has a controller with `tftp` and `iscsi` support.
+
+After you get a controller running you need to install the `pxe` image with the kernel and boot code.
+
+#### Controller
+
+`controller.service`:
+
+```
+[Unit]
+Description=terra controller
+After=containerd.service orbit.service network.target
+
+[Service]
+ExecStart=/usr/local/sbin/terra --debug --controller 10.0.10.3 controller --gateway 10.0.10.1 --iscsi 10.0.10.4
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+```
+
+For pxe booting, you will need to add a mac and disk size to your `node.toml`.
+Disk sizes are in MB.
+
+```toml
+hostname = "terra-01"
+mac = "xx:xx:xx:xx:xx:xx"
+image = "docker.io/stellarproject/example:6"
+
+[[groups]]
+  label = "os"
+  type = "single"
+  stage = "stage1"
+
+  [[groups.disk]]
+    device = "/dev/sda"
+	size = 128000 # 128G
+```
+
+```bash
+> terra pxe docker.io/stellarproject/pxe:v11
+```
+
+Then provision the node with the `provision` command.
+
+```bash
+> terra provision node.toml
+```
+
+You will get output like this when the node is provisioned and ready to be booted:
+
+```json
+{
+ "hostname": "cm-01",
+ "mac": "54:b2:03:07:f1:d1",
+ "image": "docker.io/crosbymichael/cm-01:v5",
+ "disk_groups": [
+  {
+   "label": "os",
+   "stage": 1,
+   "disks": [
+    {
+     "id": 1,
+     "device": "/iscsi/cm-01/0.lun",
+     "fs_size": 128000
+    }
+   ],
+   "subvolumes": [
+    {
+     "name": "home",
+     "path": "/home"
+    },
+    {
+     "name": "log",
+     "path": "/var/log"
+    },
+    {
+     "name": "containerd",
+     "path": "/var/lib/containerd"
+    }
+   ],
+   "target": {
+    "iqn": "iqn.2024.san.crosbymichael.com.cm-01:fs",
+    "id": 2
+   }
+  }
+ ],
+ "initiator_iqn": "iqn.2024.node.crosbymichael.com:cm-01"
+}
+```
+
+
+You can manage and see nodes with the `terra` command:
+
+```bash
+> terra list
+
+HOSTNAME   MAC                 IMAGE                              INITIATOR                               TARGET
+cm-01      54:b2:03:07:f1:d1   docker.io/crosbymichael/cm-01:v5   iqn.2024.node.crosbymichael.com:cm-01   iqn.2024.san.crosbymichael.com.cm-01:fs
+```
+
+## Build Release
+
+To build all the terra images type:
+
+```bash
+
+make release
+
+```
+
+## Additional
+
+### wireguard
+
+terra comes installed with wireguard and the `wg` and `wg-quick` tools.
+It also has the `wg-quick@.service` installed so that you can place your wireguard
+`.conf` files in `/etc/wireguard` and enable the VPNs via `systemctl enable wg-quick@wg0`.
 
 ## License
 

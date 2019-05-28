@@ -24,38 +24,19 @@
 # THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 FROM ubuntu:18.10 as builder
-ARG KERNEL_VERSION
+ARG WIREGUARD
 
 RUN apt-get update && apt-get install -y \
 	build-essential \
-	bc \
-	devscripts \
-	xz-utils \
-	wget \
 	curl \
 	ca-certificates \
-	bison \
-	flex \
 	cpio \
 	libelf-dev \
-	kmod \
 	libssl-dev \
-	git \
 	libmnl-dev \
-	btrfs-progs \
-	btrfs-tools \
-	iptables \
 	make
 
-ENV WIREGUARD_VERSION=0.0.20190406
-ENV WIREGUARD_URL=https://git.zx2c4.com/WireGuard/snapshot/WireGuard-${WIREGUARD_VERSION}.tar.xz
-
-RUN curl -SsL -o linux.tar.xz https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-${KERNEL_VERSION}.tar.xz
-
-RUN mkdir /linux && \
-	tar --strip-components=1 -xpf linux.tar.xz -C /linux
-
-ADD config /linux/.config
+ENV WIREGUARD_URL=https://git.zx2c4.com/WireGuard/snapshot/WireGuard-${WIREGUARD}.tar.xz
 
 # WireGuard
 RUN curl -SsL "${WIREGUARD_URL}" -o /wireguard.tar.xz
@@ -63,24 +44,12 @@ RUN curl -SsL "${WIREGUARD_URL}" -o /wireguard.tar.xz
 RUN mkdir /wireguard && \
 	tar --strip-components=1 -xpf wireguard.tar.xz -C /wireguard
 
-# patches
-
-ADD patches /patches
-RUN bash -c 'cd /linux; for i in $(cd /patches; ls | grep patch); do echo "applying $i"; patch -Np1 -i /patches/$i ; done'
-
 # compile wg(8)
 WORKDIR /wireguard/src
 RUN make tools && make tools-install
 
-WORKDIR /linux
-
-RUN /wireguard/contrib/kernel-tree/create-patch.sh | patch -p1
-
-RUN make olddefconfig
-RUN make -j "$(getconf _NPROCESSORS_ONLN)" KDEB_PKGVERSION=$PKGVERSION INSTALL_MOD_STRIP=1 bindeb-pkg
-
 FROM scratch
 
-COPY --from=builder /*.deb /
-COPY --from=builder /wireguard/src/tools/wg /wg
-COPY --from=builder /wireguard/src/tools/wg-quick /wg-quick
+COPY --from=builder /wireguard/src/tools/wg /usr/local/bin/wg
+COPY --from=builder /wireguard/src/tools/wg-quick/linux.bash /usr/local/bin/wg-quick
+ADD wg-quick@.service /etc/systemd/system/

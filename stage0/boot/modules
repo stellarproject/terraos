@@ -1,3 +1,5 @@
 overlay
 squashfs
 iscsi
+i915
+nvme
