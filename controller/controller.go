@@ -155,6 +155,9 @@ func (c *Controller) restoreTargets(ctx context.Context) error {
 				if err := iscsi.Accept(ctx, group.Target, node.InitiatorIqn); err != nil {
 					return errors.Wrap(err, "accept node iqn")
 				}
+				if err := iscsi.AcceptAllInitiators(ctx, group.Target); err != nil {
+					return errors.Wrap(err, "accept ALL iqn")
+				}
 			}
 		}
 	}
@@ -592,6 +595,9 @@ func (c *Controller) createTarget(ctx context.Context, node *v1.Node) (*v1.Targe
 	}
 	if err := iscsi.Accept(ctx, target, node.InitiatorIqn); err != nil {
 		return nil, errors.Wrap(err, "accept initiator iqn")
+	}
+	if err := iscsi.AcceptAllInitiators(ctx, target); err != nil {
+		return nil, errors.Wrap(err, "accept ALL iqn")
 	}
 	return target, nil
 }
