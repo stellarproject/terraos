@@ -296,6 +296,14 @@ make release
 
 ```
 
+## Additional
+
+### wireguard
+
+terra comes installed with wireguard and the `wg` and `wg-quick` tools.
+It also has the `wg-quick@.service` installed so that you can place your wireguard
+`.conf` files in `/etc/wireguard` and enable the VPNs via `systemctl enable wg-quick@wg0`.
+
 ## License
 
 ```
