@@ -44,6 +44,8 @@ RUN apk update && \
 	openssh \
 	ca-certificates \
 	iptables \
+	gparted \
+	sgdisk \
 	syslinux
 
 COPY --from=terra / /

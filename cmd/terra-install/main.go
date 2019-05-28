@@ -31,6 +31,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 
 	"github.com/containerd/containerd/content"
 	"github.com/pkg/errors"
@@ -184,7 +186,7 @@ Install terra onto a physical disk`
 				if err := syslinux.Copy(path); err != nil {
 					return errors.Wrap(err, "copy syslinux from live cd")
 				}
-				if err := syslinux.InstallMBR(g.Disks[0].Device, "/boot/syslinux/mbr.bin"); err != nil {
+				if err := syslinux.InstallMBR(removePartition(g.Disks[0].Device), "/boot/syslinux/mbr.bin"); err != nil {
 					return errors.Wrap(err, "install mbr")
 				}
 				if err := syslinux.ExtlinuxInstall(filepath.Join(path, "boot", "syslinux")); err != nil {
@@ -204,6 +206,17 @@ Install terra onto a physical disk`
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
+}
+
+func removePartition(device string) string {
+	partition := string(device[len(device)-1])
+	if _, err := strconv.Atoi(partition); err != nil {
+		return device
+	}
+	if strings.Contains(device, "nvme") {
+		partition = "p" + partition
+	}
+	return strings.TrimSuffix(device, partition)
 }
 
 func writeFstab(entries []*fstab.Entry, root string) error {

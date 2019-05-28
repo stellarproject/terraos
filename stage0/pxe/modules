@@ -1,3 +1,5 @@
 overlay
 btrfs
 iscsi
+i915
+nvme
