@@ -53,8 +53,12 @@ var createCommand = cli.Command{
 			return err
 		}
 		defer agent.Close()
+		c, err := container.Proto()
+		if err != nil {
+			return err
+		}
 		_, err = agent.Create(Context(), &api.CreateRequest{
-			Container: container.Proto(),
+			Container: c,
 			Update:    clix.Bool("update"),
 		})
 		return err

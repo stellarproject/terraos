@@ -29,6 +29,7 @@ package config
 
 import (
 	"github.com/containerd/typeurl"
+	"github.com/pkg/errors"
 	v1 "github.com/stellarproject/terraos/api/v1/services"
 )
 
@@ -71,7 +72,7 @@ type IPAM struct {
 	Gateway     string `toml:"gateway"`
 }
 
-func (c *Container) Proto() *v1.Container {
+func (c *Container) Proto() (*v1.Container, error) {
 	container := &v1.Container{
 		ID:    c.ID,
 		Image: c.Image,
@@ -87,12 +88,15 @@ func (c *Container) Proto() *v1.Container {
 			MaskedPaths:  c.MaskedPaths,
 		},
 	}
+	if len(c.Networks) == 0 {
+		return nil, errors.New("no networks provided for container")
+	}
 	for _, n := range c.Networks {
 		switch n.Type {
 		case "host":
 			any, err := typeurl.MarshalAny(&v1.HostNetwork{})
 			if err != nil {
-				panic(err)
+				return nil, errors.Wrap(err, "marshal host network")
 			}
 			container.Networks = append(container.Networks, any)
 		default:
@@ -112,7 +116,7 @@ func (c *Container) Proto() *v1.Container {
 			}
 			any, err := typeurl.MarshalAny(cni)
 			if err != nil {
-				panic(err)
+				return nil, errors.Wrap(err, "marshal cni network")
 			}
 			container.Networks = append(container.Networks, any)
 		}
@@ -158,7 +162,7 @@ func (c *Container) Proto() *v1.Container {
 			Path: v.Path,
 		})
 	}
-	return container
+	return container, nil
 }
 
 type ConfigFile struct {

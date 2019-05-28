@@ -51,8 +51,12 @@ var updateCommand = cli.Command{
 			return err
 		}
 		defer agent.Close()
+		c, err := newConfig.Proto()
+		if err != nil {
+			return err
+		}
 		_, err = agent.Update(ctx, &api.UpdateRequest{
-			Container: newConfig.Proto(),
+			Container: c,
 		})
 		return err
 	},
