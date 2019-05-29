@@ -35,6 +35,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"github.com/containerd/containerd"
@@ -102,16 +103,15 @@ func New(client *containerd.Client, ipConfig map[IPType]net.IP, pool *redis.Pool
 			return nil, errors.Wrapf(err, "mkdir %s", p)
 		}
 	}
-	var restore bool
-	f, err := os.OpenFile(ControllerBootFile, os.O_CREATE|os.O_WRONLY, 0666)
-	if err == nil {
-		f.Close()
-		restore = true
+	if err := os.Mkdir(ControllerBootFile, 0711); err != nil {
+		if os.IsExist(err) {
+			logrus.Info("controller will restore targets...")
 
-		conn := pool.Get()
-		defer conn.Close()
-		if _, err := conn.Do("DEL", KeyTargetCounter); err != nil {
-			logrus.WithError(err).Error("remove target counter")
+			conn := pool.Get()
+			defer conn.Close()
+			if _, err := conn.Do("DEL", KeyTargetCounter); err != nil {
+				logrus.WithError(err).Error("remove target counter")
+			}
 		}
 	}
 	c := &Controller{
@@ -122,10 +122,8 @@ func New(client *containerd.Client, ipConfig map[IPType]net.IP, pool *redis.Pool
 		kernel: "/vmlinuz",
 		initrd: "/initrd.img",
 	}
-	if restore {
-		if err := c.restoreTargets(context.Background()); err != nil {
-			return nil, errors.Wrap(err, "restore targets")
-		}
+	if err := c.restoreTargets(context.Background()); err != nil {
+		return nil, errors.Wrap(err, "restore targets")
 	}
 	return c, nil
 }
@@ -139,29 +137,44 @@ func (c *Controller) restoreTargets(ctx context.Context) error {
 		if node.InitiatorIqn == "" {
 			continue
 		}
-		for _, group := range node.DiskGroups {
-			if group.Target != nil {
-				if err := iscsi.SetTarget(ctx, group.Target); err != nil {
-					return errors.Wrap(err, "set target")
+		if err := c.restoreDisks(ctx, node); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (c *Controller) restoreDisks(ctx context.Context, node *v1.Node) error {
+	for _, group := range node.DiskGroups {
+		if group.Target != nil {
+			if err := iscsi.SetTarget(ctx, group.Target); err != nil {
+				if isTargetExists(err) {
+					continue
 				}
-				for _, disk := range group.Disks {
-					// > 0 means a lun disk
-					if disk.ID > 0 {
-						if err := iscsi.Attach(ctx, group.Target, disk); err != nil {
-							return errors.Wrap(err, "attach disk to target")
-						}
+
+				return errors.Wrap(err, "set target")
+			}
+			for _, disk := range group.Disks {
+				// > 0 means a lun disk
+				if disk.ID > 0 {
+					if err := iscsi.Attach(ctx, group.Target, disk); err != nil {
+						return errors.Wrap(err, "attach disk to target")
 					}
 				}
-				if err := iscsi.Accept(ctx, group.Target, node.InitiatorIqn); err != nil {
-					return errors.Wrap(err, "accept node iqn")
-				}
-				if err := iscsi.AcceptAllInitiators(ctx, group.Target); err != nil {
-					return errors.Wrap(err, "accept ALL iqn")
-				}
+			}
+			if err := iscsi.Accept(ctx, group.Target, node.InitiatorIqn); err != nil {
+				return errors.Wrap(err, "accept node iqn")
+			}
+			if err := iscsi.AcceptAllInitiators(ctx, group.Target); err != nil {
+				return errors.Wrap(err, "accept ALL iqn")
 			}
 		}
 	}
 	return nil
+}
+
+func isTargetExists(err error) bool {
+	return strings.Contains(err.Error(), "this target already exists")
 }
 
 func startContainers(orbit *util.LocalAgent, ip net.IP) error {
