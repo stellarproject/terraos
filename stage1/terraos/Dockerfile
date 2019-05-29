@@ -62,6 +62,7 @@ RUN apt update && apt upgrade -y && \
 	openssh-server \
 	curl \
 	pigz \
+	tftp \
 	htop \
 	tmux \
 	rsync \
