@@ -44,6 +44,7 @@ import (
 	"github.com/BurntSushi/toml"
 	"github.com/pkg/errors"
 	"github.com/stellarproject/terraos/cmd"
+	v1 "github.com/stellarproject/terraos/config/v1"
 	"github.com/stellarproject/terraos/pkg/netplan"
 	"github.com/stellarproject/terraos/pkg/resolvconf"
 	"github.com/urfave/cli"
@@ -62,6 +63,10 @@ var createCommand = cli.Command{
 			Name:  "push",
 			Usage: "push the resulting image",
 		},
+		cli.BoolFlag{
+			Name:  "http",
+			Usage: "push the image over http",
+		},
 		cli.StringFlag{
 			Name:  "userland,u",
 			Usage: "userland file path",
@@ -77,6 +82,10 @@ var createCommand = cli.Command{
 		cli.BoolFlag{
 			Name:  "no-cache",
 			Usage: "build with no cache",
+		},
+		cli.StringFlag{
+			Name:  "vhost",
+			Usage: "file to output vhost config",
 		},
 	},
 	Action: func(clix *cli.Context) error {
@@ -143,11 +152,13 @@ var createCommand = cli.Command{
 		if clix.Bool("dry") {
 			return nil
 		}
+		ref := fmt.Sprintf("%s/%s:%s", config.Repo, config.Hostname, config.Version)
 		cmd := exec.CommandContext(ctx, "vab", "build",
 			"-c", abs,
-			"--ref", fmt.Sprintf("%s/%s:%s", config.Repo, config.Hostname, config.Version),
+			"--ref", ref,
 			"--push="+strconv.FormatBool(clix.Bool("push")),
 			"--no-cache="+strconv.FormatBool(clix.Bool("no-cache")),
+			"--http="+strconv.FormatBool(clix.Bool("http")),
 		)
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
@@ -161,6 +172,39 @@ var createCommand = cli.Command{
 			defer f.Close()
 			io.Copy(os.Stdout, f)
 			return errors.Wrap(err, "execute build")
+		}
+		if vhost := clix.String("vhost"); vhost != "" {
+			c := &v1.Container{
+				ID:         fmt.Sprintf("%s-vhost", config.Hostname),
+				Image:      ref,
+				Privileged: true,
+				MaskedPaths: []string{
+					"/etc/netplan",
+				},
+				Networks: []*v1.Network{
+					{
+						Type: "macvlan",
+						Name: "vhost0",
+						IPAM: v1.IPAM{
+							Type: "dhcp",
+						},
+					},
+				},
+				Resources: &v1.Resources{
+					CPU:    1.0,
+					Memory: 128,
+				},
+			}
+
+			f, err := os.Create(vhost)
+			if err != nil {
+				return errors.Wrapf(err, "create vhost file %s", vhost)
+			}
+			defer f.Close()
+
+			if err := toml.NewEncoder(f).Encode(c); err != nil {
+				return errors.Wrap(err, "write vhost config")
+			}
 		}
 		return nil
 	},
