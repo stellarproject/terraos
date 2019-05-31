@@ -111,6 +111,6 @@ COPY --from=containerd / /
 COPY --from=criu / /
 COPY --from=wireguard / /
 
-RUN systemctl enable containerd node_exporter ssh orbit
+RUN systemctl enable containerd node_exporter ssh orbit dhcp
 
 CMD ["/sbin/init"]

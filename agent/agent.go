@@ -35,7 +35,6 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -109,44 +108,18 @@ func New(ctx context.Context, c *Config, client *containerd.Client) (*Agent, err
 			return nil, errors.Wrapf(err, "mkdir %s", p)
 		}
 	}
-	dhcp, err := setupDHCP(ctx)
-	if err != nil {
-		return nil, err
-	}
 	a := &Agent{
 		config: c,
 		client: client,
-		dhcp:   dhcp,
 	}
 	go a.startSupervisorLoop(namespaces.WithNamespace(ctx, config.DefaultNamespace), c.Interval)
 	return a, nil
-}
-
-func setupDHCP(ctx context.Context) (*exec.Cmd, error) {
-	if err := os.Remove("/run/cni/dhcp.sock"); err != nil {
-		if !os.IsNotExist(err) {
-			return nil, err
-		}
-	}
-	dhcp := exec.CommandContext(ctx, "/opt/containerd/bin/dhcp", "daemon")
-	dhcp.Stdout = os.Stdout
-	dhcp.Stderr = os.Stderr
-	if err := dhcp.Start(); err != nil {
-		return nil, err
-	}
-	go func() {
-		if err := dhcp.Wait(); err != nil {
-			logrus.WithError(err).Error("wait on dhcp server")
-		}
-	}()
-	return dhcp, nil
 }
 
 type Agent struct {
 	supervisorMu sync.Mutex
 	client       *containerd.Client
 	config       *Config
-	dhcp         *exec.Cmd
 }
 
 func (a *Agent) Create(ctx context.Context, req *v1.CreateRequest) (*types.Empty, error) {

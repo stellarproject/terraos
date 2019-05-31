@@ -36,3 +36,4 @@ COPY --from=orbit /go/src/github.com/stellarproject/terraos/build/orbit-log /usr
 COPY --from=orbit /go/src/github.com/stellarproject/terraos/build/orbit-network /usr/local/bin/
 COPY --from=orbit /go/src/github.com/stellarproject/terraos/build/orbit-server /usr/local/bin/
 COPY --from=orbit /go/src/github.com/stellarproject/terraos/orbit.service /etc/systemd/system/
+COPY --from=orbit /go/src/github.com/stellarproject/terraos/dhcp.service /etc/systemd/system/
