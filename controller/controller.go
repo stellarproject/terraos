@@ -65,11 +65,9 @@ const (
 	ISCSIPath = "/iscsi"
 	TFTPPath  = "/tftp"
 
-	ControllerBootFile = "/run/stellarproject.controller.boot"
-
-	KeyTargetCounter = "stellarproject.io/controller/target/counter"
-	KeyNodes         = "stellarproject.io/controller/nodes"
-	KeyPXEVersion    = "stellarproject.io/controller/pxe/version"
+	KeyNodes      = "stellarproject.io/controller/nodes"
+	KeyPXEVersion = "stellarproject.io/controller/pxe/version"
+	MaxTargetID   = 1024
 )
 
 type IPType int
@@ -101,17 +99,6 @@ func New(client *containerd.Client, ipConfig map[IPType]net.IP, pool *redis.Pool
 	for _, p := range []string{ClusterFS, ISCSIPath, TFTPPath} {
 		if err := os.MkdirAll(p, 0755); err != nil {
 			return nil, errors.Wrapf(err, "mkdir %s", p)
-		}
-	}
-	if err := os.Mkdir(ControllerBootFile, 0711); err != nil {
-		if os.IsExist(err) {
-			logrus.Info("controller will restore targets...")
-
-			conn := pool.Get()
-			defer conn.Close()
-			if _, err := conn.Do("DEL", KeyTargetCounter); err != nil {
-				logrus.WithError(err).Error("remove target counter")
-			}
 		}
 	}
 	c := &Controller{
@@ -593,18 +580,19 @@ func mountGroup(ctx context.Context, disk *v1.Disk, path string) error {
 	return nil
 }
 
-func (c *Controller) createTarget(ctx context.Context, node *v1.Node) (*v1.Target, error) {
+func (c *Controller) createTarget(ctx context.Context, node *v1.Node) (target *v1.Target, err error) {
 	iqn := iscsi.NewIQN(2024, "san.crosbymichael.com", node.Hostname, true)
 	if node.InitiatorIqn == "" {
 		return nil, errors.New("node does not have an initiator id")
 	}
-	targetID, err := c.getNextTargetID()
-	if err != nil {
-		return nil, err
-	}
-	target, err := iscsi.NewTarget(ctx, iqn, targetID)
-	if err != nil {
-		return nil, errors.Wrapf(err, "create target %s", iqn)
+	for i := int64(1); i < MaxTargetID; i++ {
+		if target, err = iscsi.NewTarget(ctx, iqn, i); err != nil {
+			if !isTargetExists(err) {
+				return nil, errors.Wrapf(err, "create target %s", iqn)
+			}
+			continue
+		}
+		break
 	}
 	if err := iscsi.Accept(ctx, target, node.InitiatorIqn); err != nil {
 		return nil, errors.Wrap(err, "accept initiator iqn")
@@ -648,17 +636,6 @@ func (c *Controller) writePXEConfig(node *v1.Node) error {
 		return errors.Wrap(err, "write pxe config")
 	}
 	return nil
-}
-
-func (c *Controller) getNextTargetID() (int64, error) {
-	conn := c.pool.Get()
-	defer conn.Close()
-
-	id, err := redis.Int64(conn.Do("INCR", KeyTargetCounter))
-	if err != nil {
-		return -1, errors.Wrap(err, "get next target id")
-	}
-	return id, nil
 }
 
 func (c *Controller) saveNode(node *v1.Node) error {
