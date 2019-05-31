@@ -32,6 +32,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net"
+	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -41,6 +43,7 @@ import (
 	"github.com/containerd/containerd"
 	"github.com/containerd/containerd/errdefs"
 	"github.com/containerd/containerd/namespaces"
+	"github.com/containerd/containerd/remotes/docker"
 	"github.com/gogo/protobuf/proto"
 	"github.com/gogo/protobuf/types"
 	"github.com/gomodule/redigo/redis"
@@ -342,7 +345,7 @@ func (c *Controller) InstallPXE(ctx context.Context, r *api.InstallPXERequest) (
 	log.Infof("installing pxe version %s", repo.Version())
 
 	log.Debug("fetching image")
-	i, err := c.client.Fetch(ctx, r.Image)
+	i, err := c.client.Fetch(ctx, r.Image, withPlainRemote(r.Image))
 	if err != nil {
 		return nil, errors.Wrapf(err, "fetch pxe image %s", r.Image)
 	}
@@ -427,7 +430,7 @@ func (c *Controller) fetch(ctx context.Context, repo string) (containerd.Image, 
 		if !errdefs.IsNotFound(err) {
 			return nil, errors.Wrapf(err, "image get error %s", repo)
 		}
-		i, err := c.client.Fetch(ctx, repo)
+		i, err := c.client.Fetch(ctx, repo, withPlainRemote(repo))
 		if err != nil {
 			return nil, errors.Wrapf(err, "fetch repo %s", repo)
 		}
@@ -662,4 +665,20 @@ func (c *Controller) updateNode(node *v1.Node) error {
 		return errors.Wrapf(err, "update node %s", node.Hostname)
 	}
 	return nil
+}
+
+func withPlainRemote(ref string) containerd.RemoteOpt {
+	return func(_ *containerd.Client, ctx *containerd.RemoteContext) error {
+		var plain bool
+		u, err := url.Parse("registry://" + ref)
+		if err != nil {
+			return errors.Wrap(err, "parse url")
+		}
+		plain = strings.Contains(u.Host, ":5000")
+		ctx.Resolver = docker.NewResolver(docker.ResolverOptions{
+			PlainHTTP: plain,
+			Client:    http.DefaultClient,
+		})
+		return nil
+	}
 }
