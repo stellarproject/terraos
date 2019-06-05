@@ -56,6 +56,13 @@ func CreateSubvolumes(root string, subvolumes []*types.Subvolume) error {
 	return nil
 }
 
+func Snapshot(source, dest string) error {
+	if err := Btrfs("subvolume", "snapshot", source, dest); err != nil {
+		return errors.Wrapf(err, "create snapshot of %s to %s", source, dest)
+	}
+	return nil
+}
+
 func Btrfs(args ...string) error {
 	out, err := exec.Command("btrfs", args...).CombinedOutput()
 	if err != nil {

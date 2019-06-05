@@ -39,6 +39,7 @@ import (
 	"github.com/sirupsen/logrus"
 	v1 "github.com/stellarproject/terraos/api/v1/types"
 	"github.com/stellarproject/terraos/cmd"
+	"github.com/stellarproject/terraos/pkg/btrfs"
 	"github.com/stellarproject/terraos/pkg/fstab"
 	"github.com/stellarproject/terraos/pkg/image"
 	"github.com/stellarproject/terraos/pkg/resolvconf"
@@ -199,6 +200,20 @@ Install terra onto a physical disk`
 		}
 		if err := writeResolvconf(dest, gateway); err != nil {
 			return errors.Wrap(err, "write resolv.conf")
+		}
+		// snapshot the os install
+		for _, g := range node.DiskGroups {
+			if g.Label == stage1.OSLabel {
+				var (
+					path   = filepath.Join(diskmount, g.Label)
+					source = filepath.Join(path, stage1.OSVolume)
+					dest   = filepath.Join(path, stage1.SnapshotVolume)
+				)
+				if err := btrfs.Snapshot(source, dest); err != nil {
+					return err
+				}
+				break
+			}
 		}
 		return nil
 	}

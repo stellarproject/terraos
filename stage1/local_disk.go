@@ -41,8 +41,10 @@ import (
 )
 
 const (
-	OSLabel  = "os"
-	OSVolume = "os"
+	OSLabel        = "os"
+	OSVolume       = "os"
+	SnapshotLabel  = "snapshots"
+	SnapshotVolume = "snapshots"
 )
 
 func NewGroup(group *types.DiskGroup, dest string) (*Group, error) {
@@ -81,6 +83,11 @@ func (d *Group) Init(diskMount string) error {
 			subvolumes...,
 		)
 	}
+	// add snapshots subvolume
+	subvolumes = append(subvolumes, &types.Subvolume{
+		Name: SnapshotLabel,
+		Path: "/snapshots",
+	})
 	if err := btrfs.CreateSubvolumes(diskMount, subvolumes); err != nil {
 		return errors.Wrap(err, "create subvolumes")
 	}
@@ -88,6 +95,10 @@ func (d *Group) Init(diskMount string) error {
 		dest := filepath.Join(d.dest, s.Path)
 		if err := os.MkdirAll(dest, 0711); err != nil {
 			return errors.Wrapf(err, "mkdir subvolumes %s", dest)
+		}
+		// don't mount the snapshot subvolume for install
+		if s.Name == SnapshotLabel {
+			continue
 		}
 		if err := unix.Mount(filepath.Join(diskMount, s.Name), dest, "none", unix.MS_BIND, ""); err != nil {
 			return errors.Wrapf(err, "mount subvolume %s", s.Name)
