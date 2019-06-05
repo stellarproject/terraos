@@ -791,6 +791,9 @@ func (a *Agent) reconcile(ctx context.Context) error {
 
 func (a *Agent) start(ctx context.Context, container containerd.Container) error {
 	logrus.WithField("id", container.ID()).Debug("starting container")
+	if _, _, err := opts.WriteHostsFiles(a.config.Paths(container.ID()).State, container.ID()); err != nil {
+		return errors.Wrap(err, "update hosts files")
+	}
 	if task, err := container.Task(ctx, nil); err == nil {
 		// make sure it's dead
 		task.Kill(ctx, syscall.SIGKILL)
@@ -824,7 +827,14 @@ func (a *Agent) start(ctx context.Context, container containerd.Container) error
 	if err != nil {
 		return errors.Wrap(err, "create new container task")
 	}
-	return task.Start(ctx)
+	if err := task.Start(ctx); err != nil {
+		logrus.WithError(err).Error("start container process")
+		if _, err := task.Delete(ctx, containerd.WithProcessKill); err != nil {
+			logrus.WithError(err).Error("delete container task")
+		}
+		return errors.Wrap(err, "start container process")
+	}
+	return nil
 }
 
 func (a *Agent) stop(ctx context.Context, container containerd.Container) error {
