@@ -63,7 +63,7 @@ import (
 	is "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	v1 "github.com/stellarproject/terraos/api/v1/services"
+	v1 "github.com/stellarproject/terraos/api/v1/orbit"
 	"github.com/stellarproject/terraos/cni"
 	"github.com/stellarproject/terraos/config"
 	"github.com/stellarproject/terraos/opts"

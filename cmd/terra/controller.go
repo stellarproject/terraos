@@ -39,7 +39,7 @@ import (
 	"github.com/gomodule/redigo/redis"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	v1 "github.com/stellarproject/terraos/api/v1/services"
+	v1 "github.com/stellarproject/terraos/api/v1/infra"
 	"github.com/stellarproject/terraos/cmd"
 	"github.com/stellarproject/terraos/controller"
 	"github.com/stellarproject/terraos/util"
@@ -127,7 +127,7 @@ var controllerCommand = cli.Command{
 
 		logrus.Info("registering grpc server...")
 		server := cmd.NewServer()
-		v1.RegisterInfrastructureServer(server, controller)
+		v1.RegisterControllerServer(server, controller)
 
 		signals := make(chan os.Signal, 32)
 		signal.Notify(signals, syscall.SIGTERM, syscall.SIGINT)

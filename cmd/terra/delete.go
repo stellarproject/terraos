@@ -29,7 +29,7 @@ package main
 
 import (
 	"github.com/pkg/errors"
-	v1 "github.com/stellarproject/terraos/api/v1/services"
+	v1 "github.com/stellarproject/terraos/api/v1/infra"
 	"github.com/stellarproject/terraos/cmd"
 	"github.com/urfave/cli"
 	"google.golang.org/grpc"
@@ -50,7 +50,7 @@ var deleteCommand = cli.Command{
 			return errors.Wrap(err, "dial controller")
 		}
 		defer conn.Close()
-		client := v1.NewInfrastructureClient(conn)
+		client := v1.NewControllerClient(conn)
 		ctx := cmd.CancelContext()
 
 		if _, err := client.Delete(ctx, &v1.DeleteNodeRequest{

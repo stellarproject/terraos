@@ -30,7 +30,7 @@ package config
 import (
 	"github.com/containerd/typeurl"
 	"github.com/pkg/errors"
-	v1 "github.com/stellarproject/terraos/api/v1/services"
+	v1 "github.com/stellarproject/terraos/api/v1/orbit"
 )
 
 const Version = "v1"

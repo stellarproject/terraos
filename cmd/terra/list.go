@@ -35,7 +35,7 @@ import (
 
 	"github.com/gogo/protobuf/types"
 	"github.com/pkg/errors"
-	v1 "github.com/stellarproject/terraos/api/v1/services"
+	v1 "github.com/stellarproject/terraos/api/v1/infra"
 	"github.com/stellarproject/terraos/cmd"
 	"github.com/urfave/cli"
 	"google.golang.org/grpc"
@@ -57,7 +57,7 @@ var listCommand = cli.Command{
 			return errors.Wrap(err, "dial controller")
 		}
 		defer conn.Close()
-		client := v1.NewInfrastructureClient(conn)
+		client := v1.NewControllerClient(conn)
 		ctx := cmd.CancelContext()
 
 		resp, err := client.List(ctx, &types.Empty{})

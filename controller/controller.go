@@ -49,7 +49,7 @@ import (
 	"github.com/gomodule/redigo/redis"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	api "github.com/stellarproject/terraos/api/v1/services"
+	api "github.com/stellarproject/terraos/api/v1/infra"
 	v1 "github.com/stellarproject/terraos/api/v1/types"
 	"github.com/stellarproject/terraos/config"
 	"github.com/stellarproject/terraos/pkg/btrfs"

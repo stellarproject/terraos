@@ -1,14 +1,14 @@
 syntax = "proto3";
 
-package io.stellarproject.services.v1;
+package io.stellarproject.infra.v1;
 
 import weak "gogoproto/gogo.proto";
 import "google/protobuf/empty.proto";
 import "github.com/stellarproject/terraos/api/v1/types/types.proto";
 
-option go_package = "github.com/stellarproject/terraos/api/v1/services;services";
+option go_package = "github.com/stellarproject/terraos/api/v1/infra;infra";
 
-service Infrastructure {
+service Controller {
 	rpc Provision(ProvisionNodeRequest) returns (ProvisionNodeResponse);
 	rpc List(google.protobuf.Empty) returns (ListNodeResponse);
 	rpc InstallPXE(InstallPXERequest) returns (google.protobuf.Empty);
