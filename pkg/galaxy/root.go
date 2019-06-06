@@ -41,7 +41,6 @@ func rootHandler(backend store.Store) handler {
 			return nil, nil, err
 		}
 		return nil, mkdir([]os.FileInfo{
-			&dir{name: "cluster"},
 			f,
 		}, 0755), nil
 	}

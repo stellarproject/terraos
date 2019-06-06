@@ -28,93 +28,12 @@
 package galaxy
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
-	"path"
 	"path/filepath"
 
-	"aqwari.net/net/styx"
 	"github.com/stellarproject/terraos/pkg/store"
 )
-
-func clusterHandler(backend store.Store) handler {
-	return func(p string, r styx.Request) (interface{}, interface{}, error) {
-		fmt.Printf("clusterHandler: path=%q\n", p)
-		switch p {
-		case "":
-			return nil, mkdir([]os.FileInfo{
-				&dir{name: "services", mode: 0775},
-				&dir{name: "nodes", mode: 0755},
-			}, 0755), nil
-		case "/services":
-			// TODO: pull from store
-			info, err := backend.List(r.Path())
-			if err != nil {
-				if !store.IsNotFound(err) {
-					return nil, nil, err
-				}
-			}
-			fi, err := fromStat(info, backend)
-			if err != nil {
-				return nil, nil, err
-			}
-			return nil, mkdir(fi, 0755), nil
-		case "/nodes":
-			// TODO: pull from store
-			info, err := backend.List(r.Path())
-			if err != nil {
-				if !store.IsNotFound(err) {
-					return nil, nil, err
-				}
-			}
-			fi, err := fromStat(info, backend)
-			if err != nil {
-				return nil, nil, err
-			}
-			return nil, mkdir(fi, 0755), nil
-		default:
-			ctx := r.Context()
-			switch ctx.Value("action") {
-			case "create":
-				fmt.Println("action.CREATE")
-			}
-			switch v := r.(type) {
-			case styx.Tcreate:
-				f, err := backend.GetOrCreate(r.Path())
-				if err != nil {
-					return nil, nil, err
-				}
-				return nil, f, nil
-			case styx.Twalk:
-				info, err := backend.List(path.Dir(r.Path()))
-				if err != nil {
-					return nil, nil, err
-				}
-				fmt.Printf("clusterHandler: %+v\n", info)
-				fi, err := fromStat(info, backend)
-				if err != nil {
-					return nil, nil, err
-				}
-				return nil, mkdir(fi, 0755), nil
-			default:
-				fmt.Printf("clusterHandler: default %T\n", v)
-				f, err := backend.Get(r.Path())
-				if err != nil {
-					return nil, nil, err
-				}
-				fmt.Printf("clusterHandler default backend.Get %T\n", f)
-				fi, err := toFile(f, r.Path(), backend)
-				if err != nil {
-					return nil, nil, err
-				}
-				return nil, fi, nil
-			}
-			return nil, nil, ErrNoFile
-		}
-		return nil, nil, ErrNoFile
-	}
-}
 
 func fromStat(items []store.Stat, backend store.Store) ([]os.FileInfo, error) {
 	var fi []os.FileInfo

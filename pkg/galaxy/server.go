@@ -54,6 +54,7 @@ type Server struct {
 	config  *Config
 	backend store.Store
 	router  *Router
+	path    string
 }
 
 var logrequests styx.HandlerFunc = func(s *styx.Session) {
@@ -69,13 +70,12 @@ func NewServer(cfg *Config) (*Server, error) {
 		return nil, err
 	}
 	r := NewRouter()
-	r.Path("/", rootHandler(b))
 	r.Path("/version", versionHandler(b))
-	r.Prefix("/cluster", clusterHandler(b))
 	return &Server{
 		config:  cfg,
 		backend: b,
 		router:  r,
+		path:    "/tmp/stellar-store",
 	}, nil
 }
 
@@ -101,92 +101,118 @@ func (s *Server) Run() error {
 func (s *Server) Serve9P(session *styx.Session) {
 	for session.Next() {
 		r := session.Request()
-		_, f, err := s.router.handle(r.Path(), r)
-		if err != nil {
-			//r.Rerror(err.Error())
-			//continue
-		}
-		var fi os.FileInfo
-		switch v := f.(type) {
-		case Dir:
-			fi = v
-		case File:
-			fi = v
-		case nil:
-			// create
-			fi = nil
-		default:
-			r.Rerror("unknown type received %T", v)
-			continue
-		}
-
 		switch t := r.(type) {
 		case styx.Twalk:
-			fmt.Println("Twalk")
-			if fi != nil {
-				t.Rwalk(fi, nil)
-			} else {
-				t.Rwalk(nil, os.ErrNotExist)
+			fmt.Println("Twalk", r.Path())
+			info, err := os.Lstat(filepath.Join(s.path, r.Path()))
+			if err != nil {
+				if os.IsNotExist(err) {
+					t.Rwalk(nil, os.ErrNotExist)
+					continue
+				}
+				t.Rwalk(nil, err)
+				continue
 			}
+			t.Rwalk(newFileInfo(info), err)
 		case styx.Tstat:
-			fmt.Println("Tstat")
-			fmt.Printf("Tstat fi %T\n", fi)
-			if fi != nil {
-				t.Rstat(fi, nil)
-			} else { // attempt to create
-				if _, err := s.backend.GetOrCreate(t.Path()); err != nil {
-					t.Rerror(err.Error())
+			fmt.Println("Tstat", r.Path())
+			info, err := os.Stat(filepath.Join(s.path, r.Path()))
+			if err != nil {
+				if os.IsNotExist(err) {
+					t.Rstat(nil, os.ErrNotExist)
 					continue
 				}
-				n := filepath.Base(t.Path())
-				f, err := newFile(n, t.Path(), "0", "0", false, nil, s.backend)
-				if err != nil {
-					t.Rerror(err.Error())
-					continue
-				}
-				t.Rstat(f, nil)
+				t.Rstat(nil, err)
 			}
+			t.Rstat(newFileInfo(info), err)
+		case styx.Tchown:
+			path := filepath.Join(s.path, t.Path())
+			err := os.Chown(path, t.Uid, t.Gid)
+			t.Rchown(err)
+		case styx.Tchmod:
+			path := filepath.Join(s.path, t.Path())
+			err := os.Chmod(path, t.Mode)
+			t.Rchmod(err)
+		case styx.Trename:
+
+		case styx.Tsync:
+			f, err := s.open(t.Path())
+			if err != nil {
+				t.Rsync(err)
+				continue
+			}
+			t.Rsync(f.Sync())
+			f.Close()
 		case styx.Tutimes:
-			fmt.Println("Tutimes")
+			fmt.Println("Tutimes", r.Path())
 			// TODO
 			t.Rutimes(nil)
 		case styx.Topen:
-			fmt.Println("Topen")
-			switch v := fi.(type) {
-			case *dir:
-				t.Ropen(mkdir(v.entries, 0755), nil)
-			case *file:
-				t.Ropen(fi, nil)
-			}
+			fmt.Println("Topen", r.Path())
+			f, err := s.open(r.Path())
+			t.Ropen(f, err)
 		case styx.Ttruncate:
-			// TODO
-			t.Rtruncate(nil)
-		case styx.Tcreate:
-			fmt.Println("Tcreate")
-			switch fi.(type) {
-			case *dir:
-				// TODO: create on the backend
-				if t.Mode.IsDir() {
-					t.Rcreate(&dir{}, nil)
-				} else {
-					f, err := s.backend.GetOrCreate(t.Name)
-					if err != nil {
-						t.Rerror(err.Error())
-						continue
-					}
-					t.Rcreate(f, nil)
-				}
-			default:
-				t.Rerror("%s is not a directory", t.Path())
-			}
-		case styx.Tremove:
-			if err := s.backend.Delete(t.Path()); err != nil {
-				t.Rerror(err.Error())
+			f, err := s.open(r.Path())
+			if err != nil {
+				t.Rtruncate(err)
 				continue
 			}
-			t.Rremove(nil)
+			t.Rtruncate(f.Truncate(t.Size))
+		case styx.Tcreate:
+			path := filepath.Join(s.path, t.NewPath())
+			if t.Mode&os.ModeDir == os.ModeDir {
+				if err := os.Mkdir(path, t.Mode); err != nil {
+					t.Rcreate(nil, err)
+					continue
+				}
+				f, err := s.open(t.NewPath())
+				if err != nil {
+					t.Rcreate(nil, err)
+					continue
+				}
+				t.Rcreate(f, nil)
+			} else {
+				t.Rcreate(os.OpenFile(path, os.O_CREATE|t.Flag, t.Mode))
+			}
+		case styx.Tremove:
+			//			t.Rremove(nil)
 		default:
 			fmt.Printf("default: %T\n", t)
 		}
 	}
+}
+
+func (s *Server) open(path string) (*os.File, error) {
+	f, err := os.Open(filepath.Join(s.path, path))
+	if err != nil && os.IsNotExist(err) {
+		err = os.ErrNotExist
+	}
+	return f, err
+}
+
+func newFileInfo(info os.FileInfo) os.FileInfo {
+	return info
+	/*
+		stat := info.Sys().(*syscall.Stat_t)
+		return &fileInfo{
+			FileInfo: info,
+			uid:      fmt.Sprintf("%d", stat.Uid),
+			gid:      fmt.Sprintf("%d", stat.Gid),
+		}
+	*/
+}
+
+type fileInfo struct {
+	os.FileInfo
+	uid string
+	gid string
+}
+
+func (i *fileInfo) Uid() string {
+	fmt.Println("called Uid()", i.uid)
+	return i.uid
+}
+
+func (i *fileInfo) Gid() string {
+	return i.gid
 }
