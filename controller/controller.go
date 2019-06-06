@@ -178,7 +178,6 @@ func startContainers(orbit *util.LocalAgent, ip net.IP) error {
 	containers := []infraContainer{
 		&redisContainer{orbit: orbit, ip: ip},
 		&registryContainer{orbit: orbit, ip: ip},
-		&prometheusContainer{orbit: orbit, ip: ip},
 	}
 	for _, c := range containers {
 		if err := c.Start(ctx); err != nil {
