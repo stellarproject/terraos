@@ -67,6 +67,7 @@ const (
 	ClusterFS = "/cluster"
 	ISCSIPath = "/iscsi"
 	TFTPPath  = "/tftp"
+	EtcdPath  = "/etcd"
 
 	KeyNodes      = "stellarproject.io/controller/nodes"
 	KeyPXEVersion = "stellarproject.io/controller/pxe/version"
@@ -534,7 +535,19 @@ func (c *Controller) installImage(ctx context.Context, node *v1.Node, group *v1.
 	}
 	defer g.Close()
 
-	if err := g.Init(diskMount); err != nil {
+	var mounts []stage1.Mount
+	if group.Etcd != "" {
+		path := filepath.Join(EtcdPath, node.Hostname)
+		if err := os.MkdirAll(path, 0755); err != nil {
+			return errors.Wrapf(err, "create node etcd %s", path)
+		}
+		mounts = append(mounts, stage1.Mount{
+			Source:      path,
+			Destination: "/etc",
+		})
+	}
+
+	if err := g.Init(diskMount, mounts); err != nil {
 		return err
 	}
 	desc := i.Target()

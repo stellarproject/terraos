@@ -152,7 +152,7 @@ Install terra onto a physical disk`
 			}
 			defer group.Close()
 
-			if err := group.Init(path); err != nil {
+			if err := group.Init(path, nil); err != nil {
 				return err
 			}
 			ne, err := group.Entries(node.Hostname)

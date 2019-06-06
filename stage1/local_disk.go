@@ -64,12 +64,17 @@ type Group struct {
 	dest   string
 }
 
+type Mount struct {
+	Source      string
+	Destination string
+}
+
 func (d *Group) String() string {
 	return d.group.Label
 }
 
 // Init the entire group returning the path to access the group
-func (d *Group) Init(diskMount string) error {
+func (d *Group) Init(diskMount string, additionalMounts []Mount) error {
 	d.mounts = append(d.mounts, diskMount)
 
 	// create subvolumes
@@ -94,6 +99,16 @@ func (d *Group) Init(diskMount string) error {
 		}
 		if err := unix.Mount(filepath.Join(diskMount, s.Name), dest, "none", unix.MS_BIND, ""); err != nil {
 			return errors.Wrapf(err, "mount subvolume %s", s.Name)
+		}
+		d.mounts = append(d.mounts, dest)
+	}
+	for _, m := range additionalMounts {
+		dest := filepath.Join(d.dest, m.Destination)
+		if err := os.MkdirAll(dest, 0711); err != nil {
+			return errors.Wrapf(err, "mkdir additional mount %s", dest)
+		}
+		if err := unix.Mount(m.Source, dest, "none", unix.MS_BIND, ""); err != nil {
+			return errors.Wrapf(err, "mount additional mount %s", m.Source)
 		}
 		d.mounts = append(d.mounts, dest)
 	}
