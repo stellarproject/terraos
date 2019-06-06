@@ -29,7 +29,6 @@ package stage1
 
 import (
 	"fmt"
-	"net"
 	"os"
 	"path/filepath"
 
@@ -128,7 +127,7 @@ func (d *Group) Close() error {
 }
 
 // Entries returns the fstab entries for the group
-func (d *Group) Entries(hostname string) ([]*fstab.Entry, error) {
+func (d *Group) Entries() []*fstab.Entry {
 	var entries []*fstab.Entry
 	for _, s := range d.group.Subvolumes {
 		entries = append(entries, &fstab.Entry{
@@ -141,33 +140,7 @@ func (d *Group) Entries(hostname string) ([]*fstab.Entry, error) {
 			},
 		})
 	}
-	if d.group.Etcd != "" {
-		host, port, err := net.SplitHostPort(d.group.Etcd)
-		if err != nil {
-			aerr, ok := err.(*net.AddrError)
-			if !ok {
-				return nil, errors.Wrapf(err, "parsing etcd host and port %s", d.group.Etcd)
-			}
-			if aerr.Err == "missing port in address" {
-				host = d.group.Etcd
-				port = "564"
-			}
-		}
-		entries = append(entries, &fstab.Entry{
-			Type:   "9p",
-			Device: host,
-			Path:   "/etc",
-			Pass:   2,
-			Options: []string{
-				"port=" + port,
-				"version=9p2000.L",
-				"uname=root",
-				"access=user",
-				fmt.Sprintf("aname=/etc/%s", hostname),
-			},
-		})
-	}
-	return entries, nil
+	return entries
 }
 
 func reverse(mounts []string) []string {

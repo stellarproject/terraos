@@ -535,16 +535,15 @@ func (c *Controller) installImage(ctx context.Context, node *v1.Node, group *v1.
 	}
 	defer g.Close()
 
-	var mounts []stage1.Mount
-	if group.Etcd != "" {
-		path := filepath.Join(EtcdPath, node.Hostname)
-		if err := os.MkdirAll(path, 0755); err != nil {
-			return errors.Wrapf(err, "create node etcd %s", path)
-		}
-		mounts = append(mounts, stage1.Mount{
+	path := filepath.Join(EtcdPath, node.Hostname)
+	if err := os.MkdirAll(path, 0755); err != nil {
+		return errors.Wrapf(err, "create node etcd %s", path)
+	}
+	mounts := []stage1.Mount{
+		{
 			Source:      path,
 			Destination: "/etc",
-		})
+		},
 	}
 
 	if err := g.Init(diskMount, mounts); err != nil {
@@ -554,7 +553,7 @@ func (c *Controller) installImage(ctx context.Context, node *v1.Node, group *v1.
 	if err := image.Unpack(ctx, c.client.ContentStore(), &desc, dest); err != nil {
 		return errors.Wrap(err, "unpack image to group")
 	}
-	if err := writeFstab(node, g, dest); err != nil {
+	if err := c.writeFstab(node, g, dest); err != nil {
 		return errors.Wrap(err, "write fstab")
 	}
 	if err := c.writeResolvconf(dest); err != nil {
@@ -563,15 +562,12 @@ func (c *Controller) installImage(ctx context.Context, node *v1.Node, group *v1.
 	return nil
 }
 
-func writeFstab(node *v1.Node, g *stage1.Group, root string) error {
-	entries, err := g.Entries(node.Hostname)
-	if err != nil {
-		return err
-	}
-	if node.ClusterFs != "" {
-		entries = append(entries, &fstab.Entry{
+func (c *Controller) writeFstab(node *v1.Node, g *stage1.Group, root string) error {
+	entries := g.Entries()
+	entries = append(entries,
+		&fstab.Entry{
 			Type:   "9p",
-			Device: node.ClusterFs,
+			Device: c.ips[ISCSI].To4().String(),
 			Path:   "/cluster",
 			Pass:   2,
 			Options: []string{
@@ -581,8 +577,22 @@ func writeFstab(node *v1.Node, g *stage1.Group, root string) error {
 				"access=user",
 				"aname=/cluster",
 			},
-		})
-	}
+		},
+		&fstab.Entry{
+			Type:   "9p",
+			Device: c.ips[ISCSI].To4().String(),
+			Path:   "/etc",
+			Pass:   2,
+			Options: []string{
+				"port=564",
+				"version=9p2000.L",
+				"uname=root",
+				"access=user",
+				fmt.Sprintf("aname=/etcd/%s", node.Hostname),
+			},
+		},
+	)
+
 	f, err := os.Create(filepath.Join(root, fstab.Path))
 	if err != nil {
 		return errors.Wrap(err, "create fstab file")

@@ -12,7 +12,6 @@ message Node {
 	string image = 3;
 	repeated DiskGroup disk_groups = 4;
 	string initiator_iqn = 6;
-	string cluster_fs = 7;
 }
 
 enum Stage {
@@ -41,7 +40,6 @@ message DiskGroup {
 	repeated Subvolume subvolumes = 5;
 	Target target = 6;
 	bool mbr = 7;
-	string etcd = 8;
 }
 
 message Disk {

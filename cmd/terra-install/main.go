@@ -155,11 +155,7 @@ Install terra onto a physical disk`
 			if err := group.Init(path, nil); err != nil {
 				return err
 			}
-			ne, err := group.Entries(node.Hostname)
-			if err != nil {
-				return err
-			}
-			entries = append(entries, ne...)
+			entries = append(entries, group.Entries()...)
 		}
 		if store == nil {
 			return errors.New("store not created on any group")
@@ -199,21 +195,6 @@ Install terra onto a physical disk`
 					return errors.Wrap(err, "install extlinux")
 				}
 			}
-		}
-		if node.ClusterFs != "" {
-			entries = append(entries, &fstab.Entry{
-				Type:   "9p",
-				Device: node.ClusterFs,
-				Path:   "/cluster",
-				Pass:   2,
-				Options: []string{
-					"port=564",
-					"version=9p2000.L",
-					"uname=root",
-					"access=user",
-					"aname=/cluster",
-				},
-			})
 		}
 		if err := writeFstab(entries, dest); err != nil {
 			return errors.Wrap(err, "write fstab")
