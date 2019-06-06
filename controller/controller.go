@@ -541,7 +541,7 @@ func (c *Controller) installImage(ctx context.Context, node *v1.Node, group *v1.
 	if err := image.Unpack(ctx, c.client.ContentStore(), &desc, dest); err != nil {
 		return errors.Wrap(err, "unpack image to group")
 	}
-	if err := writeFstab(node.Hostname, g, dest); err != nil {
+	if err := writeFstab(node, g, dest); err != nil {
 		return errors.Wrap(err, "write fstab")
 	}
 	if err := c.writeResolvconf(dest); err != nil {
@@ -550,10 +550,25 @@ func (c *Controller) installImage(ctx context.Context, node *v1.Node, group *v1.
 	return nil
 }
 
-func writeFstab(hostname string, g *stage1.Group, root string) error {
-	entries, err := g.Entries(hostname)
+func writeFstab(node *v1.Node, g *stage1.Group, root string) error {
+	entries, err := g.Entries(node.Hostname)
 	if err != nil {
 		return err
+	}
+	if node.ClusterFs != "" {
+		entries = append(entries, &fstab.Entry{
+			Type:   "9p",
+			Device: node.ClusterFs,
+			Path:   "/cluster",
+			Pass:   2,
+			Options: []string{
+				"port=564",
+				"version=9p2000.L",
+				"uname=root",
+				"access=user",
+				"aname=/cluster",
+			},
+		})
 	}
 	f, err := os.Create(filepath.Join(root, fstab.Path))
 	if err != nil {

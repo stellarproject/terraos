@@ -176,15 +176,16 @@ Install terra onto a physical disk`
 		for _, g := range node.DiskGroups {
 			if g.Mbr {
 				/*
-					entries = append(entries, &fstab.Entry{
-						Type:   mkfs.Btrfs,
-						Device: fmt.Sprintf("LABEL=%s", d.Label),
-						Path:   "/boot",
-						Pass:   2,
-						Options: []string{
-							"bind",
-						},
-					})
+					add the boot dir?
+						entries = append(entries, &fstab.Entry{
+							Type:   mkfs.Btrfs,
+							Device: fmt.Sprintf("LABEL=%s", d.Label),
+							Path:   "/boot",
+							Pass:   2,
+							Options: []string{
+								"bind",
+							},
+						})
 				*/
 
 				path := filepath.Join(diskmount, g.Label)
@@ -198,6 +199,21 @@ Install terra onto a physical disk`
 					return errors.Wrap(err, "install extlinux")
 				}
 			}
+		}
+		if node.ClusterFs != "" {
+			entries = append(entries, &fstab.Entry{
+				Type:   "9p",
+				Device: node.ClusterFs,
+				Path:   "/cluster",
+				Pass:   2,
+				Options: []string{
+					"port=564",
+					"version=9p2000.L",
+					"uname=root",
+					"access=user",
+					"aname=/cluster",
+				},
+			})
 		}
 		if err := writeFstab(entries, dest); err != nil {
 			return errors.Wrap(err, "write fstab")

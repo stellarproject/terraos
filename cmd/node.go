@@ -38,10 +38,11 @@ import (
 )
 
 type Node struct {
-	Hostname string      `toml:"hostname"`
-	Mac      string      `toml:"mac"`
-	Image    string      `toml:"image"`
-	Groups   []DiskGroup `toml:"groups"`
+	Hostname  string      `toml:"hostname"`
+	Mac       string      `toml:"mac"`
+	Image     string      `toml:"image"`
+	Groups    []DiskGroup `toml:"groups"`
+	ClusterFS string      `toml:"cluster_fs"`
 }
 
 type Disk struct {
@@ -66,9 +67,10 @@ type Subvolume struct {
 
 func (n *Node) ToProto() *v1.Node {
 	p := &v1.Node{
-		Hostname: n.Hostname,
-		Mac:      n.Mac,
-		Image:    n.Image,
+		Hostname:  n.Hostname,
+		Mac:       n.Mac,
+		Image:     n.Image,
+		ClusterFs: n.ClusterFS,
 	}
 	for _, g := range n.Groups {
 		var (
