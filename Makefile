@@ -82,11 +82,14 @@ boot: FORCE
 
 # -------------------- stage1 -------------------------
 
-defaults: wireguard orbit-release FORCE
+defaults: gvisor wireguard orbit-release FORCE
 	vab build -p -c stage1/defaults/containerd -d stage1/defaults/containerd --ref ${REPO}/containerd:${VERSION} ${ARGS}
 	vab build -p -c stage1/defaults/node_exporter -d stage1/defaults/node_exporter --ref ${REPO}/node_exporter:${VERSION} ${ARGS}
 	vab build -p -c stage1/defaults/cni -d stage1/defaults/cni --ref ${REPO}/cni:${VERSION} ${ARGS}
 	vab build -p -d stage1/defaults/criu -c stage1/defaults/criu --ref ${REPO}/criu:${VERSION} ${ARGS}
+
+gvisor:
+	vab build -p -d stage1/defaults/gvisor -c stage1/defaults/gvisor --ref ${REPO}/gvisor:${VERSION} ${ARGS}
 
 diod:
 	vab build -p -d stage1/extras/diod -c stage1/extras/diod --ref ${REPO}/diod:${VERSION} ${ARGS}

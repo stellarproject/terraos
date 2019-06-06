@@ -23,42 +23,22 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH
 # THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-FROM golang:1.12 as containerd
+FROM golang:1.12 as gvisor
 
 RUN apt update && \
 	apt install -y \
-	autoconf \
-	automake \
-	g++ \
-	libtool \
-	unzip \
-	btrfs-tools \
-	gcc \
-	git \
-	libseccomp-dev \
 	make \
-	xfsprogs
+	curl \
+	git
 
-ENV COMMIT 02ed02eca53b9f4ee84702e1858f70023c26db44
-RUN git clone https://github.com/containerd/containerd /go/src/github.com/containerd/containerd
-WORKDIR /go/src/github.com/containerd/containerd
-RUN git checkout $COMMIT
+RUN go get -d github.com/google/gvisor-containerd-shim || true
+WORKDIR /go/src/github.com/google/gvisor-containerd-shim
 
-# RUN rsync -au /go/src/github.com/containerd/containerd/vendor/ /go/src/ && \
-#	rm -rf /go/src/github.com/containerd/containerd/vendor/*
-RUN rm -rf /go/src/github.com/opencontainers/runc && \
-	git clone https://github.com/opencontainers/runc /go/src/github.com/opencontainers/runc
+RUN make && make DESTDIR=/opt/containerd install
 
-RUN ./script/setup/install-protobuf
-RUN ./script/setup/install-runc
-
-RUN make BUILDTAGS='no_cri no_devmapper'
-
-ADD config.toml /etc/containerd/
+RUN curl -SsL -o /runsc https://storage.googleapis.com/gvisor/releases/nightly/latest/runsc
 
 FROM scratch
 
-COPY --from=containerd /etc/containerd/config.toml /etc/containerd/
-COPY --from=containerd /go/src/github.com/containerd/containerd/containerd.service /etc/systemd/system/
-COPY --from=containerd /go/src/github.com/containerd/containerd/bin/* /usr/local/bin/
-COPY --from=containerd /usr/local/sbin/runc /usr/local/sbin/
+COPY --from=gvisor /runsc /usr/local/sbin/
+COPY --from=gvisor /opt/containerd/bin/containerd-shim-runsc-v1 /opt/containerd/bin/
