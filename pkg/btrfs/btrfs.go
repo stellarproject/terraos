@@ -43,6 +43,13 @@ func Check() error {
 	return nil
 }
 
+func CreateSubvolume(path string) error {
+	if err := Btrfs("subvolume", "create", path); err != nil {
+		return errors.Wrapf(err, "create subvolume %s", path)
+	}
+	return nil
+}
+
 func CreateSubvolumes(root string, subvolumes []*types.Subvolume) error {
 	for _, s := range subvolumes {
 		sv := filepath.Join(root, s.Name)

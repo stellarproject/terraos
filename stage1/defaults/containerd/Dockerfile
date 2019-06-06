@@ -40,9 +40,10 @@ RUN apt update && \
 	make \
 	xfsprogs
 
-RUN git clone https://github.com/containerd/containerd /go/src/github.com/containerd/containerd
-
+ENV COMMIT ed308ea1e6f7be0965ddb3afa7df3b86387ba4e9
+RUN git clone https://github.com/crosbymichael/containerd /go/src/github.com/containerd/containerd
 WORKDIR /go/src/github.com/containerd/containerd
+RUN git checkout $COMMIT
 
 # RUN rsync -au /go/src/github.com/containerd/containerd/vendor/ /go/src/ && \
 #	rm -rf /go/src/github.com/containerd/containerd/vendor/*

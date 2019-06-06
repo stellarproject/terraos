@@ -99,7 +99,12 @@ func New(client *containerd.Client, ipConfig map[IPType]net.IP, pool *redis.Pool
 	if err := startContainers(orbit, ipConfig[Management]); err != nil {
 		return nil, errors.Wrap(err, "start containers")
 	}
-	for _, p := range []string{ClusterFS, ISCSIPath, TFTPPath} {
+	for _, p := range []string{
+		ClusterFS,
+		ISCSIPath,
+		TFTPPath,
+		filepath.Join(ISCSIPath, "snapshots"),
+	} {
 		if err := os.MkdirAll(p, 0755); err != nil {
 			return nil, errors.Wrapf(err, "mkdir %s", p)
 		}
@@ -493,8 +498,8 @@ func (c *Controller) provisionTarget(ctx context.Context, node *v1.Node, image c
 
 func (c *Controller) createGroupLuns(ctx context.Context, node *v1.Node, group *v1.DiskGroup) error {
 	dir := filepath.Join(ISCSIPath, node.Hostname)
-	if err := os.Mkdir(dir, 0711); err != nil {
-		return errors.Wrapf(err, "create lun dir %s", dir)
+	if err := btrfs.CreateSubvolume(dir); err != nil {
+		return errors.Wrapf(err, "create lun subvolume %s", dir)
 	}
 	// the order of this list is also the lun ids
 	for i, disk := range group.Disks {
