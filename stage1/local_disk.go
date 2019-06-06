@@ -29,6 +29,7 @@ package stage1
 
 import (
 	"fmt"
+	"net"
 	"os"
 	"path/filepath"
 
@@ -83,11 +84,6 @@ func (d *Group) Init(diskMount string) error {
 			subvolumes...,
 		)
 	}
-	// add snapshots subvolume
-	subvolumes = append(subvolumes, &types.Subvolume{
-		Name: SnapshotLabel,
-		Path: "/snapshots",
-	})
 	if err := btrfs.CreateSubvolumes(diskMount, subvolumes); err != nil {
 		return errors.Wrap(err, "create subvolumes")
 	}
@@ -95,10 +91,6 @@ func (d *Group) Init(diskMount string) error {
 		dest := filepath.Join(d.dest, s.Path)
 		if err := os.MkdirAll(dest, 0711); err != nil {
 			return errors.Wrapf(err, "mkdir subvolumes %s", dest)
-		}
-		// don't mount the snapshot subvolume for install
-		if s.Name == SnapshotLabel {
-			continue
 		}
 		if err := unix.Mount(filepath.Join(diskMount, s.Name), dest, "none", unix.MS_BIND, ""); err != nil {
 			return errors.Wrapf(err, "mount subvolume %s", s.Name)
@@ -121,7 +113,7 @@ func (d *Group) Close() error {
 }
 
 // Entries returns the fstab entries for the group
-func (d *Group) Entries() []*fstab.Entry {
+func (d *Group) Entries(hostname string) ([]*fstab.Entry, error) {
 	var entries []*fstab.Entry
 	for _, s := range d.group.Subvolumes {
 		entries = append(entries, &fstab.Entry{
@@ -134,7 +126,33 @@ func (d *Group) Entries() []*fstab.Entry {
 			},
 		})
 	}
-	return entries
+	if d.group.Etcd != "" {
+		host, port, err := net.SplitHostPort(d.group.Etcd)
+		if err != nil {
+			aerr, ok := err.(*net.AddrError)
+			if !ok {
+				return nil, errors.Wrapf(err, "parsing etcd host and port %s", d.group.Etcd)
+			}
+			if aerr.Err == "missing port in address" {
+				host = d.group.Etcd
+				port = "564"
+			}
+		}
+		entries = append(entries, &fstab.Entry{
+			Type:   "9p",
+			Device: host,
+			Path:   "/etc",
+			Pass:   2,
+			Options: []string{
+				"port=" + port,
+				"version=9p2000.L",
+				"uname=root",
+				"access=user",
+				fmt.Sprintf("aname=/etc/%s", hostname),
+			},
+		})
+	}
+	return entries, nil
 }
 
 func reverse(mounts []string) []string {

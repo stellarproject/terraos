@@ -40,6 +40,7 @@ message DiskGroup {
 	repeated Subvolume subvolumes = 5;
 	Target target = 6;
 	bool mbr = 7;
+	string etcd = 8;
 }
 
 message Disk {

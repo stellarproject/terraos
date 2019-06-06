@@ -485,7 +485,7 @@ func (c *Controller) provisionTarget(ctx context.Context, node *v1.Node, image c
 	if err := stage0.Format(group); err != nil {
 		return errors.Wrap(err, "format group")
 	}
-	if err := c.installImage(ctx, group, image); err != nil {
+	if err := c.installImage(ctx, node, group, image); err != nil {
 		return errors.Wrap(err, "install image to disk group")
 	}
 	for _, disk := range group.Disks {
@@ -513,7 +513,7 @@ func (c *Controller) createGroupLuns(ctx context.Context, node *v1.Node, group *
 	return nil
 }
 
-func (c *Controller) installImage(ctx context.Context, group *v1.DiskGroup, i containerd.Image) error {
+func (c *Controller) installImage(ctx context.Context, node *v1.Node, group *v1.DiskGroup, i containerd.Image) error {
 	var (
 		disk      = group.Disks[0]
 		diskMount = disk.Device + ".mnt"
@@ -541,8 +541,7 @@ func (c *Controller) installImage(ctx context.Context, group *v1.DiskGroup, i co
 	if err := image.Unpack(ctx, c.client.ContentStore(), &desc, dest); err != nil {
 		return errors.Wrap(err, "unpack image to group")
 	}
-
-	if err := writeFstab(g, dest); err != nil {
+	if err := writeFstab(node.Hostname, g, dest); err != nil {
 		return errors.Wrap(err, "write fstab")
 	}
 	if err := c.writeResolvconf(dest); err != nil {
@@ -551,8 +550,11 @@ func (c *Controller) installImage(ctx context.Context, group *v1.DiskGroup, i co
 	return nil
 }
 
-func writeFstab(g *stage1.Group, root string) error {
-	entries := g.Entries()
+func writeFstab(hostname string, g *stage1.Group, root string) error {
+	entries, err := g.Entries(hostname)
+	if err != nil {
+		return err
+	}
 	f, err := os.Create(filepath.Join(root, fstab.Path))
 	if err != nil {
 		return errors.Wrap(err, "create fstab file")

@@ -155,7 +155,11 @@ Install terra onto a physical disk`
 			if err := group.Init(path); err != nil {
 				return err
 			}
-			entries = append(entries, group.Entries()...)
+			ne, err := group.Entries(node.Hostname)
+			if err != nil {
+				return err
+			}
+			entries = append(entries, ne...)
 		}
 		if store == nil {
 			return errors.New("store not created on any group")
@@ -209,6 +213,9 @@ Install terra onto a physical disk`
 					source = filepath.Join(path, stage1.OSVolume)
 					dest   = filepath.Join(path, stage1.SnapshotVolume)
 				)
+				if err := os.MkdirAll(dest, 0711); err != nil {
+					return err
+				}
 				if err := btrfs.Snapshot(source, dest); err != nil {
 					return err
 				}
