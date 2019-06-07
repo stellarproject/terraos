@@ -34,7 +34,7 @@ import (
 	"time"
 
 	units "github.com/docker/go-units"
-	v1 "github.com/stellarproject/terraos/api/v1/services"
+	v1 "github.com/stellarproject/terraos/api/v1/orbit"
 	"github.com/urfave/cli"
 )
 

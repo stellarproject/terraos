@@ -27,7 +27,6 @@ FROM golang:1.12 as containerd
 
 RUN apt update && \
 	apt install -y \
-	rsync \
 	autoconf \
 	automake \
 	g++ \
@@ -40,9 +39,10 @@ RUN apt update && \
 	make \
 	xfsprogs
 
+ENV COMMIT 02ed02eca53b9f4ee84702e1858f70023c26db44
 RUN git clone https://github.com/containerd/containerd /go/src/github.com/containerd/containerd
-
 WORKDIR /go/src/github.com/containerd/containerd
+RUN git checkout $COMMIT
 
 # RUN rsync -au /go/src/github.com/containerd/containerd/vendor/ /go/src/ && \
 #	rm -rf /go/src/github.com/containerd/containerd/vendor/*

@@ -23,15 +23,29 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH
 # THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-FROM golang:1.12 as cni
+FROM ubuntu:18.04 as build
 
-ENV COMMIT 19cad9e318e8763e5f706ccb777d6dadd95495be
-RUN git clone https://github.com/crosbymichael/plugins /go/src/github.com/containernetworking/plugins
-WORKDIR /go/src/github.com/containernetworking/plugins
-RUN git checkout $COMMIT
+RUN apt-get update && apt-get install -y \
+	build-essential \
+	libpopt-dev \
+	ncurses-dev \
+	automake \
+	autoconf \
+	git \
+	liblua5.1-dev \
+	libmunge-dev \
+	libwrap0-dev \
+	libcap-dev \
+	libattr1-dev \
+	&& apt-get clean
 
-RUN ./build_linux.sh
+RUN git clone https://github.com/chaos/diod.git /diod
+WORKDIR /diod
+RUN ./autogen.sh && \
+	./configure && \
+	make
 
 FROM scratch
 
-COPY --from=cni /go/src/github.com/containernetworking/plugins/bin/* /opt/containerd/bin/
+COPY --from=build /diod/diod/diod /usr/local/bin/
+ADD diod.service /etc/systemd/system/

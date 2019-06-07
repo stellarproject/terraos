@@ -81,7 +81,6 @@ RUN mkdir -p /rootfs/proc /rootfs/sys /rootfs/run && \
 	mksquashfs /rootfs live.sq
 
 ADD live /etc/initramfs-tools/scripts/live
-ADD terra /etc/initramfs-tools/scripts/terra
 ADD modules /etc/initramfs-tools/modules
 RUN touch /etc/iscsi/iscsi.initramfs
 ADD squashhook /etc/initramfs-tools/hooks/squash

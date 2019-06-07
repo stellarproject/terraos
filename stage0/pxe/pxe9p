@@ -20,6 +20,9 @@ local_mount_root()
 	ROOT="${DEV}"
 	DISK_LABEL="${disk_label}"
 	VERSION=${version}
+	9P_SERVER="${9p_server}"
+	9P_MOUNT="${9p_mount}"
+
 	if [ -z "${DISK_LABEL}" ]; then
 		DISK_LABEL="os"
 	fi
@@ -46,6 +49,7 @@ local_mount_root()
 	if [ -z "${VERSION}" ]; then
 		VERSION="os"
 	fi
+
 	mount -o subvol=/${VERSION} -t btrfs ${ROOT} ${rootmnt} || rescue_shell
-	mount -o subvol=/etc -t btrfs ${ROOT} ${rootmnt}/etc || true
+	mount -t 9p -o "version=9p2000.L,uname=root,access=user,aname=${9P_MOUNT}" ${9P_SERVER} ${rootmnt}/etc || rescue_shell
 }

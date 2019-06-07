@@ -32,20 +32,24 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net"
+	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"github.com/containerd/containerd"
 	"github.com/containerd/containerd/errdefs"
 	"github.com/containerd/containerd/namespaces"
+	"github.com/containerd/containerd/remotes/docker"
 	"github.com/gogo/protobuf/proto"
 	"github.com/gogo/protobuf/types"
 	"github.com/gomodule/redigo/redis"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	api "github.com/stellarproject/terraos/api/v1/services"
+	api "github.com/stellarproject/terraos/api/v1/infra"
 	v1 "github.com/stellarproject/terraos/api/v1/types"
 	"github.com/stellarproject/terraos/config"
 	"github.com/stellarproject/terraos/pkg/btrfs"
@@ -63,12 +67,11 @@ const (
 	ClusterFS = "/cluster"
 	ISCSIPath = "/iscsi"
 	TFTPPath  = "/tftp"
+	EtcdPath  = "/etcd"
 
-	ControllerBootFile = "/run/stellarproject.controller.boot"
-
-	KeyTargetCounter = "stellarproject.io/controller/target/counter"
-	KeyNodes         = "stellarproject.io/controller/nodes"
-	KeyPXEVersion    = "stellarproject.io/controller/pxe/version"
+	KeyNodes      = "stellarproject.io/controller/nodes"
+	KeyPXEVersion = "stellarproject.io/controller/pxe/version"
+	MaxTargetID   = 1024
 )
 
 type IPType int
@@ -87,45 +90,60 @@ type infraContainer interface {
 	Start(context.Context) error
 }
 
-func New(client *containerd.Client, ipConfig map[IPType]net.IP, pool *redis.Pool, orbit *util.LocalAgent) (*Controller, error) {
+type Config struct {
+	IPConfig     map[IPType]net.IP
+	Pool         *redis.Pool
+	Orbit        *util.LocalAgent
+	ManagedEtc   bool
+	PlainRemotes []string
+}
+
+type Controller struct {
+	mu sync.Mutex
+
+	client *containerd.Client
+	pool   *redis.Pool
+	orbit  *util.LocalAgent
+
+	ips          map[IPType]net.IP
+	kernel       string
+	initrd       string
+	etcd         bool
+	plainRemotes []string
+}
+
+func New(client *containerd.Client, config Config) (*Controller, error) {
 	if err := btrfs.Check(); err != nil {
 		return nil, err
 	}
 	if err := iscsi.Check(); err != nil {
 		return nil, err
 	}
-	if err := startContainers(orbit, ipConfig[Management]); err != nil {
+	if err := startContainers(config.Orbit, config.IPConfig[Management]); err != nil {
 		return nil, errors.Wrap(err, "start containers")
 	}
-	for _, p := range []string{ClusterFS, ISCSIPath, TFTPPath} {
+	for _, p := range []string{
+		ClusterFS,
+		ISCSIPath,
+		TFTPPath,
+		filepath.Join(ISCSIPath, "snapshots"),
+	} {
 		if err := os.MkdirAll(p, 0755); err != nil {
 			return nil, errors.Wrapf(err, "mkdir %s", p)
 		}
 	}
-	var restore bool
-	f, err := os.OpenFile(ControllerBootFile, os.O_CREATE|os.O_WRONLY, 0666)
-	if err == nil {
-		f.Close()
-		restore = true
-
-		conn := pool.Get()
-		defer conn.Close()
-		if _, err := conn.Do("DEL", KeyTargetCounter); err != nil {
-			logrus.WithError(err).Error("remove target counter")
-		}
-	}
 	c := &Controller{
-		ips:    ipConfig,
-		client: client,
-		orbit:  orbit,
-		pool:   pool,
-		kernel: "/vmlinuz",
-		initrd: "/initrd.img",
+		ips:          config.IPConfig,
+		client:       client,
+		orbit:        config.Orbit,
+		pool:         config.Pool,
+		etcd:         config.ManagedEtc,
+		kernel:       "/vmlinuz",
+		initrd:       "/initrd.img",
+		plainRemotes: config.PlainRemotes,
 	}
-	if restore {
-		if err := c.restoreTargets(context.Background()); err != nil {
-			return nil, errors.Wrap(err, "restore targets")
-		}
+	if err := c.restoreTargets(context.Background()); err != nil {
+		return nil, errors.Wrap(err, "restore targets")
 	}
 	return c, nil
 }
@@ -139,29 +157,44 @@ func (c *Controller) restoreTargets(ctx context.Context) error {
 		if node.InitiatorIqn == "" {
 			continue
 		}
-		for _, group := range node.DiskGroups {
-			if group.Target != nil {
-				if err := iscsi.SetTarget(ctx, group.Target); err != nil {
-					return errors.Wrap(err, "set target")
+		if err := c.restoreDisks(ctx, node); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (c *Controller) restoreDisks(ctx context.Context, node *v1.Node) error {
+	for _, group := range node.DiskGroups {
+		if group.Target != nil {
+			if err := iscsi.SetTarget(ctx, group.Target); err != nil {
+				if isTargetExists(err) {
+					continue
 				}
-				for _, disk := range group.Disks {
-					// > 0 means a lun disk
-					if disk.ID > 0 {
-						if err := iscsi.Attach(ctx, group.Target, disk); err != nil {
-							return errors.Wrap(err, "attach disk to target")
-						}
+
+				return errors.Wrap(err, "set target")
+			}
+			for _, disk := range group.Disks {
+				// > 0 means a lun disk
+				if disk.ID > 0 {
+					if err := iscsi.Attach(ctx, group.Target, disk); err != nil {
+						return errors.Wrap(err, "attach disk to target")
 					}
 				}
-				if err := iscsi.Accept(ctx, group.Target, node.InitiatorIqn); err != nil {
-					return errors.Wrap(err, "accept node iqn")
-				}
-				if err := iscsi.AcceptAllInitiators(ctx, group.Target); err != nil {
-					return errors.Wrap(err, "accept ALL iqn")
-				}
+			}
+			if err := iscsi.Accept(ctx, group.Target, node.InitiatorIqn); err != nil {
+				return errors.Wrap(err, "accept node iqn")
+			}
+			if err := iscsi.AcceptAllInitiators(ctx, group.Target); err != nil {
+				return errors.Wrap(err, "accept ALL iqn")
 			}
 		}
 	}
 	return nil
+}
+
+func isTargetExists(err error) bool {
+	return strings.Contains(err.Error(), "this target already exists")
 }
 
 func startContainers(orbit *util.LocalAgent, ip net.IP) error {
@@ -169,7 +202,6 @@ func startContainers(orbit *util.LocalAgent, ip net.IP) error {
 	containers := []infraContainer{
 		&redisContainer{orbit: orbit, ip: ip},
 		&registryContainer{orbit: orbit, ip: ip},
-		&prometheusContainer{orbit: orbit, ip: ip},
 	}
 	for _, c := range containers {
 		if err := c.Start(ctx); err != nil {
@@ -177,18 +209,6 @@ func startContainers(orbit *util.LocalAgent, ip net.IP) error {
 		}
 	}
 	return nil
-}
-
-type Controller struct {
-	mu sync.Mutex
-
-	client *containerd.Client
-	pool   *redis.Pool
-	orbit  *util.LocalAgent
-
-	ips    map[IPType]net.IP
-	kernel string
-	initrd string
 }
 
 func (c *Controller) Close() error {
@@ -310,6 +330,11 @@ func (c *Controller) delete(ctx context.Context, node *v1.Node) error {
 			return errors.Wrap(err, "delete luns")
 		}
 	}
+	if c.etcd {
+		if err := os.RemoveAll(filepath.Join(EtcdPath, node.Hostname)); err != nil {
+			return errors.Wrap(err, "delete node etcd path")
+		}
+	}
 	if _, err := conn.Do("HDEL", KeyNodes, node.Hostname); err != nil {
 		return errors.Wrap(err, "delete node from kv")
 	}
@@ -342,7 +367,7 @@ func (c *Controller) InstallPXE(ctx context.Context, r *api.InstallPXERequest) (
 	log.Infof("installing pxe version %s", repo.Version())
 
 	log.Debug("fetching image")
-	i, err := c.client.Fetch(ctx, r.Image)
+	i, err := c.client.Fetch(ctx, r.Image, c.withPlainRemote(r.Image))
 	if err != nil {
 		return nil, errors.Wrapf(err, "fetch pxe image %s", r.Image)
 	}
@@ -427,7 +452,7 @@ func (c *Controller) fetch(ctx context.Context, repo string) (containerd.Image, 
 		if !errdefs.IsNotFound(err) {
 			return nil, errors.Wrapf(err, "image get error %s", repo)
 		}
-		i, err := c.client.Fetch(ctx, repo)
+		i, err := c.client.Fetch(ctx, repo, c.withPlainRemote(repo))
 		if err != nil {
 			return nil, errors.Wrapf(err, "fetch repo %s", repo)
 		}
@@ -477,7 +502,7 @@ func (c *Controller) provisionTarget(ctx context.Context, node *v1.Node, image c
 	if err := stage0.Format(group); err != nil {
 		return errors.Wrap(err, "format group")
 	}
-	if err := c.installImage(ctx, group, image); err != nil {
+	if err := c.installImage(ctx, node, group, image); err != nil {
 		return errors.Wrap(err, "install image to disk group")
 	}
 	for _, disk := range group.Disks {
@@ -490,8 +515,8 @@ func (c *Controller) provisionTarget(ctx context.Context, node *v1.Node, image c
 
 func (c *Controller) createGroupLuns(ctx context.Context, node *v1.Node, group *v1.DiskGroup) error {
 	dir := filepath.Join(ISCSIPath, node.Hostname)
-	if err := os.Mkdir(dir, 0711); err != nil {
-		return errors.Wrapf(err, "create lun dir %s", dir)
+	if err := btrfs.CreateSubvolume(dir); err != nil {
+		return errors.Wrapf(err, "create lun subvolume %s", dir)
 	}
 	// the order of this list is also the lun ids
 	for i, disk := range group.Disks {
@@ -505,7 +530,7 @@ func (c *Controller) createGroupLuns(ctx context.Context, node *v1.Node, group *
 	return nil
 }
 
-func (c *Controller) installImage(ctx context.Context, group *v1.DiskGroup, i containerd.Image) error {
+func (c *Controller) installImage(ctx context.Context, node *v1.Node, group *v1.DiskGroup, i containerd.Image) error {
 	var (
 		disk      = group.Disks[0]
 		diskMount = disk.Device + ".mnt"
@@ -526,15 +551,32 @@ func (c *Controller) installImage(ctx context.Context, group *v1.DiskGroup, i co
 	}
 	defer g.Close()
 
-	if err := g.Init(diskMount); err != nil {
+	var mounts []stage1.Mount
+
+	if c.etcd {
+		logrus.Info("setting up managed etc")
+		path := filepath.Join(EtcdPath, node.Hostname)
+		if err := os.MkdirAll(path, 0755); err != nil {
+			return errors.Wrapf(err, "create node etcd %s", path)
+		}
+		mounts = []stage1.Mount{
+			{
+				Source:      path,
+				Destination: "/etc",
+			},
+		}
+	}
+
+	if err := g.Init(diskMount, &stage1.InitConfig{
+		AdditionalMounts: mounts,
+	}); err != nil {
 		return err
 	}
 	desc := i.Target()
 	if err := image.Unpack(ctx, c.client.ContentStore(), &desc, dest); err != nil {
 		return errors.Wrap(err, "unpack image to group")
 	}
-
-	if err := writeFstab(g, dest); err != nil {
+	if err := c.writeFstab(node, g, dest); err != nil {
 		return errors.Wrap(err, "write fstab")
 	}
 	if err := c.writeResolvconf(dest); err != nil {
@@ -543,8 +585,25 @@ func (c *Controller) installImage(ctx context.Context, group *v1.DiskGroup, i co
 	return nil
 }
 
-func writeFstab(g *stage1.Group, root string) error {
-	entries := g.Entries()
+func (c *Controller) writeFstab(node *v1.Node, g *stage1.Group, root string) error {
+	// add the fstable entrires first
+	entries := []*fstab.Entry{
+		&fstab.Entry{
+			Type:   "9p",
+			Device: c.ips[ISCSI].To4().String(),
+			Path:   "/cluster",
+			Pass:   2,
+			Options: []string{
+				"port=564",
+				"version=9p2000.L",
+				"uname=root",
+				"access=user",
+				"aname=/cluster",
+			},
+		},
+	}
+	entries = append(entries, g.Entries()...)
+
 	f, err := os.Create(filepath.Join(root, fstab.Path))
 	if err != nil {
 		return errors.Wrap(err, "create fstab file")
@@ -580,18 +639,19 @@ func mountGroup(ctx context.Context, disk *v1.Disk, path string) error {
 	return nil
 }
 
-func (c *Controller) createTarget(ctx context.Context, node *v1.Node) (*v1.Target, error) {
+func (c *Controller) createTarget(ctx context.Context, node *v1.Node) (target *v1.Target, err error) {
 	iqn := iscsi.NewIQN(2024, "san.crosbymichael.com", node.Hostname, true)
 	if node.InitiatorIqn == "" {
 		return nil, errors.New("node does not have an initiator id")
 	}
-	targetID, err := c.getNextTargetID()
-	if err != nil {
-		return nil, err
-	}
-	target, err := iscsi.NewTarget(ctx, iqn, targetID)
-	if err != nil {
-		return nil, errors.Wrapf(err, "create target %s", iqn)
+	for i := int64(1); i < MaxTargetID; i++ {
+		if target, err = iscsi.NewTarget(ctx, iqn, i); err != nil {
+			if !isTargetExists(err) {
+				return nil, errors.Wrapf(err, "create target %s", iqn)
+			}
+			continue
+		}
+		break
 	}
 	if err := iscsi.Accept(ctx, target, node.InitiatorIqn); err != nil {
 		return nil, errors.Wrap(err, "accept initiator iqn")
@@ -603,6 +663,20 @@ func (c *Controller) createTarget(ctx context.Context, node *v1.Node) (*v1.Targe
 }
 
 func (c *Controller) writePXEConfig(node *v1.Node) error {
+	var (
+		boot    = "pxe"
+		options = []string{
+			"version=os",
+			"disk_label=os",
+		}
+	)
+	if c.etcd {
+		boot = "pxe9p"
+		options = append(options,
+			fmt.Sprintf("9p_server=%s", c.ips[ISCSI].To4().String()),
+			fmt.Sprintf("9p_mount=/etcd/%s", node.Hostname),
+		)
+	}
 	p := &pxe.PXE{
 		Default:      "terra",
 		MAC:          node.Mac,
@@ -615,13 +689,10 @@ func (c *Controller) writePXEConfig(node *v1.Node) error {
 			{
 				Root:   "LABEL=os",
 				Label:  "terra",
-				Boot:   "terra",
+				Boot:   boot,
 				Kernel: c.kernel,
 				Initrd: c.initrd,
-				Append: []string{
-					"version=os",
-					"disk_label=os",
-				},
+				Append: options,
 			},
 		},
 	}
@@ -635,17 +706,6 @@ func (c *Controller) writePXEConfig(node *v1.Node) error {
 		return errors.Wrap(err, "write pxe config")
 	}
 	return nil
-}
-
-func (c *Controller) getNextTargetID() (int64, error) {
-	conn := c.pool.Get()
-	defer conn.Close()
-
-	id, err := redis.Int64(conn.Do("INCR", KeyTargetCounter))
-	if err != nil {
-		return -1, errors.Wrap(err, "get next target id")
-	}
-	return id, nil
 }
 
 func (c *Controller) saveNode(node *v1.Node) error {
@@ -672,4 +732,29 @@ func (c *Controller) updateNode(node *v1.Node) error {
 		return errors.Wrapf(err, "update node %s", node.Hostname)
 	}
 	return nil
+}
+
+func (c *Controller) withPlainRemote(ref string) containerd.RemoteOpt {
+	return func(_ *containerd.Client, ctx *containerd.RemoteContext) error {
+		var plain bool
+		u, err := url.Parse("registry://" + ref)
+		if err != nil {
+			return errors.Wrap(err, "parse url")
+		}
+
+		plain = strings.Contains(u.Host, ":5000")
+		if !plain {
+			for _, r := range c.plainRemotes {
+				if u.Host == r {
+					plain = true
+					break
+				}
+			}
+		}
+		ctx.Resolver = docker.NewResolver(docker.ResolverOptions{
+			PlainHTTP: plain,
+			Client:    http.DefaultClient,
+		})
+		return nil
+	}
 }

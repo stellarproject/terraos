@@ -29,7 +29,7 @@ package main
 
 import (
 	"github.com/BurntSushi/toml"
-	api "github.com/stellarproject/terraos/api/v1/services"
+	api "github.com/stellarproject/terraos/api/v1/orbit"
 	v1 "github.com/stellarproject/terraos/config/v1"
 	"github.com/urfave/cli"
 )
@@ -51,8 +51,12 @@ var updateCommand = cli.Command{
 			return err
 		}
 		defer agent.Close()
+		c, err := newConfig.Proto()
+		if err != nil {
+			return err
+		}
 		_, err = agent.Update(ctx, &api.UpdateRequest{
-			Container: newConfig.Proto(),
+			Container: c,
 		})
 		return err
 	},

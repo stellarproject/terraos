@@ -35,7 +35,6 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -64,7 +63,7 @@ import (
 	is "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	v1 "github.com/stellarproject/terraos/api/v1/services"
+	v1 "github.com/stellarproject/terraos/api/v1/orbit"
 	"github.com/stellarproject/terraos/cni"
 	"github.com/stellarproject/terraos/config"
 	"github.com/stellarproject/terraos/opts"
@@ -109,44 +108,18 @@ func New(ctx context.Context, c *Config, client *containerd.Client) (*Agent, err
 			return nil, errors.Wrapf(err, "mkdir %s", p)
 		}
 	}
-	dhcp, err := setupDHCP(ctx)
-	if err != nil {
-		return nil, err
-	}
 	a := &Agent{
 		config: c,
 		client: client,
-		dhcp:   dhcp,
 	}
 	go a.startSupervisorLoop(namespaces.WithNamespace(ctx, config.DefaultNamespace), c.Interval)
 	return a, nil
-}
-
-func setupDHCP(ctx context.Context) (*exec.Cmd, error) {
-	if err := os.Remove("/run/cni/dhcp.sock"); err != nil {
-		if !os.IsNotExist(err) {
-			return nil, err
-		}
-	}
-	dhcp := exec.CommandContext(ctx, "/opt/containerd/bin/dhcp", "daemon")
-	dhcp.Stdout = os.Stdout
-	dhcp.Stderr = os.Stderr
-	if err := dhcp.Start(); err != nil {
-		return nil, err
-	}
-	go func() {
-		if err := dhcp.Wait(); err != nil {
-			logrus.WithError(err).Error("wait on dhcp server")
-		}
-	}()
-	return dhcp, nil
 }
 
 type Agent struct {
 	supervisorMu sync.Mutex
 	client       *containerd.Client
 	config       *Config
-	dhcp         *exec.Cmd
 }
 
 func (a *Agent) Create(ctx context.Context, req *v1.CreateRequest) (*types.Empty, error) {
@@ -818,6 +791,9 @@ func (a *Agent) reconcile(ctx context.Context) error {
 
 func (a *Agent) start(ctx context.Context, container containerd.Container) error {
 	logrus.WithField("id", container.ID()).Debug("starting container")
+	if _, _, err := opts.WriteHostsFiles(a.config.Paths(container.ID()).State, container.ID()); err != nil {
+		return errors.Wrap(err, "update hosts files")
+	}
 	if task, err := container.Task(ctx, nil); err == nil {
 		// make sure it's dead
 		task.Kill(ctx, syscall.SIGKILL)
@@ -851,7 +827,14 @@ func (a *Agent) start(ctx context.Context, container containerd.Container) error
 	if err != nil {
 		return errors.Wrap(err, "create new container task")
 	}
-	return task.Start(ctx)
+	if err := task.Start(ctx); err != nil {
+		logrus.WithError(err).Error("start container process")
+		if _, err := task.Delete(ctx, containerd.WithProcessKill); err != nil {
+			logrus.WithError(err).Error("delete container task")
+		}
+		return errors.Wrap(err, "start container process")
+	}
+	return nil
 }
 
 func (a *Agent) stop(ctx context.Context, container containerd.Container) error {

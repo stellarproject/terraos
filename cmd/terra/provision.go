@@ -32,7 +32,7 @@ import (
 	"os"
 
 	"github.com/pkg/errors"
-	api "github.com/stellarproject/terraos/api/v1/services"
+	api "github.com/stellarproject/terraos/api/v1/infra"
 	"github.com/stellarproject/terraos/cmd"
 	"github.com/urfave/cli"
 	"google.golang.org/grpc"
@@ -61,7 +61,7 @@ var provisionCommand = cli.Command{
 			return errors.Wrap(err, "dial controller")
 		}
 		defer conn.Close()
-		client := api.NewInfrastructureClient(conn)
+		client := api.NewControllerClient(conn)
 		ctx := cmd.CancelContext()
 
 		resp, err := client.Provision(ctx, &api.ProvisionNodeRequest{

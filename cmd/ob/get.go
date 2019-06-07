@@ -31,7 +31,7 @@ import (
 	"encoding/json"
 	"os"
 
-	v1 "github.com/stellarproject/terraos/api/v1/services"
+	v1 "github.com/stellarproject/terraos/api/v1/orbit"
 	"github.com/urfave/cli"
 )
 

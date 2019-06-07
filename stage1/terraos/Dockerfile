@@ -38,6 +38,7 @@ FROM ${REPO}/node_exporter:${VERSION} as node_exporter
 FROM ${REPO}/criu:${VERSION} as criu
 FROM ${REPO}/cni:${VERSION} as cni
 FROM ${REPO}/wireguard:${VERSION} as wireguard
+FROM ${REPO}/gvisor:${VERSION} as gvisor
 
 FROM ubuntu:19.04 as debootstrap
 
@@ -62,6 +63,7 @@ RUN apt update && apt upgrade -y && \
 	openssh-server \
 	curl \
 	pigz \
+	tftp \
 	htop \
 	tmux \
 	rsync \
@@ -109,7 +111,8 @@ COPY --from=orbit / /
 COPY --from=containerd / /
 COPY --from=criu / /
 COPY --from=wireguard / /
+COPY --from=gvisor / /
 
-RUN systemctl enable containerd node_exporter ssh orbit
+RUN systemctl enable containerd node_exporter ssh orbit dhcp
 
 CMD ["/sbin/init"]

@@ -1,13 +1,13 @@
 syntax = "proto3";
 
-package io.stellarproject.services.v1;
+package io.stellarproject.orbit.v1;
 
 import weak "gogoproto/gogo.proto";
 import "google/protobuf/empty.proto";
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/any.proto";
 
-option go_package = "github.com/stellarproject/terraos/api/v1/services;services";
+option go_package = "github.com/stellarproject/terraos/api/v1/orbit;orbit";
 
 service Agent {
 	rpc Create(CreateRequest) returns (google.protobuf.Empty);

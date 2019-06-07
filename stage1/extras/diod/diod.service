@@ -1,0 +1,11 @@
+[Unit]
+Description=diod 9p server
+After=network.target
+
+[Service]
+ExecStart=/usr/local/bin/diod -n -f -E
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -47,7 +47,7 @@ import (
 	"github.com/gogo/protobuf/types"
 	is "github.com/opencontainers/image-spec/specs-go/v1"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
-	v1 "github.com/stellarproject/terraos/api/v1/services"
+	v1 "github.com/stellarproject/terraos/api/v1/orbit"
 )
 
 const (
@@ -128,7 +128,7 @@ func specOpt(paths Paths, container *v1.Container, image containerd.Image) oci.S
 		container.Networks[0].TypeUrl == proto.MessageName(&v1.HostNetwork{}) {
 		opts = append(opts, oci.WithHostHostsFile, oci.WithHostResolvconf, oci.WithHostNamespace(specs.NetworkNamespace))
 	} else {
-		opts = append(opts, oci.WithHostResolvconf, withContainerHostsFile(paths.State), oci.WithLinuxNamespace(specs.LinuxNamespace{
+		opts = append(opts, oci.WithHostResolvconf, WithContainerHostsFile(paths.State), oci.WithLinuxNamespace(specs.LinuxNamespace{
 			Type: specs.NetworkNamespace,
 			Path: paths.NetworkPath(container.ID),
 		}),
@@ -295,53 +295,55 @@ func withConfigs(paths Paths, files []*v1.ConfigFile) oci.SpecOpts {
 	}
 }
 
-func withContainerHostsFile(root string) oci.SpecOpts {
+func WriteHostsFiles(root, id string) (string, string, error) {
+	if err := os.MkdirAll(root, 0711); err != nil {
+		return "", "", err
+	}
+	path := filepath.Join(root, "hosts")
+	f, err := os.Create(path)
+	if err != nil {
+		return "", "", err
+	}
+	defer f.Close()
+	if err := f.Chmod(0666); err != nil {
+		return "", "", err
+	}
+	if _, err := f.WriteString("127.0.0.1       localhost\n"); err != nil {
+		return "", "", err
+	}
+	if _, err := f.WriteString(fmt.Sprintf("127.0.0.1       %s\n", id)); err != nil {
+		return "", "", err
+	}
+	if _, err := f.WriteString("::1     localhost ip6-localhost ip6-loopback\n"); err != nil {
+		return "", "", err
+	}
+	hpath := filepath.Join(root, "hostname")
+	hf, err := os.Create(hpath)
+	if err != nil {
+		return "", "", err
+	}
+	if _, err := hf.WriteString(id); err != nil {
+		return "", "", err
+	}
+	return path, hpath, nil
+}
+
+func WithContainerHostsFile(root string) oci.SpecOpts {
 	return func(ctx context.Context, _ oci.Client, c *containers.Container, s *oci.Spec) error {
-		id := c.ID
-		if err := os.MkdirAll(root, 0711); err != nil {
-			return err
-		}
-		hostname := s.Hostname
-		if hostname == "" {
-			hostname = id
-		}
-		path := filepath.Join(root, "hosts")
-		f, err := os.Create(path)
+		hosts, hostname, err := WriteHostsFiles(root, c.ID)
 		if err != nil {
 			return err
 		}
-		defer f.Close()
-		if err := f.Chmod(0666); err != nil {
-			return err
-		}
-		if _, err := f.WriteString("127.0.0.1       localhost\n"); err != nil {
-			return err
-		}
-		if _, err := f.WriteString(fmt.Sprintf("127.0.0.1       %s\n", hostname)); err != nil {
-			return err
-		}
-		if _, err := f.WriteString("::1     localhost ip6-localhost ip6-loopback\n"); err != nil {
-			return err
-		}
-		hpath := filepath.Join(root, "hostname")
-		hf, err := os.Create(hpath)
-		if err != nil {
-			return err
-		}
-		if _, err := hf.WriteString(hostname); err != nil {
-			return err
-		}
-		defer hf.Close()
 		s.Mounts = append(s.Mounts, specs.Mount{
 			Destination: "/etc/hosts",
 			Type:        "bind",
-			Source:      path,
+			Source:      hosts,
 			Options:     []string{"rbind", "ro"},
 		})
 		s.Mounts = append(s.Mounts, specs.Mount{
 			Destination: "/etc/hostname",
 			Type:        "bind",
-			Source:      hpath,
+			Source:      hostname,
 			Options:     []string{"rbind", "ro"},
 		})
 		return nil

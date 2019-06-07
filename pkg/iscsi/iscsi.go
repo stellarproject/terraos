@@ -33,6 +33,7 @@ import (
 	"os"
 	"os/exec"
 	"strconv"
+	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/stellarproject/terraos/api/v1/types"
@@ -134,7 +135,10 @@ func Delete(ctx context.Context, t *types.Target, lun *types.Disk) error {
 			"--tid", strconv.Itoa(int(t.ID)),
 			"--lun", strconv.Itoa(int(lun.ID)),
 		); err != nil {
-			return errors.Wrapf(err, "%s", out)
+			err = errors.Wrapf(err, "%s", out)
+			if !isLUNNotFound(err) {
+				return err
+			}
 		}
 	}
 	if out, err := iscsi(ctx,
@@ -145,6 +149,10 @@ func Delete(ctx context.Context, t *types.Target, lun *types.Disk) error {
 		return errors.Wrapf(err, "%s", out)
 	}
 	return nil
+}
+
+func isLUNNotFound(err error) bool {
+	return strings.Contains(err.Error(), "can't find the logical unit")
 }
 
 // NewLun allocates a new lun with the specified size in MB

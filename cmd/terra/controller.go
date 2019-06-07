@@ -39,7 +39,7 @@ import (
 	"github.com/gomodule/redigo/redis"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	v1 "github.com/stellarproject/terraos/api/v1/services"
+	v1 "github.com/stellarproject/terraos/api/v1/infra"
 	"github.com/stellarproject/terraos/cmd"
 	"github.com/stellarproject/terraos/controller"
 	"github.com/stellarproject/terraos/util"
@@ -74,6 +74,15 @@ var controllerCommand = cli.Command{
 		cli.StringFlag{
 			Name:  "gateway",
 			Usage: "gateway address",
+		},
+		cli.BoolFlag{
+			Name:  "etcd",
+			Usage: "enabled the managed etc",
+		},
+		cli.StringSliceFlag{
+			Name:  "plain",
+			Usage: "specify plain registry remotes",
+			Value: &cli.StringSlice{},
 		},
 	},
 	Action: func(clix *cli.Context) error {
@@ -119,7 +128,13 @@ var controllerCommand = cli.Command{
 			return errors.Wrap(err, "create containerd client")
 		}
 		logrus.Info("creating new controller...")
-		controller, err := controller.New(client, ips, pool, orbit)
+		controller, err := controller.New(client, controller.Config{
+			IPConfig:     ips,
+			Pool:         pool,
+			Orbit:        orbit,
+			ManagedEtc:   clix.Bool("etcd"),
+			PlainRemotes: []string(clix.StringSlice("plain")),
+		})
 		if err != nil {
 			return errors.Wrap(err, "new controller")
 		}
@@ -127,7 +142,7 @@ var controllerCommand = cli.Command{
 
 		logrus.Info("registering grpc server...")
 		server := cmd.NewServer()
-		v1.RegisterInfrastructureServer(server, controller)
+		v1.RegisterControllerServer(server, controller)
 
 		signals := make(chan os.Signal, 32)
 		signal.Notify(signals, syscall.SIGTERM, syscall.SIGINT)

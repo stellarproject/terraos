@@ -23,15 +23,22 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH
 # THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-FROM golang:1.12 as cni
+FROM golang:1.12 as gvisor
 
-ENV COMMIT 19cad9e318e8763e5f706ccb777d6dadd95495be
-RUN git clone https://github.com/crosbymichael/plugins /go/src/github.com/containernetworking/plugins
-WORKDIR /go/src/github.com/containernetworking/plugins
-RUN git checkout $COMMIT
+RUN apt update && \
+	apt install -y \
+	make \
+	curl \
+	git
 
-RUN ./build_linux.sh
+RUN go get -d github.com/google/gvisor-containerd-shim || true
+WORKDIR /go/src/github.com/google/gvisor-containerd-shim
+
+RUN make && make DESTDIR=/opt/containerd install
+
+RUN curl -SsL -o /runsc https://storage.googleapis.com/gvisor/releases/nightly/latest/runsc
 
 FROM scratch
 
-COPY --from=cni /go/src/github.com/containernetworking/plugins/bin/* /opt/containerd/bin/
+COPY --from=gvisor /runsc /usr/local/sbin/
+COPY --from=gvisor /opt/containerd/bin/containerd-shim-runsc-v1 /opt/containerd/bin/

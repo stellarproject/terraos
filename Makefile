@@ -25,11 +25,11 @@
 
 PACKAGES=$(shell go list ./... | grep -v /vendor/)
 REVISION=$(shell git rev-parse HEAD)
-VERSION=v11
+VERSION=v12
 GO_LDFLAGS=-s -w -X github.com/stellarproject/terraos/version.Version=$(VERSION) -X github.com/stellarproject/terraos/version.Revision=$(REVISION)
-KERNEL=5.0.18
+KERNEL=5.0.20
 REPO=$(shell cat REPO || echo "stellarproject")
-WIREGUARD=0.0.20190406
+WIREGUARD=0.0.20190601
 
 ARGS=--arg KERNEL_VERSION=${KERNEL} --arg VERSION=${VERSION} --arg REPO=${REPO} --arg WIREGUARD=${WIREGUARD}
 
@@ -82,16 +82,22 @@ boot: FORCE
 
 # -------------------- stage1 -------------------------
 
-defaults: wireguard orbit-release FORCE
+defaults: gvisor wireguard orbit-release FORCE
 	vab build -p -c stage1/defaults/containerd -d stage1/defaults/containerd --ref ${REPO}/containerd:${VERSION} ${ARGS}
 	vab build -p -c stage1/defaults/node_exporter -d stage1/defaults/node_exporter --ref ${REPO}/node_exporter:${VERSION} ${ARGS}
 	vab build -p -c stage1/defaults/cni -d stage1/defaults/cni --ref ${REPO}/cni:${VERSION} ${ARGS}
 	vab build -p -d stage1/defaults/criu -c stage1/defaults/criu --ref ${REPO}/criu:${VERSION} ${ARGS}
 
+gvisor:
+	vab build -p -d stage1/defaults/gvisor -c stage1/defaults/gvisor --ref ${REPO}/gvisor:${VERSION} ${ARGS}
+
+diod:
+	vab build -p -d stage1/extras/diod -c stage1/extras/diod --ref ${REPO}/diod:${VERSION} ${ARGS}
+
 wireguard:
 	vab build -p -d stage1/defaults/wireguard -c stage1/defaults/wireguard --ref ${REPO}/wireguard:${VERSION} ${ARGS}
 
-extras: FORCE
+extras: diod FORCE
 	vab build -p -c stage1/extras/buildkit -d stage1/extras/buildkit --ref ${REPO}/buildkit:${VERSION} ${ARGS}
 	vab build -p -d stage1/extras/docker -c stage1/extras/docker --ref ${REPO}/docker:${VERSION} ${ARGS}
 
