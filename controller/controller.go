@@ -91,10 +91,25 @@ type infraContainer interface {
 }
 
 type Config struct {
-	IPConfig   map[IPType]net.IP
-	Pool       *redis.Pool
-	Orbit      *util.LocalAgent
-	ManagedEtc bool
+	IPConfig     map[IPType]net.IP
+	Pool         *redis.Pool
+	Orbit        *util.LocalAgent
+	ManagedEtc   bool
+	PlainRemotes []string
+}
+
+type Controller struct {
+	mu sync.Mutex
+
+	client *containerd.Client
+	pool   *redis.Pool
+	orbit  *util.LocalAgent
+
+	ips          map[IPType]net.IP
+	kernel       string
+	initrd       string
+	etcd         bool
+	plainRemotes []string
 }
 
 func New(client *containerd.Client, config Config) (*Controller, error) {
@@ -118,13 +133,14 @@ func New(client *containerd.Client, config Config) (*Controller, error) {
 		}
 	}
 	c := &Controller{
-		ips:    config.IPConfig,
-		client: client,
-		orbit:  config.Orbit,
-		pool:   config.Pool,
-		etcd:   config.ManagedEtc,
-		kernel: "/vmlinuz",
-		initrd: "/initrd.img",
+		ips:          config.IPConfig,
+		client:       client,
+		orbit:        config.Orbit,
+		pool:         config.Pool,
+		etcd:         config.ManagedEtc,
+		kernel:       "/vmlinuz",
+		initrd:       "/initrd.img",
+		plainRemotes: config.PlainRemotes,
 	}
 	if err := c.restoreTargets(context.Background()); err != nil {
 		return nil, errors.Wrap(err, "restore targets")
@@ -193,19 +209,6 @@ func startContainers(orbit *util.LocalAgent, ip net.IP) error {
 		}
 	}
 	return nil
-}
-
-type Controller struct {
-	mu sync.Mutex
-
-	client *containerd.Client
-	pool   *redis.Pool
-	orbit  *util.LocalAgent
-
-	ips    map[IPType]net.IP
-	kernel string
-	initrd string
-	etcd   bool
 }
 
 func (c *Controller) Close() error {
@@ -359,7 +362,7 @@ func (c *Controller) InstallPXE(ctx context.Context, r *api.InstallPXERequest) (
 	log.Infof("installing pxe version %s", repo.Version())
 
 	log.Debug("fetching image")
-	i, err := c.client.Fetch(ctx, r.Image, withPlainRemote(r.Image))
+	i, err := c.client.Fetch(ctx, r.Image, c.withPlainRemote(r.Image))
 	if err != nil {
 		return nil, errors.Wrapf(err, "fetch pxe image %s", r.Image)
 	}
@@ -444,7 +447,7 @@ func (c *Controller) fetch(ctx context.Context, repo string) (containerd.Image, 
 		if !errdefs.IsNotFound(err) {
 			return nil, errors.Wrapf(err, "image get error %s", repo)
 		}
-		i, err := c.client.Fetch(ctx, repo, withPlainRemote(repo))
+		i, err := c.client.Fetch(ctx, repo, c.withPlainRemote(repo))
 		if err != nil {
 			return nil, errors.Wrapf(err, "fetch repo %s", repo)
 		}
@@ -726,14 +729,23 @@ func (c *Controller) updateNode(node *v1.Node) error {
 	return nil
 }
 
-func withPlainRemote(ref string) containerd.RemoteOpt {
+func (c *Controller) withPlainRemote(ref string) containerd.RemoteOpt {
 	return func(_ *containerd.Client, ctx *containerd.RemoteContext) error {
 		var plain bool
 		u, err := url.Parse("registry://" + ref)
 		if err != nil {
 			return errors.Wrap(err, "parse url")
 		}
+
 		plain = strings.Contains(u.Host, ":5000")
+		if !plain {
+			for _, r := range c.plainRemotes {
+				if u.Host == r {
+					plain = true
+					break
+				}
+			}
+		}
 		ctx.Resolver = docker.NewResolver(docker.ResolverOptions{
 			PlainHTTP: plain,
 			Client:    http.DefaultClient,
