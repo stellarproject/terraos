@@ -330,6 +330,11 @@ func (c *Controller) delete(ctx context.Context, node *v1.Node) error {
 			return errors.Wrap(err, "delete luns")
 		}
 	}
+	if c.etcd {
+		if err := os.RemoveAll(filepath.Join(EtcdPath, node.Hostname)); err != nil {
+			return errors.Wrap(err, "delete node etcd path")
+		}
+	}
 	if _, err := conn.Do("HDEL", KeyNodes, node.Hostname); err != nil {
 		return errors.Wrap(err, "delete node from kv")
 	}
