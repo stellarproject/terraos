@@ -152,7 +152,9 @@ Install terra onto a physical disk`
 			}
 			defer group.Close()
 
-			if err := group.Init(path, nil); err != nil {
+			if err := group.Init(path, &stage1.InitConfig{
+				EtcSubvolume: true,
+			}); err != nil {
 				return err
 			}
 			entries = append(entries, group.Entries()...)

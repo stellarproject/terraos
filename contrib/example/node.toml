@@ -1,11 +1,27 @@
 hostname = "terra-01"
 mac = "xx:xx:xx:xx:xx:xx"
-image = "docker.io/stellarproject/example:6"
+image = "docker.io/stellarproject/example:7"
 
 [[groups]]
   label = "os"
   type = "single"
   stage = "stage1"
+
+  [[groups.subvolumes]]
+    name = "home"
+    path = "/home"
+
+  [[groups.subvolumes]]
+    name = "log"
+    path = "/var/log"
+
+  [[groups.subvolumes]]
+    name = "containerd"
+    path = "/var/lib/containerd"
+
+  [[groups.subvolumes]]
+    name = "etc"
+    path = "/etc"
 
   [[groups.disk]]
     device = "/dev/sda"

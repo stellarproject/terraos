@@ -43,6 +43,8 @@ import (
 const (
 	OSLabel        = "os"
 	OSVolume       = "os"
+	EtcVolume      = "etc"
+	EtcPath        = "/etc"
 	SnapshotLabel  = "snapshots"
 	SnapshotVolume = "snapshots"
 )
@@ -50,6 +52,11 @@ const (
 func NewGroup(group *types.DiskGroup, dest string) (*Group, error) {
 	if group.Stage != types.Stage1 {
 		return nil, errors.Errorf("unsupported stage %s", group.Stage)
+	}
+	for _, s := range group.Subvolumes {
+		if s.Path == EtcPath {
+			return nil, errors.Errorf("user managed etc subvol not allowed %s", s.Name)
+		}
 	}
 	return &Group{
 		group: group,
@@ -72,21 +79,31 @@ func (d *Group) String() string {
 	return d.group.Label
 }
 
+type InitConfig struct {
+	AdditionalMounts []Mount
+	EtcSubvolume     bool
+}
+
 // Init the entire group returning the path to access the group
-func (d *Group) Init(diskMount string, additionalMounts []Mount) error {
+func (d *Group) Init(diskMount string, config *InitConfig) error {
 	d.mounts = append(d.mounts, diskMount)
 
 	// create subvolumes
 	subvolumes := d.group.Subvolumes
 	if d.group.Label == OSLabel {
-		subvolumes = append([]*types.Subvolume{
+		osVolumes := []*types.Subvolume{
 			{
 				Name: OSVolume,
 				Path: "/",
 			},
-		},
-			subvolumes...,
-		)
+		}
+		if config != nil && config.EtcSubvolume {
+			osVolumes = append(osVolumes, &types.Subvolume{
+				Name: EtcVolume,
+				Path: EtcPath,
+			})
+		}
+		subvolumes = append(osVolumes, subvolumes...)
 	}
 	if err := btrfs.CreateSubvolumes(diskMount, subvolumes); err != nil {
 		return errors.Wrap(err, "create subvolumes")
@@ -101,15 +118,17 @@ func (d *Group) Init(diskMount string, additionalMounts []Mount) error {
 		}
 		d.mounts = append(d.mounts, dest)
 	}
-	for _, m := range additionalMounts {
-		dest := filepath.Join(d.dest, m.Destination)
-		if err := os.MkdirAll(dest, 0711); err != nil {
-			return errors.Wrapf(err, "mkdir additional mount %s", dest)
+	if config != nil {
+		for _, m := range config.AdditionalMounts {
+			dest := filepath.Join(d.dest, m.Destination)
+			if err := os.MkdirAll(dest, 0711); err != nil {
+				return errors.Wrapf(err, "mkdir additional mount %s", dest)
+			}
+			if err := unix.Mount(m.Source, dest, "none", unix.MS_BIND, ""); err != nil {
+				return errors.Wrapf(err, "mount additional mount %s", m.Source)
+			}
+			d.mounts = append(d.mounts, dest)
 		}
-		if err := unix.Mount(m.Source, dest, "none", unix.MS_BIND, ""); err != nil {
-			return errors.Wrapf(err, "mount additional mount %s", m.Source)
-		}
-		d.mounts = append(d.mounts, dest)
 	}
 	return nil
 }

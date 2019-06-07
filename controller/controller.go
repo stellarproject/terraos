@@ -90,14 +90,21 @@ type infraContainer interface {
 	Start(context.Context) error
 }
 
-func New(client *containerd.Client, ipConfig map[IPType]net.IP, pool *redis.Pool, orbit *util.LocalAgent) (*Controller, error) {
+type Config struct {
+	IPConfig   map[IPType]net.IP
+	Pool       *redis.Pool
+	Orbit      *util.LocalAgent
+	ManagedEtc bool
+}
+
+func New(client *containerd.Client, config Config) (*Controller, error) {
 	if err := btrfs.Check(); err != nil {
 		return nil, err
 	}
 	if err := iscsi.Check(); err != nil {
 		return nil, err
 	}
-	if err := startContainers(orbit, ipConfig[Management]); err != nil {
+	if err := startContainers(config.Orbit, config.IPConfig[Management]); err != nil {
 		return nil, errors.Wrap(err, "start containers")
 	}
 	for _, p := range []string{
@@ -111,10 +118,11 @@ func New(client *containerd.Client, ipConfig map[IPType]net.IP, pool *redis.Pool
 		}
 	}
 	c := &Controller{
-		ips:    ipConfig,
+		ips:    config.IPConfig,
 		client: client,
-		orbit:  orbit,
-		pool:   pool,
+		orbit:  config.Orbit,
+		pool:   config.Pool,
+		etcd:   config.ManagedEtc,
 		kernel: "/vmlinuz",
 		initrd: "/initrd.img",
 	}
@@ -197,6 +205,7 @@ type Controller struct {
 	ips    map[IPType]net.IP
 	kernel string
 	initrd string
+	etcd   bool
 }
 
 func (c *Controller) Close() error {
@@ -534,18 +543,25 @@ func (c *Controller) installImage(ctx context.Context, node *v1.Node, group *v1.
 	}
 	defer g.Close()
 
-	path := filepath.Join(EtcdPath, node.Hostname)
-	if err := os.MkdirAll(path, 0755); err != nil {
-		return errors.Wrapf(err, "create node etcd %s", path)
-	}
-	mounts := []stage1.Mount{
-		{
-			Source:      path,
-			Destination: "/etc",
-		},
+	var mounts []stage1.Mount
+
+	if c.etcd {
+		logrus.Info("setting up managed etc")
+		path := filepath.Join(EtcdPath, node.Hostname)
+		if err := os.MkdirAll(path, 0755); err != nil {
+			return errors.Wrapf(err, "create node etcd %s", path)
+		}
+		mounts = []stage1.Mount{
+			{
+				Source:      path,
+				Destination: "/etc",
+			},
+		}
 	}
 
-	if err := g.Init(diskMount, mounts); err != nil {
+	if err := g.Init(diskMount, &stage1.InitConfig{
+		AdditionalMounts: mounts,
+	}); err != nil {
 		return err
 	}
 	desc := i.Target()
@@ -562,8 +578,8 @@ func (c *Controller) installImage(ctx context.Context, node *v1.Node, group *v1.
 }
 
 func (c *Controller) writeFstab(node *v1.Node, g *stage1.Group, root string) error {
-	entries := g.Entries()
-	entries = append(entries,
+	// add the fstable entrires first
+	entries := []*fstab.Entry{
 		&fstab.Entry{
 			Type:   "9p",
 			Device: c.ips[ISCSI].To4().String(),
@@ -577,20 +593,8 @@ func (c *Controller) writeFstab(node *v1.Node, g *stage1.Group, root string) err
 				"aname=/cluster",
 			},
 		},
-		&fstab.Entry{
-			Type:   "9p",
-			Device: c.ips[ISCSI].To4().String(),
-			Path:   "/etc",
-			Pass:   2,
-			Options: []string{
-				"port=564",
-				"version=9p2000.L",
-				"uname=root",
-				"access=user",
-				fmt.Sprintf("aname=/etcd/%s", node.Hostname),
-			},
-		},
-	)
+	}
+	entries = append(entries, g.Entries()...)
 
 	f, err := os.Create(filepath.Join(root, fstab.Path))
 	if err != nil {
@@ -651,6 +655,20 @@ func (c *Controller) createTarget(ctx context.Context, node *v1.Node) (target *v
 }
 
 func (c *Controller) writePXEConfig(node *v1.Node) error {
+	var (
+		boot    = "pxe"
+		options = []string{
+			"version=os",
+			"disk_label=os",
+		}
+	)
+	if c.etcd {
+		boot = "pxe9p"
+		options = append(options,
+			fmt.Sprintf("9p_server=%s", c.ips[ISCSI].To4().String()),
+			fmt.Sprintf("9p_mount=/etcd/%s", node.Hostname),
+		)
+	}
 	p := &pxe.PXE{
 		Default:      "terra",
 		MAC:          node.Mac,
@@ -663,13 +681,10 @@ func (c *Controller) writePXEConfig(node *v1.Node) error {
 			{
 				Root:   "LABEL=os",
 				Label:  "terra",
-				Boot:   "terra",
+				Boot:   boot,
 				Kernel: c.kernel,
 				Initrd: c.initrd,
-				Append: []string{
-					"version=os",
-					"disk_label=os",
-				},
+				Append: options,
 			},
 		},
 	}

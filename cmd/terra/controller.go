@@ -75,6 +75,10 @@ var controllerCommand = cli.Command{
 			Name:  "gateway",
 			Usage: "gateway address",
 		},
+		cli.BoolFlag{
+			Name:  "etcd",
+			Usage: "enabled the managed etc",
+		},
 	},
 	Action: func(clix *cli.Context) error {
 		logrus.Info("loading config...")
@@ -119,7 +123,12 @@ var controllerCommand = cli.Command{
 			return errors.Wrap(err, "create containerd client")
 		}
 		logrus.Info("creating new controller...")
-		controller, err := controller.New(client, ips, pool, orbit)
+		controller, err := controller.New(client, controller.Config{
+			IPConfig:   ips,
+			Pool:       pool,
+			Orbit:      orbit,
+			ManagedEtc: clix.Bool("etcd"),
+		})
 		if err != nil {
 			return errors.Wrap(err, "new controller")
 		}
