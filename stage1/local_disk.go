@@ -149,14 +149,18 @@ func (d *Group) Close() error {
 func (d *Group) Entries() []*fstab.Entry {
 	var entries []*fstab.Entry
 	for _, s := range d.group.Subvolumes {
+		options := []string{
+			fmt.Sprintf("subvol=/%s", s.Name),
+		}
+		if !s.Cow {
+			options = append(options, "nodatacow")
+		}
 		entries = append(entries, &fstab.Entry{
-			Type:   mkfs.Btrfs,
-			Device: fmt.Sprintf("LABEL=%s", d.group.Label),
-			Path:   s.Path,
-			Pass:   2,
-			Options: []string{
-				fmt.Sprintf("subvol=/%s", s.Name),
-			},
+			Type:    mkfs.Btrfs,
+			Device:  fmt.Sprintf("LABEL=%s", d.group.Label),
+			Path:    s.Path,
+			Pass:    2,
+			Options: options,
 		})
 	}
 	return entries

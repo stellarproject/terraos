@@ -61,6 +61,7 @@ type DiskGroup struct {
 type Subvolume struct {
 	Name string `toml:"name"`
 	Path string `toml:"path"`
+	COW  bool   `toml:"cow"`
 }
 
 func (n *Node) ToProto() *v1.Node {
@@ -118,6 +119,7 @@ func subvolumes(subvolumes []Subvolume) (out []*v1.Subvolume) {
 		out = append(out, &v1.Subvolume{
 			Name: s.Name,
 			Path: s.Path,
+			Cow:  s.COW,
 		})
 	}
 	return out

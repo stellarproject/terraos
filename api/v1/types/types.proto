@@ -51,6 +51,7 @@ message Disk {
 message Subvolume {
 	string name = 1;
 	string path = 2;
+	bool cow = 3;
 }
 
 message Target {
