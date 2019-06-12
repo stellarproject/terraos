@@ -202,6 +202,7 @@ func startContainers(orbit *util.LocalAgent, ip net.IP) error {
 	containers := []infraContainer{
 		&redisContainer{orbit: orbit, ip: ip},
 		&registryContainer{orbit: orbit, ip: ip},
+		&natsdContainer{orbit: orbit, ip: ip},
 	}
 	for _, c := range containers {
 		if err := c.Start(ctx); err != nil {
@@ -515,8 +516,8 @@ func (c *Controller) provisionTarget(ctx context.Context, node *v1.Node, image c
 
 func (c *Controller) createGroupLuns(ctx context.Context, node *v1.Node, group *v1.DiskGroup) error {
 	dir := filepath.Join(ISCSIPath, node.Hostname)
-	if err := btrfs.CreateSubvolume(dir); err != nil {
-		return errors.Wrapf(err, "create lun subvolume %s", dir)
+	if err := os.Mkdir(dir, 0711); err != nil {
+		return errors.Wrapf(err, "create lun dir %s", dir)
 	}
 	// the order of this list is also the lun ids
 	for i, disk := range group.Disks {

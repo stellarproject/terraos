@@ -43,8 +43,8 @@ import (
 
 const (
 	redisID    = "controller-redis"
-	promID     = "controller-prometheus"
 	registryID = "controller-registry"
+	natsdID    = "controller-natsd"
 )
 
 type redisContainer struct {
@@ -181,61 +181,23 @@ func (r *registryContainer) Start(ctx context.Context) error {
 	return nil
 }
 
-type prometheusContainer struct {
-	orbit *util.LocalAgent
+type natsdContainer struct {
 	ip    net.IP
+	orbit *util.LocalAgent
 }
 
-const prometheusConfig = `global:
-  scrape_interval:     30s # By default, scrape targets every 15 seconds.
-
-scrape_configs:
-  - job_name: 'prometheus'
-    static_configs:
-      - targets: ['%s:9090']`
-
-const prometheusConfigFilename = "controller-prometheus.yml"
-
-func (r *prometheusContainer) Start(ctx context.Context) error {
+func (r *natsdContainer) Start(ctx context.Context) error {
 	if _, err := r.orbit.Get(ctx, &v1.GetRequest{
-		ID: promID,
+		ID: natsdID,
 	}); err == nil {
-		logrus.Debug("existing prometheus container is running")
+		logrus.Debug("existing natsd container is running")
 		return nil
 	}
 
-	paths := opts.Paths{
-		Cluster: ClusterFS,
-	}
-	f, err := os.Create(paths.ConfigPath(prometheusConfigFilename))
-	if err != nil {
-		return errors.Wrap(err, "create prometheus config")
-	}
-	_, err = fmt.Fprintf(f, prometheusConfig, r.ip.To4().String())
-	f.Close()
-	if err != nil {
-		return errors.Wrap(err, "write prometheus config")
-	}
-
-	logrus.Info("starting prometheus container")
+	logrus.Info("starting natsd container")
 	container := &v1.Container{
-		ID:    promID,
-		Image: "docker.io/prom/prometheus:v2.9.2",
-		Process: &v1.Process{
-			Args: []string{
-				fmt.Sprintf("--web.listen-address=%s:9090", r.ip.To4().String()),
-				"--storage.tsdb.retention=15d",
-				"--storage.tsdb.min-block-duration=30m",
-				"--storage.tsdb.max-block-duration=1h",
-				"--config.file=/etc/prometheus/prometheus.yml",
-			},
-		},
-		Configs: []*v1.ConfigFile{
-			{
-				ID:   prometheusConfigFilename,
-				Path: "/etc/prometheus/prometheus.yml",
-			},
-		},
+		ID:    registryID,
+		Image: "docker.io/library/nats:latest",
 	}
 	any, err := typeurl.MarshalAny(&v1.HostNetwork{})
 	if err != nil {
@@ -246,12 +208,12 @@ func (r *prometheusContainer) Start(ctx context.Context) error {
 	container.Resources = &v1.Resources{
 		NoFile: 2048,
 		Cpus:   2.0,
-		Memory: 2048,
+		Memory: 512,
 	}
 	if _, err := r.orbit.Create(ctx, &v1.CreateRequest{
 		Container: container,
 	}); err != nil {
-		return errors.Wrap(err, "create prometheus container")
+		return errors.Wrap(err, "create natsd container")
 	}
 	return nil
 }
