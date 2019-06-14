@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package io.stellarproject.messages.v1;
+
+import weak "gogoproto/gogo.proto";
+
+option go_package = "github.com/stellarproject/terraos/api/v1/messages;messages";
+
+message Ping {
+	string hostname = 1;
+}
+
+message NodeUpdate {
+	string image = 1;
+}
+
+message Shutdown {
+	bool now = 1;
+	bool restart = 2;
+}

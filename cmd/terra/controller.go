@@ -79,10 +79,12 @@ var controllerCommand = cli.Command{
 			Name:  "etcd",
 			Usage: "enabled the managed etc",
 		},
+		// deprecated
 		cli.StringSliceFlag{
-			Name:  "plain",
-			Usage: "specify plain registry remotes",
-			Value: &cli.StringSlice{},
+			Name:   "plain",
+			Usage:  "specify plain registry remotes",
+			Value:  &cli.StringSlice{},
+			Hidden: true,
 		},
 	},
 	Action: func(clix *cli.Context) error {
@@ -129,11 +131,10 @@ var controllerCommand = cli.Command{
 		}
 		logrus.Info("creating new controller...")
 		controller, err := controller.New(client, controller.Config{
-			IPConfig:     ips,
-			Pool:         pool,
-			Orbit:        orbit,
-			ManagedEtc:   clix.Bool("etcd"),
-			PlainRemotes: []string(clix.StringSlice("plain")),
+			IPConfig:   ips,
+			Pool:       pool,
+			Orbit:      orbit,
+			ManagedEtc: clix.Bool("etcd"),
 		})
 		if err != nil {
 			return errors.Wrap(err, "new controller")

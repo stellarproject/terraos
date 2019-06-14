@@ -32,8 +32,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net"
-	"net/http"
-	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -43,7 +41,6 @@ import (
 	"github.com/containerd/containerd"
 	"github.com/containerd/containerd/errdefs"
 	"github.com/containerd/containerd/namespaces"
-	"github.com/containerd/containerd/remotes/docker"
 	"github.com/gogo/protobuf/proto"
 	"github.com/gogo/protobuf/types"
 	"github.com/gomodule/redigo/redis"
@@ -58,6 +55,7 @@ import (
 	"github.com/stellarproject/terraos/pkg/iscsi"
 	"github.com/stellarproject/terraos/pkg/pxe"
 	"github.com/stellarproject/terraos/pkg/resolvconf"
+	"github.com/stellarproject/terraos/remotes"
 	"github.com/stellarproject/terraos/stage0"
 	"github.com/stellarproject/terraos/stage1"
 	"github.com/stellarproject/terraos/util"
@@ -91,11 +89,10 @@ type infraContainer interface {
 }
 
 type Config struct {
-	IPConfig     map[IPType]net.IP
-	Pool         *redis.Pool
-	Orbit        *util.LocalAgent
-	ManagedEtc   bool
-	PlainRemotes []string
+	IPConfig   map[IPType]net.IP
+	Pool       *redis.Pool
+	Orbit      *util.LocalAgent
+	ManagedEtc bool
 }
 
 type Controller struct {
@@ -116,6 +113,9 @@ func New(client *containerd.Client, config Config) (*Controller, error) {
 	if err := btrfs.Check(); err != nil {
 		return nil, err
 	}
+	if err := remotes.LoadRemotes(remotes.DefaultPath); err != nil && !os.IsNotExist(err) {
+		return nil, err
+	}
 	if err := iscsi.Check(); err != nil {
 		return nil, err
 	}
@@ -133,14 +133,13 @@ func New(client *containerd.Client, config Config) (*Controller, error) {
 		}
 	}
 	c := &Controller{
-		ips:          config.IPConfig,
-		client:       client,
-		orbit:        config.Orbit,
-		pool:         config.Pool,
-		etcd:         config.ManagedEtc,
-		kernel:       "/vmlinuz",
-		initrd:       "/initrd.img",
-		plainRemotes: config.PlainRemotes,
+		ips:    config.IPConfig,
+		client: client,
+		orbit:  config.Orbit,
+		pool:   config.Pool,
+		etcd:   config.ManagedEtc,
+		kernel: "/vmlinuz",
+		initrd: "/initrd.img",
 	}
 	if err := c.restoreTargets(context.Background()); err != nil {
 		return nil, errors.Wrap(err, "restore targets")
@@ -368,7 +367,7 @@ func (c *Controller) InstallPXE(ctx context.Context, r *api.InstallPXERequest) (
 	log.Infof("installing pxe version %s", repo.Version())
 
 	log.Debug("fetching image")
-	i, err := c.client.Fetch(ctx, r.Image, c.withPlainRemote(r.Image))
+	i, err := c.client.Fetch(ctx, r.Image, remotes.WithPlainRemote(r.Image))
 	if err != nil {
 		return nil, errors.Wrapf(err, "fetch pxe image %s", r.Image)
 	}
@@ -453,7 +452,7 @@ func (c *Controller) fetch(ctx context.Context, repo string) (containerd.Image, 
 		if !errdefs.IsNotFound(err) {
 			return nil, errors.Wrapf(err, "image get error %s", repo)
 		}
-		i, err := c.client.Fetch(ctx, repo, c.withPlainRemote(repo))
+		i, err := c.client.Fetch(ctx, repo, remotes.WithPlainRemote(repo))
 		if err != nil {
 			return nil, errors.Wrapf(err, "fetch repo %s", repo)
 		}
@@ -733,29 +732,4 @@ func (c *Controller) updateNode(node *v1.Node) error {
 		return errors.Wrapf(err, "update node %s", node.Hostname)
 	}
 	return nil
-}
-
-func (c *Controller) withPlainRemote(ref string) containerd.RemoteOpt {
-	return func(_ *containerd.Client, ctx *containerd.RemoteContext) error {
-		var plain bool
-		u, err := url.Parse("registry://" + ref)
-		if err != nil {
-			return errors.Wrap(err, "parse url")
-		}
-
-		plain = strings.Contains(u.Host, ":5000")
-		if !plain {
-			for _, r := range c.plainRemotes {
-				if u.Host == r {
-					plain = true
-					break
-				}
-			}
-		}
-		ctx.Resolver = docker.NewResolver(docker.ResolverOptions{
-			PlainHTTP: plain,
-			Client:    http.DefaultClient,
-		})
-		return nil
-	}
 }
