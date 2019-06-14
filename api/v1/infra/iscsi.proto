@@ -8,12 +8,11 @@ import "github.com/stellarproject/terraos/api/v1/types/types.proto";
 
 option go_package = "github.com/stellarproject/terraos/api/v1/infra;infra";
 
-service ISCSI {
+service ISCSIController {
 	rpc CreateTarget(CreateTargetRequest) returns (CreateTargetResponse);
 	rpc CreateLUN(CreateLUNRequest) returns (CreateLUNResponse);
 	rpc AttachLUN(AttachLUNRequest) returns (AttachLUNResponse);
-	rpc ListTargets(google.protobuf.Empty) returns (ListTargetResponse);
-	rpc ListLUNs(google.protobuf.Empty) returns (ListLUNsResponse);
+	rpc ListTargets(google.protobuf.Empty) returns (ListTargetsResponse);
 	rpc DeleteTarget(DeleteTargetRequest) returns (google.protobuf.Empty);
 	rpc DeleteLUN(DeleteLUNRequest) returns (google.protobuf.Empty);
 }
@@ -27,7 +26,7 @@ message CreateTargetResponse {
 }
 
 message CreateLUNRequest {
-	string iqn = 1;
+	string id = 1 [(gogoproto.customname) = "ID"];
 	int64 fs_size = 2;
 }
 
@@ -44,12 +43,8 @@ message AttachLUNResponse {
 	types.v1.Target target = 1;
 }
 
-message ListTargetResponse {
+message ListTargetsResponse {
 	repeated types.v1.Target targets = 1;
-}
-
-message ListLUNsResponse {
-	repeated types.v1.LUN luns = 1;
 }
 
 message DeleteTargetRequest {
@@ -57,5 +52,5 @@ message DeleteTargetRequest {
 }
 
 message DeleteLUNRequest {
-	string iqn = 1;
+	string id = 1 [(gogoproto.customname) = "ID"];
 }

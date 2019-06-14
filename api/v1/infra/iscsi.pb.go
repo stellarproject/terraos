@@ -106,7 +106,7 @@ func (m *CreateTargetResponse) XXX_DiscardUnknown() {
 var xxx_messageInfo_CreateTargetResponse proto.InternalMessageInfo
 
 type CreateLUNRequest struct {
-	Iqn                  string   `protobuf:"bytes,1,opt,name=iqn,proto3" json:"iqn,omitempty"`
+	ID                   string   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	FsSize               int64    `protobuf:"varint,2,opt,name=fs_size,json=fsSize,proto3" json:"fs_size,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
@@ -263,24 +263,24 @@ func (m *AttachLUNResponse) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_AttachLUNResponse proto.InternalMessageInfo
 
-type ListTargetResponse struct {
+type ListTargetsResponse struct {
 	Targets              []*types.Target `protobuf:"bytes,1,rep,name=targets,proto3" json:"targets,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}        `json:"-"`
 	XXX_unrecognized     []byte          `json:"-"`
 	XXX_sizecache        int32           `json:"-"`
 }
 
-func (m *ListTargetResponse) Reset()      { *m = ListTargetResponse{} }
-func (*ListTargetResponse) ProtoMessage() {}
-func (*ListTargetResponse) Descriptor() ([]byte, []int) {
+func (m *ListTargetsResponse) Reset()      { *m = ListTargetsResponse{} }
+func (*ListTargetsResponse) ProtoMessage() {}
+func (*ListTargetsResponse) Descriptor() ([]byte, []int) {
 	return fileDescriptor_f36235ba9eee56c3, []int{6}
 }
-func (m *ListTargetResponse) XXX_Unmarshal(b []byte) error {
+func (m *ListTargetsResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
-func (m *ListTargetResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+func (m *ListTargetsResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	if deterministic {
-		return xxx_messageInfo_ListTargetResponse.Marshal(b, m, deterministic)
+		return xxx_messageInfo_ListTargetsResponse.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
 		n, err := m.MarshalTo(b)
@@ -290,56 +290,17 @@ func (m *ListTargetResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, 
 		return b[:n], nil
 	}
 }
-func (m *ListTargetResponse) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ListTargetResponse.Merge(m, src)
+func (m *ListTargetsResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ListTargetsResponse.Merge(m, src)
 }
-func (m *ListTargetResponse) XXX_Size() int {
+func (m *ListTargetsResponse) XXX_Size() int {
 	return m.Size()
 }
-func (m *ListTargetResponse) XXX_DiscardUnknown() {
-	xxx_messageInfo_ListTargetResponse.DiscardUnknown(m)
+func (m *ListTargetsResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_ListTargetsResponse.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_ListTargetResponse proto.InternalMessageInfo
-
-type ListLUNsResponse struct {
-	Luns                 []*types.LUN `protobuf:"bytes,1,rep,name=luns,proto3" json:"luns,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}     `json:"-"`
-	XXX_unrecognized     []byte       `json:"-"`
-	XXX_sizecache        int32        `json:"-"`
-}
-
-func (m *ListLUNsResponse) Reset()      { *m = ListLUNsResponse{} }
-func (*ListLUNsResponse) ProtoMessage() {}
-func (*ListLUNsResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_f36235ba9eee56c3, []int{7}
-}
-func (m *ListLUNsResponse) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *ListLUNsResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	if deterministic {
-		return xxx_messageInfo_ListLUNsResponse.Marshal(b, m, deterministic)
-	} else {
-		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
-		if err != nil {
-			return nil, err
-		}
-		return b[:n], nil
-	}
-}
-func (m *ListLUNsResponse) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ListLUNsResponse.Merge(m, src)
-}
-func (m *ListLUNsResponse) XXX_Size() int {
-	return m.Size()
-}
-func (m *ListLUNsResponse) XXX_DiscardUnknown() {
-	xxx_messageInfo_ListLUNsResponse.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_ListLUNsResponse proto.InternalMessageInfo
+var xxx_messageInfo_ListTargetsResponse proto.InternalMessageInfo
 
 type DeleteTargetRequest struct {
 	Iqn                  string   `protobuf:"bytes,1,opt,name=iqn,proto3" json:"iqn,omitempty"`
@@ -351,7 +312,7 @@ type DeleteTargetRequest struct {
 func (m *DeleteTargetRequest) Reset()      { *m = DeleteTargetRequest{} }
 func (*DeleteTargetRequest) ProtoMessage() {}
 func (*DeleteTargetRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_f36235ba9eee56c3, []int{8}
+	return fileDescriptor_f36235ba9eee56c3, []int{7}
 }
 func (m *DeleteTargetRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -381,7 +342,7 @@ func (m *DeleteTargetRequest) XXX_DiscardUnknown() {
 var xxx_messageInfo_DeleteTargetRequest proto.InternalMessageInfo
 
 type DeleteLUNRequest struct {
-	Iqn                  string   `protobuf:"bytes,1,opt,name=iqn,proto3" json:"iqn,omitempty"`
+	ID                   string   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -390,7 +351,7 @@ type DeleteLUNRequest struct {
 func (m *DeleteLUNRequest) Reset()      { *m = DeleteLUNRequest{} }
 func (*DeleteLUNRequest) ProtoMessage() {}
 func (*DeleteLUNRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_f36235ba9eee56c3, []int{9}
+	return fileDescriptor_f36235ba9eee56c3, []int{8}
 }
 func (m *DeleteLUNRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -426,8 +387,7 @@ func init() {
 	proto.RegisterType((*CreateLUNResponse)(nil), "io.stellarproject.infra.v1.CreateLUNResponse")
 	proto.RegisterType((*AttachLUNRequest)(nil), "io.stellarproject.infra.v1.AttachLUNRequest")
 	proto.RegisterType((*AttachLUNResponse)(nil), "io.stellarproject.infra.v1.AttachLUNResponse")
-	proto.RegisterType((*ListTargetResponse)(nil), "io.stellarproject.infra.v1.ListTargetResponse")
-	proto.RegisterType((*ListLUNsResponse)(nil), "io.stellarproject.infra.v1.ListLUNsResponse")
+	proto.RegisterType((*ListTargetsResponse)(nil), "io.stellarproject.infra.v1.ListTargetsResponse")
 	proto.RegisterType((*DeleteTargetRequest)(nil), "io.stellarproject.infra.v1.DeleteTargetRequest")
 	proto.RegisterType((*DeleteLUNRequest)(nil), "io.stellarproject.infra.v1.DeleteLUNRequest")
 }
@@ -437,41 +397,40 @@ func init() {
 }
 
 var fileDescriptor_f36235ba9eee56c3 = []byte{
-	// 535 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x95, 0xcb, 0x6e, 0xd3, 0x40,
-	0x18, 0x85, 0xe3, 0x86, 0xa6, 0xe4, 0x6f, 0x17, 0xee, 0x50, 0x41, 0x64, 0x24, 0x13, 0x59, 0x48,
-	0x74, 0x51, 0x66, 0x48, 0xcb, 0xaa, 0xc0, 0x02, 0xca, 0x45, 0x95, 0xa2, 0x00, 0x0e, 0x11, 0x88,
-	0x0d, 0x72, 0xa2, 0x89, 0x33, 0xc8, 0xf5, 0x38, 0x9e, 0x71, 0xa4, 0x76, 0x05, 0xcf, 0xc2, 0xcb,
-	0x74, 0xc9, 0x92, 0x25, 0xcd, 0x93, 0x20, 0xdf, 0x12, 0x27, 0x8d, 0x9d, 0x44, 0x74, 0x63, 0x39,
-	0xf1, 0x39, 0xe7, 0x3f, 0x33, 0xfe, 0x32, 0x81, 0x63, 0x9b, 0xc9, 0x41, 0xd0, 0xc5, 0x3d, 0x7e,
-	0x46, 0x84, 0xa4, 0x8e, 0x63, 0xf9, 0x9e, 0xcf, 0xbf, 0xd3, 0x9e, 0x24, 0x92, 0xfa, 0xbe, 0xc5,
-	0x05, 0xb1, 0x3c, 0x46, 0x46, 0x0d, 0xc2, 0xdc, 0xbe, 0x6f, 0x11, 0x26, 0x7a, 0x82, 0x61, 0xcf,
-	0xe7, 0x92, 0x23, 0x8d, 0x71, 0x3c, 0xeb, 0xc1, 0x91, 0x08, 0x8f, 0x1a, 0xda, 0x9e, 0xcd, 0x6d,
-	0x1e, 0xc9, 0x48, 0x78, 0x17, 0x3b, 0xb4, 0xfb, 0x36, 0xe7, 0xb6, 0x43, 0x49, 0xf4, 0xa9, 0x1b,
-	0xf4, 0x09, 0x3d, 0xf3, 0xe4, 0x79, 0xf2, 0x70, 0xf5, 0x2a, 0xf2, 0xdc, 0xa3, 0x22, 0xbe, 0xc6,
-	0x5e, 0xe3, 0x11, 0xdc, 0x39, 0xf1, 0xa9, 0x25, 0xe9, 0x27, 0xcb, 0xb7, 0xa9, 0x34, 0xe9, 0x30,
-	0xa0, 0x42, 0x22, 0x15, 0xca, 0x6c, 0xe8, 0xd6, 0x94, 0xba, 0xb2, 0x5f, 0x35, 0xc3, 0x5b, 0xc3,
-	0x84, 0xbd, 0x59, 0xa1, 0xf0, 0xb8, 0x2b, 0x28, 0x3a, 0x86, 0x8a, 0x8c, 0xbe, 0x89, 0xc4, 0xdb,
-	0x87, 0x06, 0xbe, 0xbe, 0xb8, 0x78, 0xe0, 0xa8, 0x81, 0x13, 0x6f, 0xe2, 0x30, 0x5e, 0x80, 0x1a,
-	0x67, 0x36, 0x3b, 0xad, 0xdc, 0xc9, 0xe8, 0x1e, 0x6c, 0xf5, 0xc5, 0x37, 0xc1, 0x2e, 0x68, 0x6d,
-	0xa3, 0xae, 0xec, 0x97, 0xcd, 0x4a, 0x5f, 0xb4, 0xd9, 0x05, 0x35, 0xde, 0xc2, 0x6e, 0xc6, 0x9e,
-	0xf4, 0x69, 0x40, 0xd9, 0x09, 0xdc, 0xa4, 0xcc, 0x83, 0xa2, 0x32, 0xa1, 0x2b, 0xd4, 0x1a, 0x3f,
-	0x15, 0x50, 0x5f, 0x4a, 0x69, 0xf5, 0x06, 0x99, 0x1e, 0xff, 0xb1, 0xae, 0xb4, 0xc3, 0xc6, 0x1a,
-	0x1d, 0xde, 0xc3, 0x6e, 0xa6, 0xc2, 0x0d, 0xec, 0xad, 0x09, 0xa8, 0xc9, 0x84, 0x9c, 0x7b, 0x5b,
-	0xcf, 0x61, 0x2b, 0x7e, 0x2e, 0x6a, 0x4a, 0xbd, 0xbc, 0x62, 0x64, 0x6a, 0x31, 0xde, 0x81, 0x1a,
-	0x66, 0x36, 0x3b, 0x2d, 0x31, 0x49, 0x3c, 0x82, 0x5b, 0x4e, 0xe0, 0xa6, 0x71, 0x4b, 0x17, 0x1b,
-	0x89, 0x43, 0xea, 0x5e, 0x53, 0x87, 0x2e, 0xa7, 0xee, 0x21, 0xa8, 0xb1, 0xb0, 0x88, 0x90, 0xc3,
-	0x5f, 0x9b, 0xb0, 0x79, 0xda, 0x3e, 0x69, 0x9f, 0xa2, 0x21, 0xec, 0x64, 0x29, 0x45, 0x04, 0xe7,
-	0xff, 0xd4, 0xf0, 0x02, 0xf0, 0xb5, 0x27, 0xab, 0x1b, 0x92, 0x0d, 0x18, 0x40, 0x75, 0x42, 0x21,
-	0x3a, 0x58, 0x6e, 0x9f, 0xae, 0x44, 0x7b, 0xbc, 0xa2, 0x7a, 0x3a, 0x69, 0xc2, 0x48, 0xf1, 0xa4,
-	0x79, 0x9a, 0x8b, 0x27, 0x5d, 0x07, 0xaf, 0x03, 0xdb, 0x53, 0x78, 0x04, 0xba, 0x8b, 0xe3, 0xe3,
-	0x07, 0xa7, 0xc7, 0x0f, 0x7e, 0x13, 0x1e, 0x3f, 0x1a, 0x2e, 0x4a, 0x5d, 0x40, 0xdf, 0x07, 0xb8,
-	0x9d, 0xf2, 0x93, 0x9b, 0x79, 0xb0, 0x2c, 0x73, 0x86, 0xbe, 0xcf, 0xb0, 0x93, 0x05, 0xa9, 0xf8,
-	0x7d, 0x2f, 0x40, 0x4e, 0xcb, 0xa9, 0x81, 0x3e, 0x42, 0x75, 0x02, 0x5e, 0xf1, 0x5e, 0xcf, 0xf3,
-	0x99, 0x17, 0xf9, 0xaa, 0x75, 0x79, 0xa5, 0x97, 0xfe, 0x5c, 0xe9, 0xa5, 0x1f, 0x63, 0x5d, 0xb9,
-	0x1c, 0xeb, 0xca, 0xef, 0xb1, 0xae, 0xfc, 0x1d, 0xeb, 0xca, 0xd7, 0xa7, 0xeb, 0xfd, 0x97, 0x3c,
-	0x8b, 0xae, 0x5f, 0x4a, 0xdd, 0x4a, 0x34, 0xe1, 0xe8, 0x5f, 0x00, 0x00, 0x00, 0xff, 0xff, 0x62,
-	0xe9, 0x0e, 0x1b, 0x8c, 0x06, 0x00, 0x00,
+	// 524 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x54, 0xcf, 0x6f, 0xd3, 0x30,
+	0x18, 0x6d, 0x52, 0xd4, 0xa9, 0xdf, 0x26, 0xd1, 0x79, 0xd3, 0xa8, 0x82, 0x94, 0x55, 0xb9, 0x30,
+	0x21, 0xb0, 0xe9, 0xe0, 0x34, 0xb8, 0xb0, 0x0e, 0xa4, 0x4a, 0xd3, 0x10, 0x29, 0xbf, 0xc4, 0x05,
+	0xa5, 0x9d, 0x9b, 0x1a, 0x65, 0x71, 0x6a, 0xbb, 0x95, 0xb6, 0x13, 0xfc, 0x77, 0x3b, 0x72, 0xe4,
+	0x80, 0x10, 0xcb, 0x5f, 0x82, 0x12, 0xa7, 0x5d, 0xb6, 0xb5, 0x69, 0x27, 0xb8, 0x58, 0xae, 0xfb,
+	0xde, 0xf7, 0x9e, 0x3f, 0xbf, 0x7c, 0xb0, 0xe7, 0x33, 0x35, 0x18, 0x75, 0x71, 0x8f, 0x9f, 0x10,
+	0xa9, 0x68, 0x10, 0x78, 0x22, 0x12, 0xfc, 0x2b, 0xed, 0x29, 0xa2, 0xa8, 0x10, 0x1e, 0x97, 0xc4,
+	0x8b, 0x18, 0x19, 0x37, 0x09, 0x0b, 0xfb, 0xc2, 0x23, 0x4c, 0xf6, 0x24, 0xc3, 0x91, 0xe0, 0x8a,
+	0x23, 0x8b, 0x71, 0x7c, 0x95, 0x83, 0x53, 0x10, 0x1e, 0x37, 0xad, 0x4d, 0x9f, 0xfb, 0x3c, 0x85,
+	0x91, 0x64, 0xa7, 0x19, 0xd6, 0x7d, 0x9f, 0x73, 0x3f, 0xa0, 0x24, 0xfd, 0xd5, 0x1d, 0xf5, 0x09,
+	0x3d, 0x89, 0xd4, 0x69, 0xf6, 0xe7, 0xf2, 0x56, 0xd4, 0x69, 0x44, 0xa5, 0x5e, 0x35, 0xd7, 0x79,
+	0x00, 0x1b, 0x2d, 0x41, 0x3d, 0x45, 0xdf, 0x79, 0xc2, 0xa7, 0xca, 0xa5, 0xc3, 0x11, 0x95, 0x0a,
+	0xd5, 0xa0, 0xcc, 0x86, 0x61, 0xdd, 0x68, 0x18, 0x3b, 0x55, 0x37, 0xd9, 0x3a, 0x2e, 0x6c, 0x5e,
+	0x05, 0xca, 0x88, 0x87, 0x92, 0xa2, 0x3d, 0xa8, 0xa8, 0xf4, 0x24, 0x05, 0xaf, 0xee, 0x3a, 0xf8,
+	0xe6, 0xe5, 0xb4, 0xe0, 0xb8, 0x89, 0x33, 0x6e, 0xc6, 0x70, 0x5a, 0x50, 0xd3, 0x35, 0x0f, 0xdf,
+	0x1f, 0x4d, 0x94, 0xb7, 0xc0, 0x64, 0xc7, 0x5a, 0x78, 0xbf, 0x12, 0xff, 0xde, 0x36, 0xdb, 0x07,
+	0xae, 0xc9, 0x8e, 0xd1, 0x3d, 0x58, 0xe9, 0xcb, 0x2f, 0x92, 0x9d, 0xd1, 0xba, 0xd9, 0x30, 0x76,
+	0xca, 0x6e, 0xa5, 0x2f, 0x3b, 0xec, 0x8c, 0x3a, 0xaf, 0x61, 0x3d, 0x57, 0x24, 0x73, 0xd5, 0x84,
+	0x72, 0x30, 0x0a, 0x33, 0x4b, 0xdb, 0x45, 0x96, 0x12, 0x56, 0x82, 0x75, 0xbe, 0x1b, 0x50, 0x7b,
+	0xa9, 0x94, 0xd7, 0x1b, 0xe4, 0xdc, 0xfc, 0xc3, 0xed, 0x26, 0x1e, 0xcc, 0x5b, 0x78, 0x78, 0x03,
+	0xeb, 0x39, 0x0b, 0xff, 0xa1, 0xc3, 0x1d, 0xd8, 0x38, 0x64, 0x52, 0xe9, 0x53, 0x39, 0x2d, 0xf9,
+	0x02, 0x56, 0x34, 0x40, 0xd6, 0x8d, 0x46, 0x79, 0xc9, 0x9a, 0x13, 0x4a, 0x92, 0x99, 0x03, 0x1a,
+	0xd0, 0xc5, 0x99, 0x79, 0x08, 0x35, 0x0d, 0x5c, 0xfc, 0xbe, 0xbb, 0xbf, 0xee, 0xc0, 0xdd, 0x76,
+	0xa7, 0xd5, 0x69, 0xb7, 0x78, 0xa8, 0x04, 0x0f, 0x02, 0x2a, 0xd0, 0x10, 0xd6, 0xf2, 0x99, 0x43,
+	0x04, 0xcf, 0xff, 0x70, 0xf0, 0x8c, 0x18, 0x5b, 0x4f, 0x96, 0x27, 0x64, 0x9d, 0x19, 0x40, 0x75,
+	0x9a, 0x26, 0xf4, 0x68, 0x31, 0xfd, 0xf2, 0x66, 0xd6, 0xe3, 0x25, 0xd1, 0x97, 0x4a, 0xd3, 0xb7,
+	0x2e, 0x56, 0xba, 0x9e, 0xca, 0x62, 0xa5, 0x9b, 0x01, 0xfa, 0x00, 0xab, 0xb9, 0x10, 0xa0, 0x2d,
+	0xac, 0x87, 0x09, 0x9e, 0x0c, 0x13, 0xfc, 0x2a, 0x19, 0x26, 0x56, 0x61, 0x77, 0x67, 0xa5, 0xe8,
+	0x23, 0xac, 0xe5, 0x73, 0x50, 0xfc, 0x3c, 0x33, 0x12, 0x63, 0xcd, 0x71, 0x82, 0xde, 0x42, 0x75,
+	0x9a, 0x9b, 0xe2, 0xd6, 0x5c, 0x8f, 0xd7, 0xbc, 0x92, 0xfb, 0x47, 0xe7, 0x17, 0x76, 0xe9, 0xe7,
+	0x85, 0x5d, 0xfa, 0x16, 0xdb, 0xc6, 0x79, 0x6c, 0x1b, 0x3f, 0x62, 0xdb, 0xf8, 0x13, 0xdb, 0xc6,
+	0xe7, 0x67, 0xb7, 0x1b, 0xe4, 0xcf, 0xd3, 0xf5, 0x53, 0xa9, 0x5b, 0x49, 0x15, 0x9e, 0xfe, 0x0d,
+	0x00, 0x00, 0xff, 0xff, 0x7e, 0x7f, 0xf1, 0x2a, 0x09, 0x06, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -482,262 +441,229 @@ var _ grpc.ClientConn
 // is compatible with the grpc package it is being compiled against.
 const _ = grpc.SupportPackageIsVersion4
 
-// ISCSIClient is the client API for ISCSI service.
+// ISCSIControllerClient is the client API for ISCSIController service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
-type ISCSIClient interface {
+type ISCSIControllerClient interface {
 	CreateTarget(ctx context.Context, in *CreateTargetRequest, opts ...grpc.CallOption) (*CreateTargetResponse, error)
 	CreateLUN(ctx context.Context, in *CreateLUNRequest, opts ...grpc.CallOption) (*CreateLUNResponse, error)
 	AttachLUN(ctx context.Context, in *AttachLUNRequest, opts ...grpc.CallOption) (*AttachLUNResponse, error)
-	ListTargets(ctx context.Context, in *types1.Empty, opts ...grpc.CallOption) (*ListTargetResponse, error)
-	ListLUNs(ctx context.Context, in *types1.Empty, opts ...grpc.CallOption) (*ListLUNsResponse, error)
+	ListTargets(ctx context.Context, in *types1.Empty, opts ...grpc.CallOption) (*ListTargetsResponse, error)
 	DeleteTarget(ctx context.Context, in *DeleteTargetRequest, opts ...grpc.CallOption) (*types1.Empty, error)
 	DeleteLUN(ctx context.Context, in *DeleteLUNRequest, opts ...grpc.CallOption) (*types1.Empty, error)
 }
 
-type iSCSIClient struct {
+type iSCSIControllerClient struct {
 	cc *grpc.ClientConn
 }
 
-func NewISCSIClient(cc *grpc.ClientConn) ISCSIClient {
-	return &iSCSIClient{cc}
+func NewISCSIControllerClient(cc *grpc.ClientConn) ISCSIControllerClient {
+	return &iSCSIControllerClient{cc}
 }
 
-func (c *iSCSIClient) CreateTarget(ctx context.Context, in *CreateTargetRequest, opts ...grpc.CallOption) (*CreateTargetResponse, error) {
+func (c *iSCSIControllerClient) CreateTarget(ctx context.Context, in *CreateTargetRequest, opts ...grpc.CallOption) (*CreateTargetResponse, error) {
 	out := new(CreateTargetResponse)
-	err := c.cc.Invoke(ctx, "/io.stellarproject.infra.v1.ISCSI/CreateTarget", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/io.stellarproject.infra.v1.ISCSIController/CreateTarget", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *iSCSIClient) CreateLUN(ctx context.Context, in *CreateLUNRequest, opts ...grpc.CallOption) (*CreateLUNResponse, error) {
+func (c *iSCSIControllerClient) CreateLUN(ctx context.Context, in *CreateLUNRequest, opts ...grpc.CallOption) (*CreateLUNResponse, error) {
 	out := new(CreateLUNResponse)
-	err := c.cc.Invoke(ctx, "/io.stellarproject.infra.v1.ISCSI/CreateLUN", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/io.stellarproject.infra.v1.ISCSIController/CreateLUN", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *iSCSIClient) AttachLUN(ctx context.Context, in *AttachLUNRequest, opts ...grpc.CallOption) (*AttachLUNResponse, error) {
+func (c *iSCSIControllerClient) AttachLUN(ctx context.Context, in *AttachLUNRequest, opts ...grpc.CallOption) (*AttachLUNResponse, error) {
 	out := new(AttachLUNResponse)
-	err := c.cc.Invoke(ctx, "/io.stellarproject.infra.v1.ISCSI/AttachLUN", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/io.stellarproject.infra.v1.ISCSIController/AttachLUN", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *iSCSIClient) ListTargets(ctx context.Context, in *types1.Empty, opts ...grpc.CallOption) (*ListTargetResponse, error) {
-	out := new(ListTargetResponse)
-	err := c.cc.Invoke(ctx, "/io.stellarproject.infra.v1.ISCSI/ListTargets", in, out, opts...)
+func (c *iSCSIControllerClient) ListTargets(ctx context.Context, in *types1.Empty, opts ...grpc.CallOption) (*ListTargetsResponse, error) {
+	out := new(ListTargetsResponse)
+	err := c.cc.Invoke(ctx, "/io.stellarproject.infra.v1.ISCSIController/ListTargets", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *iSCSIClient) ListLUNs(ctx context.Context, in *types1.Empty, opts ...grpc.CallOption) (*ListLUNsResponse, error) {
-	out := new(ListLUNsResponse)
-	err := c.cc.Invoke(ctx, "/io.stellarproject.infra.v1.ISCSI/ListLUNs", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *iSCSIClient) DeleteTarget(ctx context.Context, in *DeleteTargetRequest, opts ...grpc.CallOption) (*types1.Empty, error) {
+func (c *iSCSIControllerClient) DeleteTarget(ctx context.Context, in *DeleteTargetRequest, opts ...grpc.CallOption) (*types1.Empty, error) {
 	out := new(types1.Empty)
-	err := c.cc.Invoke(ctx, "/io.stellarproject.infra.v1.ISCSI/DeleteTarget", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/io.stellarproject.infra.v1.ISCSIController/DeleteTarget", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *iSCSIClient) DeleteLUN(ctx context.Context, in *DeleteLUNRequest, opts ...grpc.CallOption) (*types1.Empty, error) {
+func (c *iSCSIControllerClient) DeleteLUN(ctx context.Context, in *DeleteLUNRequest, opts ...grpc.CallOption) (*types1.Empty, error) {
 	out := new(types1.Empty)
-	err := c.cc.Invoke(ctx, "/io.stellarproject.infra.v1.ISCSI/DeleteLUN", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/io.stellarproject.infra.v1.ISCSIController/DeleteLUN", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// ISCSIServer is the server API for ISCSI service.
-type ISCSIServer interface {
+// ISCSIControllerServer is the server API for ISCSIController service.
+type ISCSIControllerServer interface {
 	CreateTarget(context.Context, *CreateTargetRequest) (*CreateTargetResponse, error)
 	CreateLUN(context.Context, *CreateLUNRequest) (*CreateLUNResponse, error)
 	AttachLUN(context.Context, *AttachLUNRequest) (*AttachLUNResponse, error)
-	ListTargets(context.Context, *types1.Empty) (*ListTargetResponse, error)
-	ListLUNs(context.Context, *types1.Empty) (*ListLUNsResponse, error)
+	ListTargets(context.Context, *types1.Empty) (*ListTargetsResponse, error)
 	DeleteTarget(context.Context, *DeleteTargetRequest) (*types1.Empty, error)
 	DeleteLUN(context.Context, *DeleteLUNRequest) (*types1.Empty, error)
 }
 
-func RegisterISCSIServer(s *grpc.Server, srv ISCSIServer) {
-	s.RegisterService(&_ISCSI_serviceDesc, srv)
+func RegisterISCSIControllerServer(s *grpc.Server, srv ISCSIControllerServer) {
+	s.RegisterService(&_ISCSIController_serviceDesc, srv)
 }
 
-func _ISCSI_CreateTarget_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _ISCSIController_CreateTarget_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(CreateTargetRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ISCSIServer).CreateTarget(ctx, in)
+		return srv.(ISCSIControllerServer).CreateTarget(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/io.stellarproject.infra.v1.ISCSI/CreateTarget",
+		FullMethod: "/io.stellarproject.infra.v1.ISCSIController/CreateTarget",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ISCSIServer).CreateTarget(ctx, req.(*CreateTargetRequest))
+		return srv.(ISCSIControllerServer).CreateTarget(ctx, req.(*CreateTargetRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _ISCSI_CreateLUN_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _ISCSIController_CreateLUN_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(CreateLUNRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ISCSIServer).CreateLUN(ctx, in)
+		return srv.(ISCSIControllerServer).CreateLUN(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/io.stellarproject.infra.v1.ISCSI/CreateLUN",
+		FullMethod: "/io.stellarproject.infra.v1.ISCSIController/CreateLUN",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ISCSIServer).CreateLUN(ctx, req.(*CreateLUNRequest))
+		return srv.(ISCSIControllerServer).CreateLUN(ctx, req.(*CreateLUNRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _ISCSI_AttachLUN_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _ISCSIController_AttachLUN_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(AttachLUNRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ISCSIServer).AttachLUN(ctx, in)
+		return srv.(ISCSIControllerServer).AttachLUN(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/io.stellarproject.infra.v1.ISCSI/AttachLUN",
+		FullMethod: "/io.stellarproject.infra.v1.ISCSIController/AttachLUN",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ISCSIServer).AttachLUN(ctx, req.(*AttachLUNRequest))
+		return srv.(ISCSIControllerServer).AttachLUN(ctx, req.(*AttachLUNRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _ISCSI_ListTargets_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _ISCSIController_ListTargets_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(types1.Empty)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ISCSIServer).ListTargets(ctx, in)
+		return srv.(ISCSIControllerServer).ListTargets(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/io.stellarproject.infra.v1.ISCSI/ListTargets",
+		FullMethod: "/io.stellarproject.infra.v1.ISCSIController/ListTargets",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ISCSIServer).ListTargets(ctx, req.(*types1.Empty))
+		return srv.(ISCSIControllerServer).ListTargets(ctx, req.(*types1.Empty))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _ISCSI_ListLUNs_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(types1.Empty)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ISCSIServer).ListLUNs(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/io.stellarproject.infra.v1.ISCSI/ListLUNs",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ISCSIServer).ListLUNs(ctx, req.(*types1.Empty))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _ISCSI_DeleteTarget_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _ISCSIController_DeleteTarget_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(DeleteTargetRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ISCSIServer).DeleteTarget(ctx, in)
+		return srv.(ISCSIControllerServer).DeleteTarget(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/io.stellarproject.infra.v1.ISCSI/DeleteTarget",
+		FullMethod: "/io.stellarproject.infra.v1.ISCSIController/DeleteTarget",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ISCSIServer).DeleteTarget(ctx, req.(*DeleteTargetRequest))
+		return srv.(ISCSIControllerServer).DeleteTarget(ctx, req.(*DeleteTargetRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _ISCSI_DeleteLUN_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _ISCSIController_DeleteLUN_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(DeleteLUNRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ISCSIServer).DeleteLUN(ctx, in)
+		return srv.(ISCSIControllerServer).DeleteLUN(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/io.stellarproject.infra.v1.ISCSI/DeleteLUN",
+		FullMethod: "/io.stellarproject.infra.v1.ISCSIController/DeleteLUN",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ISCSIServer).DeleteLUN(ctx, req.(*DeleteLUNRequest))
+		return srv.(ISCSIControllerServer).DeleteLUN(ctx, req.(*DeleteLUNRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-var _ISCSI_serviceDesc = grpc.ServiceDesc{
-	ServiceName: "io.stellarproject.infra.v1.ISCSI",
-	HandlerType: (*ISCSIServer)(nil),
+var _ISCSIController_serviceDesc = grpc.ServiceDesc{
+	ServiceName: "io.stellarproject.infra.v1.ISCSIController",
+	HandlerType: (*ISCSIControllerServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
 			MethodName: "CreateTarget",
-			Handler:    _ISCSI_CreateTarget_Handler,
+			Handler:    _ISCSIController_CreateTarget_Handler,
 		},
 		{
 			MethodName: "CreateLUN",
-			Handler:    _ISCSI_CreateLUN_Handler,
+			Handler:    _ISCSIController_CreateLUN_Handler,
 		},
 		{
 			MethodName: "AttachLUN",
-			Handler:    _ISCSI_AttachLUN_Handler,
+			Handler:    _ISCSIController_AttachLUN_Handler,
 		},
 		{
 			MethodName: "ListTargets",
-			Handler:    _ISCSI_ListTargets_Handler,
-		},
-		{
-			MethodName: "ListLUNs",
-			Handler:    _ISCSI_ListLUNs_Handler,
+			Handler:    _ISCSIController_ListTargets_Handler,
 		},
 		{
 			MethodName: "DeleteTarget",
-			Handler:    _ISCSI_DeleteTarget_Handler,
+			Handler:    _ISCSIController_DeleteTarget_Handler,
 		},
 		{
 			MethodName: "DeleteLUN",
-			Handler:    _ISCSI_DeleteLUN_Handler,
+			Handler:    _ISCSIController_DeleteLUN_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
@@ -817,11 +743,11 @@ func (m *CreateLUNRequest) MarshalTo(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
-	if len(m.Iqn) > 0 {
+	if len(m.ID) > 0 {
 		dAtA[i] = 0xa
 		i++
-		i = encodeVarintIscsi(dAtA, i, uint64(len(m.Iqn)))
-		i += copy(dAtA[i:], m.Iqn)
+		i = encodeVarintIscsi(dAtA, i, uint64(len(m.ID)))
+		i += copy(dAtA[i:], m.ID)
 	}
 	if m.FsSize != 0 {
 		dAtA[i] = 0x10
@@ -937,7 +863,7 @@ func (m *AttachLUNResponse) MarshalTo(dAtA []byte) (int, error) {
 	return i, nil
 }
 
-func (m *ListTargetResponse) Marshal() (dAtA []byte, err error) {
+func (m *ListTargetsResponse) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -947,46 +873,13 @@ func (m *ListTargetResponse) Marshal() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *ListTargetResponse) MarshalTo(dAtA []byte) (int, error) {
+func (m *ListTargetsResponse) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
 	if len(m.Targets) > 0 {
 		for _, msg := range m.Targets {
-			dAtA[i] = 0xa
-			i++
-			i = encodeVarintIscsi(dAtA, i, uint64(msg.Size()))
-			n, err := msg.MarshalTo(dAtA[i:])
-			if err != nil {
-				return 0, err
-			}
-			i += n
-		}
-	}
-	if m.XXX_unrecognized != nil {
-		i += copy(dAtA[i:], m.XXX_unrecognized)
-	}
-	return i, nil
-}
-
-func (m *ListLUNsResponse) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *ListLUNsResponse) MarshalTo(dAtA []byte) (int, error) {
-	var i int
-	_ = i
-	var l int
-	_ = l
-	if len(m.Luns) > 0 {
-		for _, msg := range m.Luns {
 			dAtA[i] = 0xa
 			i++
 			i = encodeVarintIscsi(dAtA, i, uint64(msg.Size()))
@@ -1045,11 +938,11 @@ func (m *DeleteLUNRequest) MarshalTo(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
-	if len(m.Iqn) > 0 {
+	if len(m.ID) > 0 {
 		dAtA[i] = 0xa
 		i++
-		i = encodeVarintIscsi(dAtA, i, uint64(len(m.Iqn)))
-		i += copy(dAtA[i:], m.Iqn)
+		i = encodeVarintIscsi(dAtA, i, uint64(len(m.ID)))
+		i += copy(dAtA[i:], m.ID)
 	}
 	if m.XXX_unrecognized != nil {
 		i += copy(dAtA[i:], m.XXX_unrecognized)
@@ -1104,7 +997,7 @@ func (m *CreateLUNRequest) Size() (n int) {
 	}
 	var l int
 	_ = l
-	l = len(m.Iqn)
+	l = len(m.ID)
 	if l > 0 {
 		n += 1 + l + sovIscsi(uint64(l))
 	}
@@ -1169,7 +1062,7 @@ func (m *AttachLUNResponse) Size() (n int) {
 	return n
 }
 
-func (m *ListTargetResponse) Size() (n int) {
+func (m *ListTargetsResponse) Size() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -1177,24 +1070,6 @@ func (m *ListTargetResponse) Size() (n int) {
 	_ = l
 	if len(m.Targets) > 0 {
 		for _, e := range m.Targets {
-			l = e.Size()
-			n += 1 + l + sovIscsi(uint64(l))
-		}
-	}
-	if m.XXX_unrecognized != nil {
-		n += len(m.XXX_unrecognized)
-	}
-	return n
-}
-
-func (m *ListLUNsResponse) Size() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	if len(m.Luns) > 0 {
-		for _, e := range m.Luns {
 			l = e.Size()
 			n += 1 + l + sovIscsi(uint64(l))
 		}
@@ -1227,7 +1102,7 @@ func (m *DeleteLUNRequest) Size() (n int) {
 	}
 	var l int
 	_ = l
-	l = len(m.Iqn)
+	l = len(m.ID)
 	if l > 0 {
 		n += 1 + l + sovIscsi(uint64(l))
 	}
@@ -1277,7 +1152,7 @@ func (this *CreateLUNRequest) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&CreateLUNRequest{`,
-		`Iqn:` + fmt.Sprintf("%v", this.Iqn) + `,`,
+		`ID:` + fmt.Sprintf("%v", this.ID) + `,`,
 		`FsSize:` + fmt.Sprintf("%v", this.FsSize) + `,`,
 		`XXX_unrecognized:` + fmt.Sprintf("%v", this.XXX_unrecognized) + `,`,
 		`}`,
@@ -1318,23 +1193,12 @@ func (this *AttachLUNResponse) String() string {
 	}, "")
 	return s
 }
-func (this *ListTargetResponse) String() string {
+func (this *ListTargetsResponse) String() string {
 	if this == nil {
 		return "nil"
 	}
-	s := strings.Join([]string{`&ListTargetResponse{`,
+	s := strings.Join([]string{`&ListTargetsResponse{`,
 		`Targets:` + strings.Replace(fmt.Sprintf("%v", this.Targets), "Target", "types.Target", 1) + `,`,
-		`XXX_unrecognized:` + fmt.Sprintf("%v", this.XXX_unrecognized) + `,`,
-		`}`,
-	}, "")
-	return s
-}
-func (this *ListLUNsResponse) String() string {
-	if this == nil {
-		return "nil"
-	}
-	s := strings.Join([]string{`&ListLUNsResponse{`,
-		`Luns:` + strings.Replace(fmt.Sprintf("%v", this.Luns), "LUN", "types.LUN", 1) + `,`,
 		`XXX_unrecognized:` + fmt.Sprintf("%v", this.XXX_unrecognized) + `,`,
 		`}`,
 	}, "")
@@ -1356,7 +1220,7 @@ func (this *DeleteLUNRequest) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&DeleteLUNRequest{`,
-		`Iqn:` + fmt.Sprintf("%v", this.Iqn) + `,`,
+		`ID:` + fmt.Sprintf("%v", this.ID) + `,`,
 		`XXX_unrecognized:` + fmt.Sprintf("%v", this.XXX_unrecognized) + `,`,
 		`}`,
 	}, "")
@@ -1577,7 +1441,7 @@ func (m *CreateLUNRequest) Unmarshal(dAtA []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Iqn", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field ID", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
@@ -1605,7 +1469,7 @@ func (m *CreateLUNRequest) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Iqn = string(dAtA[iNdEx:postIndex])
+			m.ID = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 2:
 			if wireType != 0 {
@@ -1957,7 +1821,7 @@ func (m *AttachLUNResponse) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *ListTargetResponse) Unmarshal(dAtA []byte) error {
+func (m *ListTargetsResponse) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -1980,10 +1844,10 @@ func (m *ListTargetResponse) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: ListTargetResponse: wiretype end group for non-group")
+			return fmt.Errorf("proto: ListTargetsResponse: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: ListTargetResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: ListTargetsResponse: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -2017,94 +1881,6 @@ func (m *ListTargetResponse) Unmarshal(dAtA []byte) error {
 			}
 			m.Targets = append(m.Targets, &types.Target{})
 			if err := m.Targets[len(m.Targets)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipIscsi(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				return ErrInvalidLengthIscsi
-			}
-			if (iNdEx + skippy) < 0 {
-				return ErrInvalidLengthIscsi
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.XXX_unrecognized = append(m.XXX_unrecognized, dAtA[iNdEx:iNdEx+skippy]...)
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *ListLUNsResponse) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowIscsi
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: ListLUNsResponse: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: ListLUNsResponse: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Luns", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowIscsi
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthIscsi
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthIscsi
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Luns = append(m.Luns, &types.LUN{})
-			if err := m.Luns[len(m.Luns)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -2250,7 +2026,7 @@ func (m *DeleteLUNRequest) Unmarshal(dAtA []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Iqn", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field ID", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
@@ -2278,7 +2054,7 @@ func (m *DeleteLUNRequest) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Iqn = string(dAtA[iNdEx:postIndex])
+			m.ID = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

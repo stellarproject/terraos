@@ -130,11 +130,10 @@ var controllerCommand = cli.Command{
 			return errors.Wrap(err, "create containerd client")
 		}
 		logrus.Info("creating new controller...")
-		controller, err := controller.NewTerraController(client, controller.Config{
-			IPConfig:   ips,
-			Pool:       pool,
-			Orbit:      orbit,
-			ManagedEtc: clix.Bool("etcd"),
+		controller, err := controller.New(client, controller.Config{
+			IPConfig: ips,
+			Pool:     pool,
+			Orbit:    orbit,
 		})
 		if err != nil {
 			return errors.Wrap(err, "new controller")
