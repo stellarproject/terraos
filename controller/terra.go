@@ -95,7 +95,7 @@ type Config struct {
 	ManagedEtc bool
 }
 
-type Controller struct {
+type TerraController struct {
 	mu sync.Mutex
 
 	client *containerd.Client
@@ -109,7 +109,7 @@ type Controller struct {
 	plainRemotes []string
 }
 
-func New(client *containerd.Client, config Config) (*Controller, error) {
+func NewTerraController(client *containerd.Client, config Config) (*TerraController, error) {
 	if err := btrfs.Check(); err != nil {
 		return nil, err
 	}
@@ -132,7 +132,7 @@ func New(client *containerd.Client, config Config) (*Controller, error) {
 			return nil, errors.Wrapf(err, "mkdir %s", p)
 		}
 	}
-	c := &Controller{
+	c := &TerraController{
 		ips:    config.IPConfig,
 		client: client,
 		orbit:  config.Orbit,
@@ -147,7 +147,7 @@ func New(client *containerd.Client, config Config) (*Controller, error) {
 	return c, nil
 }
 
-func (c *Controller) restoreTargets(ctx context.Context) error {
+func (c *TerraController) restoreTargets(ctx context.Context) error {
 	nodes, err := c.nodes(ctx)
 	if err != nil {
 		return err
@@ -163,7 +163,7 @@ func (c *Controller) restoreTargets(ctx context.Context) error {
 	return nil
 }
 
-func (c *Controller) restoreDisks(ctx context.Context, node *v1.Node) error {
+func (c *TerraController) restoreDisks(ctx context.Context, node *v1.Node) error {
 	for _, group := range node.DiskGroups {
 		if group.Target != nil {
 			if err := iscsi.SetTarget(ctx, group.Target); err != nil {
@@ -211,7 +211,7 @@ func startContainers(orbit *util.LocalAgent, ip net.IP) error {
 	return nil
 }
 
-func (c *Controller) Close() error {
+func (c *TerraController) Close() error {
 	logrus.Debug("closing controller")
 	err := c.pool.Close()
 	if oerr := c.orbit.Close(); err == nil {
@@ -223,7 +223,7 @@ func (c *Controller) Close() error {
 	return err
 }
 
-func (c *Controller) Info(ctx context.Context, _ *types.Empty) (*api.InfoResponse, error) {
+func (c *TerraController) Info(ctx context.Context, _ *types.Empty) (*api.InfoResponse, error) {
 	conn, err := c.pool.GetContext(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "get connection")
@@ -243,7 +243,7 @@ func (c *Controller) Info(ctx context.Context, _ *types.Empty) (*api.InfoRespons
 	return resp, nil
 }
 
-func (c *Controller) List(ctx context.Context, _ *types.Empty) (*api.ListNodeResponse, error) {
+func (c *TerraController) List(ctx context.Context, _ *types.Empty) (*api.ListNodeResponse, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -257,7 +257,7 @@ func (c *Controller) List(ctx context.Context, _ *types.Empty) (*api.ListNodeRes
 	}, nil
 }
 
-func (c *Controller) nodes(ctx context.Context) ([]*v1.Node, error) {
+func (c *TerraController) nodes(ctx context.Context) ([]*v1.Node, error) {
 	var out []*v1.Node
 	conn, err := c.pool.GetContext(ctx)
 	if err != nil {
@@ -279,7 +279,7 @@ func (c *Controller) nodes(ctx context.Context) ([]*v1.Node, error) {
 	return out, nil
 }
 
-func (c *Controller) get(ctx context.Context, hostname string) (*v1.Node, error) {
+func (c *TerraController) get(ctx context.Context, hostname string) (*v1.Node, error) {
 	conn, err := c.pool.GetContext(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "get connection")
@@ -297,7 +297,7 @@ func (c *Controller) get(ctx context.Context, hostname string) (*v1.Node, error)
 	return &node, nil
 }
 
-func (c *Controller) Delete(ctx context.Context, r *api.DeleteNodeRequest) (*types.Empty, error) {
+func (c *TerraController) Delete(ctx context.Context, r *api.DeleteNodeRequest) (*types.Empty, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -310,7 +310,7 @@ func (c *Controller) Delete(ctx context.Context, r *api.DeleteNodeRequest) (*typ
 	return empty, c.delete(ctx, node)
 }
 
-func (c *Controller) delete(ctx context.Context, node *v1.Node) error {
+func (c *TerraController) delete(ctx context.Context, node *v1.Node) error {
 	conn, err := c.pool.GetContext(ctx)
 	if err != nil {
 		return errors.Wrap(err, "get connection")
@@ -351,7 +351,7 @@ func (c *Controller) delete(ctx context.Context, node *v1.Node) error {
 	return nil
 }
 
-func (c *Controller) InstallPXE(ctx context.Context, r *api.InstallPXERequest) (*types.Empty, error) {
+func (c *TerraController) InstallPXE(ctx context.Context, r *api.InstallPXERequest) (*types.Empty, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -402,7 +402,7 @@ func syncDir(ctx context.Context, source, target string) error {
 	return nil
 }
 
-func (c *Controller) Provision(ctx context.Context, r *api.ProvisionNodeRequest) (_ *api.ProvisionNodeResponse, err error) {
+func (c *TerraController) Provision(ctx context.Context, r *api.ProvisionNodeRequest) (_ *api.ProvisionNodeResponse, err error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -446,7 +446,7 @@ func (c *Controller) Provision(ctx context.Context, r *api.ProvisionNodeRequest)
 	}, nil
 }
 
-func (c *Controller) fetch(ctx context.Context, repo string) (containerd.Image, error) {
+func (c *TerraController) fetch(ctx context.Context, repo string) (containerd.Image, error) {
 	image, err := c.client.GetImage(ctx, repo)
 	if err != nil {
 		if !errdefs.IsNotFound(err) {
@@ -461,7 +461,7 @@ func (c *Controller) fetch(ctx context.Context, repo string) (containerd.Image, 
 	return image, nil
 }
 
-func (c *Controller) provisionTarget(ctx context.Context, node *v1.Node, image containerd.Image) (err error) {
+func (c *TerraController) provisionTarget(ctx context.Context, node *v1.Node, image containerd.Image) (err error) {
 	if len(node.DiskGroups) != 1 {
 		return errors.Errorf("only 1 disk group supported with iscsi: %d groups", len(node.DiskGroups))
 	}
@@ -513,7 +513,7 @@ func (c *Controller) provisionTarget(ctx context.Context, node *v1.Node, image c
 	return nil
 }
 
-func (c *Controller) createGroupLuns(ctx context.Context, node *v1.Node, group *v1.DiskGroup) error {
+func (c *TerraController) createGroupLuns(ctx context.Context, node *v1.Node, group *v1.DiskGroup) error {
 	dir := filepath.Join(ISCSIPath, node.Hostname)
 	if err := os.Mkdir(dir, 0711); err != nil {
 		return errors.Wrapf(err, "create lun dir %s", dir)
@@ -530,7 +530,7 @@ func (c *Controller) createGroupLuns(ctx context.Context, node *v1.Node, group *
 	return nil
 }
 
-func (c *Controller) installImage(ctx context.Context, node *v1.Node, group *v1.DiskGroup, i containerd.Image) error {
+func (c *TerraController) installImage(ctx context.Context, node *v1.Node, group *v1.DiskGroup, i containerd.Image) error {
 	var (
 		disk      = group.Disks[0]
 		diskMount = disk.Device + ".mnt"
@@ -585,7 +585,7 @@ func (c *Controller) installImage(ctx context.Context, node *v1.Node, group *v1.
 	return nil
 }
 
-func (c *Controller) writeFstab(node *v1.Node, g *stage1.Group, root string) error {
+func (c *TerraController) writeFstab(node *v1.Node, g *stage1.Group, root string) error {
 	// add the fstable entrires first
 	entries := []*fstab.Entry{
 		&fstab.Entry{
@@ -615,7 +615,7 @@ func (c *Controller) writeFstab(node *v1.Node, g *stage1.Group, root string) err
 	return nil
 }
 
-func (c *Controller) writeResolvconf(root string) error {
+func (c *TerraController) writeResolvconf(root string) error {
 	path := filepath.Join(root, resolvconf.DefaultPath)
 	f, err := os.Create(path)
 	if err != nil {
@@ -639,7 +639,7 @@ func mountGroup(ctx context.Context, disk *v1.Disk, path string) error {
 	return nil
 }
 
-func (c *Controller) createTarget(ctx context.Context, node *v1.Node) (target *v1.Target, err error) {
+func (c *TerraController) createTarget(ctx context.Context, node *v1.Node) (target *v1.Target, err error) {
 	iqn := iscsi.NewIQN(2024, "san.crosbymichael.com", node.Hostname, true)
 	if node.InitiatorIqn == "" {
 		return nil, errors.New("node does not have an initiator id")
@@ -662,7 +662,7 @@ func (c *Controller) createTarget(ctx context.Context, node *v1.Node) (target *v
 	return target, nil
 }
 
-func (c *Controller) writePXEConfig(node *v1.Node) error {
+func (c *TerraController) writePXEConfig(node *v1.Node) error {
 	var (
 		boot    = "pxe"
 		options = []string{
@@ -708,7 +708,7 @@ func (c *Controller) writePXEConfig(node *v1.Node) error {
 	return nil
 }
 
-func (c *Controller) saveNode(node *v1.Node) error {
+func (c *TerraController) saveNode(node *v1.Node) error {
 	conn := c.pool.Get()
 	defer conn.Close()
 	data, err := proto.Marshal(node)
@@ -721,7 +721,7 @@ func (c *Controller) saveNode(node *v1.Node) error {
 	return nil
 }
 
-func (c *Controller) updateNode(node *v1.Node) error {
+func (c *TerraController) updateNode(node *v1.Node) error {
 	conn := c.pool.Get()
 	defer conn.Close()
 	data, err := proto.Marshal(node)
