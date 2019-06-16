@@ -1,14 +1,13 @@
 syntax = "proto3";
 
-package io.stellarproject.infra.v1;
+package io.stellarproject.iscsi.v1;
 
 import weak "gogoproto/gogo.proto";
 import "google/protobuf/empty.proto";
-import "github.com/stellarproject/terraos/api/v1/types/types.proto";
 
-option go_package = "github.com/stellarproject/terraos/api/v1/infra;infra";
+option go_package = "github.com/stellarproject/terraos/api/iscsi/v1;v1";
 
-service ISCSIController {
+service Agent {
 	rpc CreateTarget(CreateTargetRequest) returns (CreateTargetResponse);
 	rpc CreateLUN(CreateLUNRequest) returns (CreateLUNResponse);
 	rpc AttachLUN(AttachLUNRequest) returns (AttachLUNResponse);
@@ -17,12 +16,30 @@ service ISCSIController {
 	rpc DeleteLUN(DeleteLUNRequest) returns (google.protobuf.Empty);
 }
 
+message Target {
+	string iqn = 1;
+	int64 id = 2 [(gogoproto.customname) = "ID"];
+	repeated LUN luns = 3;
+	repeated string accepts = 4;
+}
+
+message LUN {
+	string id = 1 [(gogoproto.customname) = "ID"];
+	string path = 2;
+	int64 fs_size = 3;
+}
+
+message ISCSIState {
+	repeated Target targets = 1;
+	map<string, LUN> unallocated_luns = 2;
+}
+
 message CreateTargetRequest {
 	string iqn = 1;
 }
 
 message CreateTargetResponse {
-	types.v1.Target target = 1;
+	Target target = 1;
 }
 
 message CreateLUNRequest {
@@ -31,20 +48,20 @@ message CreateLUNRequest {
 }
 
 message CreateLUNResponse {
-	types.v1.LUN lun = 1;
+	LUN lun = 1;
 }
 
 message AttachLUNRequest {
-	types.v1.Target target = 1;
-	types.v1.LUN lun = 2;
+	Target target = 1;
+	LUN lun = 2;
 }
 
 message AttachLUNResponse {
-	types.v1.Target target = 1;
+	Target target = 1;
 }
 
 message ListTargetsResponse {
-	repeated types.v1.Target targets = 1;
+	repeated Target targets = 1;
 }
 
 message DeleteTargetRequest {

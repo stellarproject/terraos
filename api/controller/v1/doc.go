@@ -25,11 +25,4 @@
 	THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package messages
-
-const (
-	PingSubject = "io.stellarproject.terra.ping"
-
-	NodeUpdateSubject   = "io.stellarproject.terra.update.%s"
-	NodeShutdownSubject = "io.stellarproject.terra.shutdown.%s"
-)
+package v1
