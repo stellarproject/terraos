@@ -79,7 +79,7 @@ func (t *Target) Restore(ctx context.Context) error {
 	if out, err := iscsi(ctx,
 		"--op", "new",
 		"--mode", "target",
-		"--tid", strconv.Itoa(t.ID),
+		"--tid", strconv.Itoa(int(t.ID)),
 		"-T", t.Iqn,
 	); err != nil {
 		return errors.Wrapf(err, "%s", out)
@@ -160,6 +160,7 @@ func (t *Target) Attach(ctx context.Context, l *LUN) error {
 }
 
 func (t *Target) attachLocal(ctx context.Context, i int) error {
+	l := t.Luns[i-1]
 	if out, err := iscsi(ctx,
 		"--op", "new",
 		"--mode", "logicalunit",

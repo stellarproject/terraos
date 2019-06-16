@@ -69,11 +69,11 @@ message Volume {
 		option (gogoproto.goproto_enum_prefix) = false;
 		option (gogoproto.enum_customname) = "VolumeType";
 
-		SINGLE = 0 [(gogoproto.enumvalue_customname) = "Compute"];
+		SINGLE = 0 [(gogoproto.enumvalue_customname) = "Single"];
 		RAID0 = 1 [(gogoproto.enumvalue_customname) = "RAID0"];
 		RAID5 = 2 [(gogoproto.enumvalue_customname) = "RAID5"];
 		RAID10 = 3 [(gogoproto.enumvalue_customname) = "RAID10"];
-		ISCSI = 4 [(gogoproto.enumvalue_customname) = "ISCSI"];
+		ISCSI = 4 [(gogoproto.enumvalue_customname) = "ISCSIVolume"];
 	}
 
 	VolumeType type = 1;
