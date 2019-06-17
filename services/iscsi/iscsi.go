@@ -34,8 +34,7 @@ import (
 	"github.com/gogo/protobuf/types"
 	"github.com/gomodule/redigo/redis"
 	"github.com/pkg/errors"
-	api "github.com/stellarproject/terraos/api/v1/infra"
-	v1 "github.com/stellarproject/terraos/api/v1/types"
+	v1 "github.com/stellarproject/terraos/api/iscsi/v1"
 )
 
 var empty = &types.Empty{}
@@ -68,7 +67,7 @@ func New(root string, pool *redis.Pool) (*Controller, error) {
 func (c *Controller) restore(ctx context.Context) error {
 	tran, err := c.store.Begin(ctx)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer tran.Rollback()
 
@@ -80,7 +79,7 @@ func (c *Controller) restore(ctx context.Context) error {
 	return nil
 }
 
-func (c *Controller) CreateTarget(ctx context.Context, r *api.CreateTargetRequest) (*api.CreateTargetResponse, error) {
+func (c *Controller) CreateTarget(ctx context.Context, r *v1.CreateTargetRequest) (*v1.CreateTargetResponse, error) {
 	tran, err := c.store.Begin(ctx)
 	if err != nil {
 		return nil, err
@@ -96,12 +95,12 @@ func (c *Controller) CreateTarget(ctx context.Context, r *api.CreateTargetReques
 	if err := tran.Commit(ctx); err != nil {
 		return nil, err
 	}
-	return &api.CreateTargetResponse{
+	return &v1.CreateTargetResponse{
 		Target: target,
 	}, nil
 }
 
-func (c *Controller) CreateLUN(ctx context.Context, r *api.CreateLUNRequest) (*api.CreateLUNResponse, error) {
+func (c *Controller) CreateLUN(ctx context.Context, r *v1.CreateLUNRequest) (*v1.CreateLUNResponse, error) {
 	tran, err := c.store.Begin(ctx)
 	if err != nil {
 		return nil, err
@@ -122,12 +121,12 @@ func (c *Controller) CreateLUN(ctx context.Context, r *api.CreateLUNRequest) (*a
 	if err := tran.Commit(ctx); err != nil {
 		return nil, err
 	}
-	return &api.CreateLUNResponse{
+	return &v1.CreateLUNResponse{
 		Lun: lun,
 	}, nil
 }
 
-func (c *Controller) AttachLUN(ctx context.Context, r *api.AttachLUNRequest) (*api.AttachLUNResponse, error) {
+func (c *Controller) AttachLUN(ctx context.Context, r *v1.AttachLUNRequest) (*v1.AttachLUNResponse, error) {
 	tran, err := c.store.Begin(ctx)
 	if err != nil {
 		return nil, err
@@ -151,23 +150,23 @@ func (c *Controller) AttachLUN(ctx context.Context, r *api.AttachLUNRequest) (*a
 	if err := tran.Commit(ctx); err != nil {
 		return nil, err
 	}
-	return &api.AttachLUNResponse{
+	return &v1.AttachLUNResponse{
 		Target: target,
 	}, nil
 }
 
-func (c *Controller) ListTargets(ctx context.Context, r *types.Empty) (*api.ListTargetsResponse, error) {
+func (c *Controller) ListTargets(ctx context.Context, r *types.Empty) (*v1.ListTargetsResponse, error) {
 	tran, err := c.store.Begin(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer tran.Rollback()
-	return &api.ListTargetsResponse{
+	return &v1.ListTargetsResponse{
 		Targets: tran.State.Targets,
 	}, nil
 }
 
-func (c *Controller) DeleteTarget(ctx context.Context, r *api.DeleteTargetRequest) (*types.Empty, error) {
+func (c *Controller) DeleteTarget(ctx context.Context, r *v1.DeleteTargetRequest) (*types.Empty, error) {
 	tran, err := c.store.Begin(ctx)
 	if err != nil {
 		return nil, err
@@ -198,7 +197,7 @@ func (c *Controller) DeleteTarget(ctx context.Context, r *api.DeleteTargetReques
 	return empty, nil
 }
 
-func (c *Controller) DeleteLUN(ctx context.Context, r *api.DeleteLUNRequest) (*types.Empty, error) {
+func (c *Controller) DeleteLUN(ctx context.Context, r *v1.DeleteLUNRequest) (*types.Empty, error) {
 	tran, err := c.store.Begin(ctx)
 	if err != nil {
 		return nil, err

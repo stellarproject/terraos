@@ -34,7 +34,7 @@ import (
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/gomodule/redigo/redis"
-	"github.com/stellarproject/terraos/api/v1/types"
+	v1 "github.com/stellarproject/terraos/api/iscsi/v1"
 )
 
 var (
@@ -44,15 +44,11 @@ var (
 	ErrLUNNotExist     = errors.New("lun does not exist")
 )
 
-const TargetKey = "io.stellarproject.iscsi.targets"
+const TargetKey = "io.stellarproject.iscsi/targets"
 
 type store struct {
 	mu   sync.Mutex
 	pool *redis.Pool
-}
-
-func (s *store) Close() error {
-	return s.pool.Close()
 }
 
 func (s *store) Begin(ctx context.Context) (_ *Transaction, err error) {
@@ -67,7 +63,7 @@ func (s *store) Begin(ctx context.Context) (_ *Transaction, err error) {
 		return nil, err
 	}
 	defer conn.Close()
-	var state types.ISCSIState
+	var state v1.ISCSIState
 	data, err := redis.Bytes(conn.Do("GET", TargetKey))
 	if err != nil {
 		if err == redis.ErrNil {
@@ -88,7 +84,7 @@ func (s *store) Begin(ctx context.Context) (_ *Transaction, err error) {
 }
 
 type Transaction struct {
-	State *types.ISCSIState
+	State *v1.ISCSIState
 
 	mu   sync.Mutex
 	s    *store

@@ -30,7 +30,6 @@ package controller
 import (
 	"context"
 	"fmt"
-	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -44,31 +43,18 @@ import (
 	"github.com/gomodule/redigo/redis"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	api "github.com/stellarproject/terraos/api/v1/infra"
+	api "github.com/stellarproject/terraos/api/controller/v1"
+	pxe "github.com/stellarproject/terraos/api/pxe/v1"
 	v1 "github.com/stellarproject/terraos/api/v1/types"
 	"github.com/stellarproject/terraos/pkg/btrfs"
 	"github.com/stellarproject/terraos/pkg/fstab"
 	"github.com/stellarproject/terraos/pkg/image"
 	"github.com/stellarproject/terraos/pkg/iscsi"
-	"github.com/stellarproject/terraos/pkg/pxe"
 	"github.com/stellarproject/terraos/pkg/resolvconf"
 	"github.com/stellarproject/terraos/remotes"
 	"github.com/stellarproject/terraos/stage0"
 	"github.com/stellarproject/terraos/stage1"
 )
-
-type Config struct {
-	IPConfig map[IPType]net.IP
-	Pool     *redis.Pool
-}
-
-type Controller struct {
-	mu sync.Mutex
-
-	pool  *redis.Pool
-	iscsi api.ISCSIControllerClient
-	pxe   pxe.PXEClient
-}
 
 func New(config Config) (*Controller, error) {
 	if err := btrfs.Check(); err != nil {
@@ -76,14 +62,6 @@ func New(config Config) (*Controller, error) {
 	}
 	if err := remotes.LoadRemotes(remotes.DefaultPath); err != nil && !os.IsNotExist(err) {
 		return nil, err
-	}
-	for _, p := range []string{
-		ClusterFS,
-		TFTPPath,
-	} {
-		if err := os.MkdirAll(p, 0755); err != nil {
-			return nil, errors.Wrapf(err, "mkdir %s", p)
-		}
 	}
 	c := &Controller{
 		ips:    config.IPConfig,
@@ -95,9 +73,12 @@ func New(config Config) (*Controller, error) {
 	return c, nil
 }
 
-func (c *Controller) Close() error {
-	logrus.Debug("closing controller")
-	return c.pool.Close()
+type Controller struct {
+	mu sync.Mutex
+
+	pool  *redis.Pool
+	iscsi api.ISCSIControllerClient
+	pxe   pxe.PXEClient
 }
 
 func (c *Controller) List(ctx context.Context, _ *types.Empty) (*api.ListNodeResponse, error) {

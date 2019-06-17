@@ -16,7 +16,6 @@ service Controller {
 	// Register a node(machine) with the cluster, this does not provision
 	// the node's disk or OS
 	rpc Register(RegisterNodeRequest) returns (RegisterNodeResponse);
-	rpc InstallPXE(InstallPXERequest) returns (google.protobuf.Empty);
 }
 
 message RegisterNodeRequest {
@@ -29,10 +28,6 @@ message RegisterNodeResponse {
 
 message ListNodeResponse {
 	repeated node.v1.Node nodes = 1;
-}
-
-message InstallPXERequest {
-	string image = 1;
 }
 
 message DeleteNodeRequest {
