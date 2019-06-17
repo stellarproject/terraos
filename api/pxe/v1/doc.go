@@ -25,36 +25,4 @@
 	THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package controller
-
-import (
-	"context"
-
-	"github.com/gogo/protobuf/types"
-)
-
-const (
-	ClusterFS = "/cluster"
-	ISCSIPath = "/iscsi"
-	TFTPPath  = "/tftp"
-	EtcdPath  = "/etcd"
-
-	KeyNodes      = "stellarproject.io/controller/nodes"
-	KeyPXEVersion = "stellarproject.io/controller/pxe/version"
-)
-
-type IPType int
-
-const (
-	ISCSI IPType = iota + 1
-	Management
-	Gateway
-	TFTP
-	Orbit
-)
-
-var empty = &types.Empty{}
-
-type infraContainer interface {
-	Start(context.Context) error
-}
+package v1

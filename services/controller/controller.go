@@ -30,7 +30,6 @@ package controller
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"os"
 	"os/exec"
@@ -47,7 +46,6 @@ import (
 	"github.com/sirupsen/logrus"
 	api "github.com/stellarproject/terraos/api/v1/infra"
 	v1 "github.com/stellarproject/terraos/api/v1/types"
-	"github.com/stellarproject/terraos/config"
 	"github.com/stellarproject/terraos/pkg/btrfs"
 	"github.com/stellarproject/terraos/pkg/fstab"
 	"github.com/stellarproject/terraos/pkg/image"
@@ -57,37 +55,27 @@ import (
 	"github.com/stellarproject/terraos/remotes"
 	"github.com/stellarproject/terraos/stage0"
 	"github.com/stellarproject/terraos/stage1"
-	"github.com/stellarproject/terraos/util"
 )
 
 type Config struct {
 	IPConfig map[IPType]net.IP
 	Pool     *redis.Pool
-	Orbit    *util.LocalAgent
 }
 
 type Controller struct {
 	mu sync.Mutex
 
-	client *containerd.Client
-	pool   *redis.Pool
-	orbit  *util.LocalAgent
-	iscsi  api.ISCSIControllerClient
-
-	ips    map[IPType]net.IP
-	kernel string
-	initrd string
+	pool  *redis.Pool
+	iscsi api.ISCSIControllerClient
+	pxe   pxe.PXEClient
 }
 
-func New(client *containerd.Client, config Config) (*Controller, error) {
+func New(config Config) (*Controller, error) {
 	if err := btrfs.Check(); err != nil {
 		return nil, err
 	}
 	if err := remotes.LoadRemotes(remotes.DefaultPath); err != nil && !os.IsNotExist(err) {
 		return nil, err
-	}
-	if err := startContainers(config.Orbit, config.IPConfig[Management]); err != nil {
-		return nil, errors.Wrap(err, "start containers")
 	}
 	for _, p := range []string{
 		ClusterFS,
@@ -102,58 +90,14 @@ func New(client *containerd.Client, config Config) (*Controller, error) {
 		client: client,
 		orbit:  config.Orbit,
 		pool:   config.Pool,
-		kernel: "/vmlinuz",
-		initrd: "/initrd.img",
 		iscsi:  iscsiController,
 	}
 	return c, nil
 }
 
-func startContainers(orbit *util.LocalAgent, ip net.IP) error {
-	ctx := namespaces.WithNamespace(context.Background(), config.DefaultNamespace)
-	containers := []infraContainer{
-		&redisContainer{orbit: orbit, ip: ip},
-		&registryContainer{orbit: orbit, ip: ip},
-		&natsdContainer{orbit: orbit, ip: ip},
-	}
-	for _, c := range containers {
-		if err := c.Start(ctx); err != nil {
-			return errors.Wrap(err, "start container")
-		}
-	}
-	return nil
-}
-
 func (c *Controller) Close() error {
 	logrus.Debug("closing controller")
-	err := c.pool.Close()
-	if oerr := c.orbit.Close(); err == nil {
-		err = oerr
-	}
-	if cerr := c.client.Close(); err == nil {
-		err = cerr
-	}
-	return err
-}
-
-func (c *Controller) Info(ctx context.Context, _ *types.Empty) (*api.InfoResponse, error) {
-	conn, err := c.pool.GetContext(ctx)
-	if err != nil {
-		return nil, errors.Wrap(err, "get connection")
-	}
-	defer conn.Close()
-
-	version, err := redis.String(conn.Do("GET", KeyPXEVersion))
-	if err != nil {
-		if err != redis.ErrNil {
-			return nil, errors.Wrap(err, "get pxe version")
-		}
-	}
-	resp := &api.InfoResponse{
-		PxeVersion: version,
-		Gateway:    c.ips[Gateway].To4().String(),
-	}
-	return resp, nil
+	return c.pool.Close()
 }
 
 func (c *Controller) List(ctx context.Context, _ *types.Empty) (*api.ListNodeResponse, error) {
@@ -245,67 +189,6 @@ func (c *Controller) delete(ctx context.Context, node *v1.Node) error {
 	}
 	if _, err := conn.Do("HDEL", KeyNodes, node.Hostname); err != nil {
 		return errors.Wrap(err, "delete node from kv")
-	}
-
-	p := &pxe.PXE{
-		MAC: node.Mac,
-	}
-	path := filepath.Join(TFTPPath, "pxelinux.cfg", p.Filename())
-	if err := os.Remove(path); err != nil {
-		if !os.IsNotExist(err) {
-			return errors.Wrap(err, "delete pxe config")
-		}
-	}
-	return nil
-}
-
-func (c *Controller) InstallPXE(ctx context.Context, r *api.InstallPXERequest) (*types.Empty, error) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	logrus.Debug("installing new pxe image")
-
-	ctx = namespaces.WithNamespace(ctx, "controller")
-	repo := image.Repo(r.Image)
-	if repo == "" {
-		return nil, errors.New("no pxe image specified")
-	}
-	log := logrus.WithField("image", repo)
-
-	log.Infof("installing pxe version %s", repo.Version())
-
-	log.Debug("fetching image")
-	i, err := c.client.Fetch(ctx, r.Image, remotes.WithPlainRemote(r.Image))
-	if err != nil {
-		return nil, errors.Wrapf(err, "fetch pxe image %s", r.Image)
-	}
-	log.Debug("unpacking image")
-	path, err := ioutil.TempDir("", "terra-pxe-install")
-	if err != nil {
-		return nil, errors.Wrap(err, "create tmp pxe dir")
-	}
-	defer os.RemoveAll(path)
-
-	if err := image.Unpack(ctx, c.client.ContentStore(), &i.Target, path); err != nil {
-		return nil, errors.Wrap(err, "unpack pxe image")
-	}
-	if err := syncDir(ctx, filepath.Join(path, "tftp")+"/", TFTPPath+"/"); err != nil {
-		return nil, errors.Wrap(err, "sync tftp dir")
-	}
-	conn, err := c.pool.GetContext(ctx)
-	if err != nil {
-		return nil, errors.Wrap(err, "get connection")
-	}
-	if _, err := conn.Do("SET", KeyPXEVersion, repo.Version()); err != nil {
-		return nil, errors.Wrap(err, "set pxe version")
-	}
-	return empty, nil
-}
-
-func syncDir(ctx context.Context, source, target string) error {
-	out, err := exec.CommandContext(ctx, "rsync", "-a", source, target).CombinedOutput()
-	if err != nil {
-		return errors.Wrapf(err, "%s", out)
 	}
 	return nil
 }
@@ -554,45 +437,6 @@ func (c *Controller) createTarget(ctx context.Context, node *v1.Node) (target *v
 		return nil, errors.Wrap(err, "accept ALL iqn")
 	}
 	return target, nil
-}
-
-func (c *Controller) writePXEConfig(node *v1.Node) error {
-	var (
-		boot    = "pxe"
-		options = []string{
-			"version=os",
-			"disk_label=os",
-		}
-	)
-	p := &pxe.PXE{
-		Default:      "terra",
-		MAC:          node.Mac,
-		InitiatorIQN: node.InitiatorIqn,
-		// TODO: get target of the os disk group
-		TargetIQN: node.DiskGroups[0].Target.Iqn,
-		TargetIP:  c.ips[ISCSI].To4().String(),
-		IP:        pxe.DHCP,
-		Entries: []pxe.Entry{
-			{
-				Root:   "LABEL=os",
-				Label:  "terra",
-				Boot:   boot,
-				Kernel: c.kernel,
-				Initrd: c.initrd,
-				Append: options,
-			},
-		},
-	}
-	path := filepath.Join(TFTPPath, "pxelinux.cfg", p.Filename())
-	f, err := os.Create(path)
-	if err != nil {
-		return errors.Wrapf(err, "create pxe file %s", path)
-	}
-	defer f.Close()
-	if err := p.Write(f); err != nil {
-		return errors.Wrap(err, "write pxe config")
-	}
-	return nil
 }
 
 func (c *Controller) saveNode(node *v1.Node) error {

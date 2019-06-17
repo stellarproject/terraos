@@ -37,6 +37,7 @@ import (
 	"github.com/containerd/containerd"
 	"github.com/containerd/containerd/remotes/docker"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 var plainRemotes = make(map[string]struct{})
@@ -63,21 +64,25 @@ func SetRemotes(remotes []string) {
 	}
 }
 
+func Plain(ref string) bool {
+	u, err := url.Parse("registry://" + ref)
+	if err != nil {
+		logrus.WithError(err).Errorf("parse ref %s", ref)
+		return false
+	}
+	plain := strings.Contains(u.Host, ":5000")
+	if !plain {
+		if _, ok := plainRemotes[u.Host]; ok {
+			plain = true
+		}
+	}
+	return plain
+}
+
 func WithPlainRemote(ref string) containerd.RemoteOpt {
 	return func(_ *containerd.Client, ctx *containerd.RemoteContext) error {
-		u, err := url.Parse("registry://" + ref)
-		if err != nil {
-			return errors.Wrap(err, "parse url")
-		}
-
-		plain := strings.Contains(u.Host, ":5000")
-		if !plain {
-			if _, ok := plainRemotes[u.Host]; ok {
-				plain = true
-			}
-		}
 		ctx.Resolver = docker.NewResolver(docker.ResolverOptions{
-			PlainHTTP: plain,
+			PlainHTTP: Plain(ref),
 			Client:    http.DefaultClient,
 		})
 		return nil
