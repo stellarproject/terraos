@@ -43,6 +43,7 @@ import (
 	"github.com/stellarproject/terraos/pkg/fstab"
 	"github.com/stellarproject/terraos/pkg/netplan"
 	"github.com/urfave/cli"
+	"honnef.co/go/tools/version"
 )
 
 const hostsTemplate = `127.0.0.1       localhost %s
@@ -54,18 +55,35 @@ var dirs = []string{
 	"/var/lib/containerd",
 }
 
-// fstab
-// resolv.conf
-// hosts
-// hostname
-// ssh
-// netplan
-// machine id
-var configureCommand = cli.Command{
-	Name:        "_configure",
-	Description: "configure a node's install",
-	Hidden:      true,
-	Action: func(clix *cli.Context) error {
+func main() {
+	app := cli.NewApp()
+	app.Name = "terra-configure"
+	app.Version = version.Version
+	app.Usage = "Terra node configuration"
+	app.Description = `
+                                                     ___
+                                                  ,o88888
+                                               ,o8888888'
+                         ,:o:o:oooo.        ,8O88Pd8888"
+                     ,.::.::o:ooooOoOoO. ,oO8O8Pd888'"
+                   ,.:.::o:ooOoOoOO8O8OOo.8OOPd8O8O"
+                  , ..:.::o:ooOoOOOO8OOOOo.FdO8O8"
+                 , ..:.::o:ooOoOO8O888O8O,COCOO"
+                , . ..:.::o:ooOoOOOO8OOOOCOCO"
+                 . ..:.::o:ooOoOoOO8O8OCCCC"o
+                    . ..:.::o:ooooOoCoCCC"o:o
+                    . ..:.::o:o:,cooooCo"oo:o:
+                 ` + "`" + `   . . ..:.:cocoooo"'o:o:::'
+                 .` + "`" + `   . ..::ccccoc"'o:o:o:::'
+                :.:.    ,c:cccc"':.:.:.:.:.'
+              ..:.:"'` + "`" + `::::c:"'..:.:.:.:.:.'
+            ...:.'.:.::::"'    . . . . .'
+           .. . ....:."' ` + "`" + `   .  . . ''
+         . . . ...."'
+         .. . ."'
+        .
+`
+	app.Action = func(clix *cli.Context) error {
 		ctx := cmd.CancelContext()
 		data, err := ioutil.ReadAll(os.Stdin)
 		if err != nil {
@@ -99,7 +117,11 @@ var configureCommand = cli.Command{
 			return errors.Wrap(err, "setup machine id")
 		}
 		return nil
-	},
+	}
+	if err := app.Run(os.Args); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
 }
 
 func setupFstab(r *v1.ProvisionRequest) error {
@@ -155,13 +177,7 @@ func setupResolvConf(r *v1.ProvisionRequest) error {
 	if resolv.Nameservers == nil {
 		resolv.Nameservers = resolvconf.DefaultNameservers
 	}
-	f, err := os.Create(resolvconf.DefaultPath)
-	if err != nil {
-		return errors.Wrap(err, "create resolv.conf file")
-	}
-	defer f.Close()
-
-	if err := resolv.Write(f); err != nil {
+	if err := resolv.Write(resolvconf.DefaultPath); err != nil {
 		return errors.Wrap(err, "write resolv.conf")
 	}
 	return nil
@@ -210,7 +226,7 @@ func setupSSH(r *v1.ProvisionRequest) error {
 func setupNetplan(r *v1.ProvisionRequest) error {
 	n := &netplan.Netplan{}
 	for _, nic := range r.Node.Nics {
-		n.Interfaces = append(n.Interfaces, &netplan.Interface{
+		n.Interfaces = append(n.Interfaces, netplan.Interface{
 			Name:      nic.Name,
 			Addresses: nic.Addresses,
 			Gateway:   r.Gateway,

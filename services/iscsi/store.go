@@ -34,7 +34,7 @@ import (
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/gomodule/redigo/redis"
-	v1 "github.com/stellarproject/terraos/api/iscsi/v1"
+	v1 "github.com/stellarproject/terraos/api/types/v1"
 )
 
 var (

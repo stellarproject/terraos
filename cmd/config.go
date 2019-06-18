@@ -25,11 +25,43 @@
 	THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package main
+package cmd
 
-import "github.com/urfave/cli"
+import (
+	"fmt"
 
-var nodeCommand = cli.Command{
-	Name:        "node",
-	Description: "start the node agent",
+	"github.com/BurntSushi/toml"
+)
+
+const (
+	ConfigPath     = "/cluster/terra.toml"
+	DefaultRuntime = "io.containerd.runc.v2"
+)
+
+func Default() Terra {
+	return Terra{
+		Address: "0.0.0.0",
+		Port:    9000,
+		Redis:   "127.0.0.1:6379",
+	}
+}
+
+type Terra struct {
+	SentryDSN string `toml:"dns"`
+	Redis     string `toml:"redis"`
+	Debug     bool   `toml:"debug"`
+	Address   string `toml:"address"`
+	Port      int    `toml:"port"`
+}
+
+func (t *Terra) Addr() string {
+	return fmt.Sprintf("%s:%d", t.Address, t.Port)
+}
+
+func LoadTerra() (*Terra, error) {
+	t := Default()
+	if _, err := toml.DecodeFile(ConfigPath, &t); err != nil {
+		return &t, err
+	}
+	return &t, nil
 }
