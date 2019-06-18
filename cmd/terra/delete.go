@@ -29,7 +29,7 @@ package main
 
 import (
 	"github.com/pkg/errors"
-	v1 "github.com/stellarproject/terraos/api/v1/infra"
+	v1 "github.com/stellarproject/terraos/api/controller/v1"
 	"github.com/stellarproject/terraos/cmd"
 	"github.com/urfave/cli"
 	"google.golang.org/grpc"

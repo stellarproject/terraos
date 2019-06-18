@@ -28,36 +28,31 @@
 package main
 
 import (
-	"encoding/json"
-	"os"
-
-	"github.com/gogo/protobuf/types"
-	"github.com/pkg/errors"
-	v1 "github.com/stellarproject/terraos/api/v1/infra"
-	"github.com/stellarproject/terraos/cmd"
 	"github.com/urfave/cli"
-	"google.golang.org/grpc"
 )
 
 var infoCommand = cli.Command{
 	Name:        "info",
 	Description: "controller information",
 	Action: func(clix *cli.Context) error {
-		address := clix.GlobalString("controller") + ":9000"
-		conn, err := grpc.Dial(address, grpc.WithInsecure())
-		if err != nil {
-			return errors.Wrap(err, "dial controller")
-		}
-		defer conn.Close()
-		client := v1.NewControllerClient(conn)
-		ctx := cmd.CancelContext()
+		return nil
+		/*
+			address := clix.GlobalString("controller") + ":9000"
+			conn, err := grpc.Dial(address, grpc.WithInsecure())
+			if err != nil {
+				return errors.Wrap(err, "dial controller")
+			}
+			defer conn.Close()
+			client := v1.NewControllerClient(conn)
+			ctx := cmd.CancelContext()
 
-		info, err := client.Info(ctx, &types.Empty{})
-		if err != nil {
-			return errors.Wrap(err, "get controller information")
-		}
-		e := json.NewEncoder(os.Stdout)
-		e.SetIndent("", " ")
-		return e.Encode(info)
+			info, err := client.Info(ctx, &types.Empty{})
+			if err != nil {
+				return errors.Wrap(err, "get controller information")
+			}
+			e := json.NewEncoder(os.Stdout)
+			e.SetIndent("", " ")
+			return e.Encode(info)
+		*/
 	},
 }

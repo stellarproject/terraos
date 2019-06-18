@@ -29,7 +29,7 @@ package main
 
 import (
 	"github.com/pkg/errors"
-	v1 "github.com/stellarproject/terraos/api/v1/infra"
+	v1 "github.com/stellarproject/terraos/api/pxe/v1"
 	"github.com/stellarproject/terraos/cmd"
 	"github.com/urfave/cli"
 	"google.golang.org/grpc"
@@ -38,6 +38,16 @@ import (
 var pxeCommand = cli.Command{
 	Name:        "pxe",
 	Description: "update the pxe and kernel on the controller",
+	Flags: []cli.Flag{
+		cli.StringFlag{
+			Name:  "kernel,k",
+			Usage: "kernel version of the pxe image",
+		},
+		cli.StringFlag{
+			Name:  "id,i",
+			Usage: "id of the pxe image",
+		},
+	},
 	Action: func(clix *cli.Context) error {
 		address := clix.GlobalString("controller") + ":9000"
 		conn, err := grpc.Dial(address, grpc.WithInsecure())
@@ -45,11 +55,15 @@ var pxeCommand = cli.Command{
 			return errors.Wrap(err, "dial controller")
 		}
 		defer conn.Close()
-		client := v1.NewControllerClient(conn)
+		client := v1.NewServiceClient(conn)
 		ctx := cmd.CancelContext()
 
-		if _, err := client.InstallPXE(ctx, &v1.InstallPXERequest{
-			Image: clix.Args().First(),
+		if _, err := client.Install(ctx, &v1.InstallRequest{
+			Loader: &v1.Bootloader{
+				ID:            clix.String("id"),
+				KernelVersion: clix.String("kernel"),
+				Image:         clix.Args().First(),
+			},
 		}); err != nil {
 			return errors.Wrap(err, "install pxe image")
 		}

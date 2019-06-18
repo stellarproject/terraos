@@ -32,7 +32,7 @@ import (
 	"os"
 
 	"github.com/pkg/errors"
-	api "github.com/stellarproject/terraos/api/v1/infra"
+	api "github.com/stellarproject/terraos/api/controller/v1"
 	"github.com/stellarproject/terraos/cmd"
 	"github.com/urfave/cli"
 	"google.golang.org/grpc"
@@ -64,7 +64,7 @@ var provisionCommand = cli.Command{
 		client := api.NewControllerClient(conn)
 		ctx := cmd.CancelContext()
 
-		resp, err := client.Provision(ctx, &api.ProvisionNodeRequest{
+		resp, err := client.Register(ctx, &api.RegisterNodeRequest{
 			Node: node,
 		})
 		if err != nil {
@@ -72,6 +72,6 @@ var provisionCommand = cli.Command{
 		}
 		e := json.NewEncoder(os.Stdout)
 		e.SetIndent("", " ")
-		return e.Encode(resp.Node)
+		return e.Encode(resp)
 	},
 }

@@ -74,6 +74,5 @@ message Subvolume {
 }
 
 message Disk {
-	int64 id = 1 [(gogoproto.customname) = "ID"];
-	string device = 2;
+	string device = 1;
 }

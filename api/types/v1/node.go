@@ -35,17 +35,17 @@ import (
 )
 
 const (
-	year         = 2010
-	nodeIqnFmt   = "iqn.%d.%s:%s"
-	targetIqnFmt = "iqn.%d.%s:%s.%s"
+	year       = 2019
+	nodeIqnFmt = "iqn.%d.%s:%s"
+	initIQN    = "iqn.%d.%s:%s.%s"
 )
+
+func (n *Node) InitiatorIQN() string {
+	return fmt.Sprintf(initIQN, year, n.Domain, "node", n.Hostname)
+}
 
 func (n *Node) IQN() string {
 	return fmt.Sprintf(nodeIqnFmt, year, n.Domain, n.Hostname)
-}
-
-func (v *Volume) IQN(n *Node) string {
-	return fmt.Sprintf(targetIqnFmt, year, n.Domain, n.Hostname, v.Label)
 }
 
 func (v *Volume) Entries() []*fstab.Entry {

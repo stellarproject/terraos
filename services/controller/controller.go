@@ -270,7 +270,7 @@ func (c *Controller) Register(ctx context.Context, r *api.RegisterNodeRequest) (
 	for _, l := range target.Luns {
 		if l.Label == v1.OSLabel {
 			pxeIscsi = &pxe.ISCSI{
-				InitiatorIqn: node.IQN(),
+				InitiatorIqn: node.InitiatorIQN(),
 				TargetIqn:    target.Iqn,
 				TargetIp:     addr,
 			}
@@ -317,7 +317,8 @@ func (c *Controller) Register(ctx context.Context, r *api.RegisterNodeRequest) (
 		return nil, errors.Wrap(err, "register node with pxe")
 	}
 	return &api.RegisterNodeResponse{
-		Node: node,
+		Node:   node,
+		Target: target,
 	}, nil
 }
 
