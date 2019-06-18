@@ -29,6 +29,7 @@ package cmd
 
 import (
 	"fmt"
+	"io"
 
 	"github.com/BurntSushi/toml"
 	"github.com/stellarproject/terraos/remotes"
@@ -58,6 +59,10 @@ type Terra struct {
 
 func (t *Terra) Addr() string {
 	return fmt.Sprintf("%s:%d", t.Address, Port)
+}
+
+func (t *Terra) Write(w io.Writer) error {
+	return toml.NewEncoder(w).Encode(t)
 }
 
 func LoadTerra() (*Terra, error) {

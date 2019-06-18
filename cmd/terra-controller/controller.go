@@ -31,7 +31,9 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"os/exec"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 
 	"github.com/getsentry/raven-go"
@@ -134,9 +136,77 @@ func main() {
 
 		return server.Serve(l)
 	}
+	app.Commands = []cli.Command{
+		initCommand,
+	}
 	if err := app.Run(os.Args); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		raven.CaptureErrorAndWait(err, nil)
 		os.Exit(1)
 	}
+}
+
+const service = `[Unit]
+Description=terra controller
+After=network.target
+
+[Service]
+ExecStart=/usr/local/bin/terra-controller
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target`
+
+var initCommand = cli.Command{
+	Name:        "init",
+	Description: "init a node to run the controller",
+	Action: func(clix *cli.Context) error {
+		if err := os.MkdirAll("/cluster", 0755); err != nil {
+			return err
+		}
+
+		if err := writeConfig(); err != nil {
+			return err
+		}
+		if err := writeService(); err != nil {
+			return err
+		}
+		return enableService()
+	},
+}
+
+func enableService() error {
+	if err := systemd("enable", "terra-controller"); err != nil {
+		return err
+	}
+	return systemd("start", "terra-controller")
+}
+
+func systemd(args ...string) error {
+	out, err := exec.Command("systemctl", args...).CombinedOutput()
+	if err != nil {
+		return errors.Wrapf(err, "%s", out)
+	}
+	return nil
+}
+
+func writeService() error {
+	f, err := os.Create(filepath.Join("/etc/systemd/system/terra-controller.service"))
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	_, err = f.WriteString(service)
+	return err
+}
+
+func writeConfig() error {
+	config := cmd.Default()
+	f, err := os.Create(cmd.ConfigPath)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	return config.Write(f)
 }
