@@ -28,35 +28,16 @@
 package remotes
 
 import (
-	"encoding/json"
 	"net/http"
 	"net/url"
-	"os"
 	"strings"
 
 	"github.com/containerd/containerd"
 	"github.com/containerd/containerd/remotes/docker"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
 var plainRemotes = make(map[string]struct{})
-
-const DefaultPath = "/cluster/plain-remotes.json"
-
-func LoadRemotes(path string) error {
-	f, err := os.Open(path)
-	if err != nil {
-		return errors.Wrapf(err, "open plain remotes %s", path)
-	}
-	defer f.Close()
-	var remotes []string
-	if err := json.NewDecoder(f).Decode(&remotes); err != nil {
-		return errors.Wrap(err, "decode plain remotes file")
-	}
-	SetRemotes(remotes)
-	return nil
-}
 
 func SetRemotes(remotes []string) {
 	for _, r := range remotes {

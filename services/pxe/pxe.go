@@ -55,10 +55,10 @@ const (
 	configDir  = "pxelinux.cfg"
 )
 
-func New(path string, pool *redis.Pool, store content.Store) (*Service, error) {
+func New(pool *redis.Pool, store content.Store) (*Service, error) {
 	return &Service{
 		pool:  pool,
-		path:  path,
+		path:  "/tftp",
 		store: store,
 	}, nil
 }

@@ -41,7 +41,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	v1 "github.com/stellarproject/terraos/api/iscsi/v1"
-	pxe "github.com/stellarproject/terraos/api/pxe/v1"
+	node "github.com/stellarproject/terraos/api/node/v1"
 	"github.com/stellarproject/terraos/cmd"
 	"github.com/stellarproject/terraos/services/iscsi"
 	"github.com/stellarproject/terraos/version"
@@ -75,7 +75,7 @@ func main() {
          . . . ...."'
          .. . ."'
         .
-Terra iSCSI server`
+`
 	var config *cmd.Terra
 	app.Before = func(clix *cli.Context) error {
 		t, err := cmd.LoadTerra()
@@ -105,13 +105,15 @@ Terra iSCSI server`
 		pool := redis.NewPool(func() (redis.Conn, error) {
 			return redis.Dial("tcp", config.Redis)
 		}, 5)
+		defer pool.Close()
+
 		i, err := iscsi.New(pool, client)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		server := cmd.NewServer()
 
-		pxe.RegisterServiceServer(server, i)
+		node.RegisterProvisionerServer(server, i)
 		v1.RegisterServiceServer(server, i)
 
 		signals := make(chan os.Signal, 32)

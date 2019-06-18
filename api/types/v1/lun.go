@@ -187,11 +187,8 @@ func CreateLUN(ctx context.Context, root, id string, size int64) (*LUN, error) {
 		"--size", strconv.Itoa(int(size)),
 		"--file", path,
 	}
-	/* TODO: opts for thin
-	if thin {
-		args = append(args, "--thin-provisioning")
-	}
-	*/
+	// add thin provisioning
+	args = append(args, "--thin-provisioning")
 	out, err := tgtimg(ctx, args...)
 	if err != nil {
 		return nil, errors.Wrapf(err, "%s", out)

@@ -15,6 +15,7 @@ service Service {
 	rpc ListTargets(google.protobuf.Empty) returns (ListTargetsResponse);
 	rpc DeleteTarget(DeleteTargetRequest) returns (google.protobuf.Empty);
 	rpc DeleteLUN(DeleteLUNRequest) returns (google.protobuf.Empty);
+	rpc Get(GetRequest) returns (GetResponse);
 }
 
 message CreateTargetRequest {
@@ -53,4 +54,12 @@ message DeleteTargetRequest {
 
 message DeleteLUNRequest {
 	string id = 1 [(gogoproto.customname) = "ID"];
+}
+
+message GetRequest {
+	string iqn = 1;
+}
+
+message GetResponse {
+	types.v1.Target target = 1;
 }

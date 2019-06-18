@@ -31,31 +31,33 @@ import (
 	"fmt"
 
 	"github.com/BurntSushi/toml"
+	"github.com/stellarproject/terraos/remotes"
 )
 
 const (
 	ConfigPath     = "/cluster/terra.toml"
 	DefaultRuntime = "io.containerd.runc.v2"
+	Port           = 9000
 )
 
 func Default() Terra {
 	return Terra{
 		Address: "0.0.0.0",
-		Port:    9000,
 		Redis:   "127.0.0.1:6379",
 	}
 }
 
 type Terra struct {
-	SentryDSN string `toml:"dns"`
-	Redis     string `toml:"redis"`
-	Debug     bool   `toml:"debug"`
-	Address   string `toml:"address"`
-	Port      int    `toml:"port"`
+	SentryDSN    string   `toml:"dns"`
+	Redis        string   `toml:"redis"`
+	Debug        bool     `toml:"debug"`
+	Address      string   `toml:"address"`
+	PlainRemotes []string `toml:"plain_remotes"`
+	SSHKeys      []string `toml:"ssh"`
 }
 
 func (t *Terra) Addr() string {
-	return fmt.Sprintf("%s:%d", t.Address, t.Port)
+	return fmt.Sprintf("%s:%d", t.Address, Port)
 }
 
 func LoadTerra() (*Terra, error) {
@@ -63,5 +65,6 @@ func LoadTerra() (*Terra, error) {
 	if _, err := toml.DecodeFile(ConfigPath, &t); err != nil {
 		return &t, err
 	}
+	remotes.SetRemotes(t.PlainRemotes)
 	return &t, nil
 }

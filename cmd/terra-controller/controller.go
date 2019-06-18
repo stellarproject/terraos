@@ -29,18 +29,30 @@ package main
 
 import (
 	"fmt"
+	"net"
 	"os"
+	"os/signal"
+	"syscall"
 
+	"github.com/getsentry/raven-go"
+	"github.com/gomodule/redigo/redis"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"github.com/stellarproject/terraos/version"
+	v1 "github.com/stellarproject/terraos/api/controller/v1"
+	pxev1 "github.com/stellarproject/terraos/api/pxe/v1"
+	"github.com/stellarproject/terraos/cmd"
+	"github.com/stellarproject/terraos/pkg/image"
+	"github.com/stellarproject/terraos/services/controller"
+	"github.com/stellarproject/terraos/services/pxe"
 	"github.com/urfave/cli"
+	"honnef.co/go/tools/version"
 )
 
 func main() {
 	app := cli.NewApp()
-	app.Name = "terra"
+	app.Name = "terra-controller"
 	app.Version = version.Version
-	app.Usage = "Terra OS Management"
+	app.Usage = "Terra Controller Server"
 	app.Description = `
                                                      ___
                                                   ,o88888
@@ -63,36 +75,67 @@ func main() {
          . . . ...."'
          .. . ."'
         .
-Terra OS management`
-
-	app.Flags = []cli.Flag{
-		cli.BoolFlag{
-			Name:  "debug",
-			Usage: "enable debug output in the logs",
-		},
-		cli.StringFlag{
-			Name:   "controller",
-			Usage:  "controller address",
-			Value:  "127.0.0.1",
-			EnvVar: "TERRA_CONTROLLER",
-		},
-	}
+`
+	var config *cmd.Terra
 	app.Before = func(clix *cli.Context) error {
-		if clix.GlobalBool("debug") {
+		t, err := cmd.LoadTerra()
+		if err != nil {
+			if !os.IsNotExist(err) {
+				return err
+			}
+		}
+		if t.Debug {
 			logrus.SetLevel(logrus.DebugLevel)
+		}
+		if t.SentryDSN != "" {
+			raven.SetDSN(t.SentryDSN)
+			raven.DefaultClient.SetRelease(version.Version)
 		}
 		return nil
 	}
-	app.Commands = []cli.Command{
-		createCommand,
-		deleteCommand,
-		infoCommand,
-		provisionCommand,
-		listCommand,
-		pxeCommand,
+	app.Action = func(clix *cli.Context) error {
+		pool := redis.NewPool(func() (redis.Conn, error) {
+			return redis.Dial("tcp", config.Redis)
+		}, 5)
+		defer pool.Close()
+
+		logrus.Info("creating new controller...")
+		controller, err := controller.New(pool, config.SSHKeys)
+		if err != nil {
+			return errors.Wrap(err, "new controller")
+		}
+		store, err := image.NewContentStore("/content")
+		if err != nil {
+			return errors.Wrap(err, "create content store")
+		}
+		pxeServer, err := pxe.New(pool, store)
+		if err != nil {
+			return errors.Wrap(err, "create pxe server")
+		}
+
+		server := cmd.NewServer()
+		v1.RegisterControllerServer(server, controller)
+		pxev1.RegisterServiceServer(server, pxeServer)
+
+		signals := make(chan os.Signal, 32)
+		signal.Notify(signals, syscall.SIGTERM, syscall.SIGINT)
+		go func() {
+			<-signals
+			server.Stop()
+		}()
+
+		logrus.Info("listening on controller address...")
+		l, err := net.Listen("tcp", config.Addr())
+		if err != nil {
+			return errors.Wrap(err, "listen tcp")
+		}
+		defer l.Close()
+
+		return server.Serve(l)
 	}
 	if err := app.Run(os.Args); err != nil {
 		fmt.Fprintln(os.Stderr, err)
+		raven.CaptureErrorAndWait(err, nil)
 		os.Exit(1)
 	}
 }

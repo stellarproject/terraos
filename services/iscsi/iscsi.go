@@ -101,7 +101,7 @@ func (c *Controller) CreateTarget(ctx context.Context, r *v1.CreateTargetRequest
 	defer tran.Rollback()
 
 	i := len(tran.State.Targets)
-	target, err := v1.NewTarget(ctx, int64(i+1), r.Iqn)
+	target, err := api.NewTarget(ctx, int64(i+1), r.Iqn)
 	if err != nil {
 		return nil, err
 	}
@@ -124,12 +124,12 @@ func (c *Controller) CreateLUN(ctx context.Context, r *v1.CreateLUNRequest) (*v1
 	if _, ok := tran.State.UnallocatedLuns[r.ID]; ok {
 		return nil, ErrLunExists
 	}
-	lun, err := v1.CreateLUN(ctx, c.root, r.ID, r.FsSize)
+	lun, err := api.CreateLUN(ctx, c.root, r.ID, r.FsSize)
 	if err != nil {
 		return nil, err
 	}
 	if tran.State.UnallocatedLuns == nil {
-		tran.State.UnallocatedLuns = make(map[string]*v1.LUN)
+		tran.State.UnallocatedLuns = make(map[string]*api.LUN)
 	}
 	tran.State.UnallocatedLuns[r.ID] = lun
 	if err := tran.Commit(ctx); err != nil {
@@ -147,7 +147,7 @@ func (c *Controller) AttachLUN(ctx context.Context, r *v1.AttachLUNRequest) (*v1
 	}
 	defer tran.Rollback()
 
-	var target *v1.Target
+	var target *api.Target
 	for _, t := range tran.State.Targets {
 		if t.Iqn == r.TargetIqn {
 			target = t
@@ -180,6 +180,25 @@ func (c *Controller) ListTargets(ctx context.Context, r *types.Empty) (*v1.ListT
 	}, nil
 }
 
+func (c *Controller) Get(ctx context.Context, r *v1.GetRequest) (*v1.GetResponse, error) {
+	tran, err := c.store.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tran.Rollback()
+	var resp v1.GetResponse
+	for _, t := range tran.State.Targets {
+		if t.Iqn == r.Iqn {
+			resp.Target = t
+			break
+		}
+	}
+	if resp.Target == nil {
+		return nil, errors.Wrap(os.ErrNotExist, "target does not exist")
+	}
+	return &resp, nil
+}
+
 func (c *Controller) DeleteTarget(ctx context.Context, r *v1.DeleteTargetRequest) (*types.Empty, error) {
 	tran, err := c.store.Begin(ctx)
 	if err != nil {
@@ -189,7 +208,7 @@ func (c *Controller) DeleteTarget(ctx context.Context, r *v1.DeleteTargetRequest
 
 	var (
 		index  int
-		target *v1.Target
+		target *api.Target
 	)
 	for i, t := range tran.State.Targets {
 		if t.Iqn == r.Iqn {
@@ -260,7 +279,7 @@ func (s *Controller) Provision(ctx context.Context, r *prov.ProvisionRequest) (*
 	for label, lun := range luns {
 		volume, ok := volumes[label]
 		if !ok {
-			return errors.Errorf("volume does not exist for %s", label)
+			return nil, errors.Errorf("volume does not exist for %s", label)
 		}
 		if err := s.format(ctx, volume, lun); err != nil {
 			return nil, err
@@ -268,22 +287,22 @@ func (s *Controller) Provision(ctx context.Context, r *prov.ProvisionRequest) (*
 	}
 	// not all nodes will have a lun for the OS install
 	if r.Image != "" {
-		lun, ok := luns[types.OSLabel]
+		lun, ok := luns[api.OSLabel]
 		if !ok {
-			return errors.New("no lun for os install")
+			return nil, errors.New("no lun for os install")
 		}
-		volume, ok := volumes[types.OSLabel]
+		volume, ok := volumes[api.OSLabel]
 		if !ok {
-			return errors.New("no os volume for os install")
+			return nil, errors.New("no os volume for os install")
 		}
 		if volume.FsType != "ext4" {
-			return errors.Errorf("only ext4 is supported for luns: %s", volume.FsType)
+			return nil, errors.Errorf("only ext4 is supported for luns: %s", volume.FsType)
 		}
 		image, err := s.fetch(ctx, r.Image)
 		if err != nil {
 			return nil, err
 		}
-		if err := s.installImage(ctx, lun, image, r); err != nil {
+		if err := s.installImage(ctx, volume, lun, image, r); err != nil {
 			return nil, err
 		}
 	}
@@ -340,7 +359,7 @@ func (s *Controller) applyConfigurationLayer(ctx context.Context, r *prov.Provis
 
 	data, err := proto.Marshal(r)
 	if err != nil {
-		return nil, errors.Wrap(err, "marshal request")
+		return errors.Wrap(err, "marshal request")
 	}
 	buf := bytes.NewReader(data)
 	cmd.Stdin = buf
