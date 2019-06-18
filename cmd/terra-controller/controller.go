@@ -44,8 +44,8 @@ import (
 	"github.com/stellarproject/terraos/pkg/image"
 	"github.com/stellarproject/terraos/services/controller"
 	"github.com/stellarproject/terraos/services/pxe"
+	"github.com/stellarproject/terraos/version"
 	"github.com/urfave/cli"
-	"honnef.co/go/tools/version"
 )
 
 func main() {

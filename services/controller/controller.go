@@ -39,12 +39,12 @@ import (
 	"github.com/gomodule/redigo/redis"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"github.com/stellarproject/orbit/util"
 	api "github.com/stellarproject/terraos/api/controller/v1"
 	iscsi "github.com/stellarproject/terraos/api/iscsi/v1"
 	nodev1 "github.com/stellarproject/terraos/api/node/v1"
 	pxe "github.com/stellarproject/terraos/api/pxe/v1"
 	v1 "github.com/stellarproject/terraos/api/types/v1"
+	"github.com/stellarproject/terraos/util"
 	"github.com/vishvananda/netlink"
 	"google.golang.org/grpc"
 )

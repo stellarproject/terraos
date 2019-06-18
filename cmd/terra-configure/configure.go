@@ -37,11 +37,11 @@ import (
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/pkg/errors"
-	"github.com/stellarproject/orbit/pkg/resolvconf"
 	v1 "github.com/stellarproject/terraos/api/node/v1"
 	"github.com/stellarproject/terraos/cmd"
 	"github.com/stellarproject/terraos/pkg/fstab"
 	"github.com/stellarproject/terraos/pkg/netplan"
+	"github.com/stellarproject/terraos/pkg/resolvconf"
 	"github.com/urfave/cli"
 	"honnef.co/go/tools/version"
 )
@@ -177,7 +177,12 @@ func setupResolvConf(r *v1.ProvisionRequest) error {
 	if resolv.Nameservers == nil {
 		resolv.Nameservers = resolvconf.DefaultNameservers
 	}
-	if err := resolv.Write(resolvconf.DefaultPath); err != nil {
+	f, err := os.Create(resolvconf.DefaultPath)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	if err := resolv.Write(f); err != nil {
 		return errors.Wrap(err, "write resolv.conf")
 	}
 	return nil
