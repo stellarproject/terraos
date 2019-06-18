@@ -27,7 +27,12 @@
 
 package v1
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/stellarproject/terraos/pkg/fstab"
+	"github.com/stellarproject/terraos/pkg/mkfs"
+)
 
 const (
 	year         = 2010
@@ -41,4 +46,33 @@ func (n *Node) IQN() string {
 
 func (v *Volume) IQN(n *Node) string {
 	return fmt.Sprintf(targetIqnFmt, year, n.Domain, n.Hostname, v.Label)
+}
+
+func (v *Volume) Entries() []*fstab.Entry {
+	var entries []*fstab.Entry
+	if len(v.Subvolumes) > 0 {
+		for _, s := range v.Subvolumes {
+			options := []string{
+				fmt.Sprintf("subvol=/%s", s.Name),
+			}
+			if !s.Cow {
+				options = append(options, "nodatacow")
+			}
+			entries = append(entries, &fstab.Entry{
+				Type:    mkfs.Btrfs,
+				Device:  fmt.Sprintf("LABEL=%s", v.Label),
+				Path:    s.Path,
+				Options: options,
+			})
+		}
+		return entries
+	}
+	return []*fstab.Entry{
+		&fstab.Entry{
+			Type:   v.FsType,
+			Pass:   2,
+			Device: fmt.Sprintf("LABEL=%s", v.Label),
+			Path:   v.Path,
+		},
+	}
 }

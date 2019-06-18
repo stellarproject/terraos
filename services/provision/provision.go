@@ -28,21 +28,29 @@
 package provision
 
 import (
+	"bytes"
 	"context"
+	"os"
+	"os/exec"
+	"syscall"
 
 	"github.com/containerd/containerd"
 	"github.com/containerd/containerd/errdefs"
+	"github.com/gogo/protobuf/proto"
 	"github.com/gogo/protobuf/types"
 	"github.com/pkg/errors"
 	v1 "github.com/stellarproject/terraos/api/node/v1"
 	api "github.com/stellarproject/terraos/api/types/v1"
+	"github.com/stellarproject/terraos/pkg/image"
 	"github.com/stellarproject/terraos/pkg/mkfs"
 	"github.com/stellarproject/terraos/remotes"
+	"golang.org/x/sys/unix"
 )
 
 var empty = &types.Empty{}
 
 type Service struct {
+	// TODO: can't run this in a container because of this dependency
 	client *containerd.Client
 }
 
@@ -52,34 +60,47 @@ func (s *Service) Provision(ctx context.Context, r *v1.ProvisionRequest) (*types
 	}
 	node := r.Node
 	var (
-		lun    *api.LUN
-		volume *api.Volume
+		luns    = make(map[string]*api.LUN)
+		volumes = make(map[string]*api.Volume)
 	)
 	for _, l := range r.Target.Luns {
-		if l.Label == api.OSLabel {
-			lun = l
-			break
-		}
+		luns[l.Label] = l
 	}
 	for _, v := range node.Volumes {
-		if v.Label == api.OSLabel {
-			volume = v
-			break
+		volumes[v.Label] = v
+	}
+	// format all the luns for the target
+	for label, lun := range luns {
+		volume, ok := volumes[label]
+		if !ok {
+			return errors.Errorf("volume does not exist for %s", label)
+		}
+		if err := s.format(ctx, volume, lun); err != nil {
+			return nil, err
 		}
 	}
-	if lun == nil {
-		return nil, errors.New("no os lun found")
+	// not all nodes will have a lun for the OS install
+	if r.Image != "" {
+		lun, ok := luns[types.OSLabel]
+		if !ok {
+			return errors.New("no lun for os install")
+		}
+		volume, ok := volumes[types.OSLabel]
+		if !ok {
+			return errors.New("no os volume for os install")
+		}
+		if volume.FsType != "ext4" {
+			return errors.Errorf("only ext4 is supported for luns: %s", volume.FsType)
+		}
+		image, err := s.fetch(ctx, r.Image)
+		if err != nil {
+			return nil, err
+		}
+		if err := s.installImage(ctx, lun, image, r); err != nil {
+			return nil, err
+		}
 	}
-	if volume == nil {
-		return nil, errors.New("no volume for lun found")
-	}
-	image, err := s.fetch(ctx, r.Image)
-	if err != nil {
-		return nil, err
-	}
-	if err := s.format(ctx, volume, lun); err != nil {
-		return nil, err
-	}
+	return empty, nil
 }
 
 func (s *Service) fetch(ctx context.Context, repo string) (containerd.Image, error) {
@@ -98,13 +119,54 @@ func (s *Service) fetch(ctx context.Context, repo string) (containerd.Image, err
 }
 
 func (s *Service) format(ctx context.Context, volume *api.Volume, l *api.LUN) error {
-	args := []string{}
-	if volume.FsType == "btrfs" {
-		args = append(args, "-f")
-	}
-	args = append(args, l.Path)
-	if err := mkfs.Mkfs(volume.FsType, l.Label, args...); err != nil {
+	if err := mkfs.Mkfs(volume.FsType, l.Label, l.Path); err != nil {
 		return errors.Wrapf(err, "format lun for %s with %s", l.Label, volume.FsType)
+	}
+	return nil
+}
+
+func (s *Service) installImage(ctx context.Context, volume *api.Volume, l *api.LUN, i containerd.Image, r *v1.ProvisionRequest) error {
+	dest := l.Path + ".dest"
+	if err := os.MkdirAll(dest, 0755); err != nil {
+		return errors.Wrapf(err, "mkdir lun dest %s", dest)
+	}
+	defer os.Remove(dest)
+
+	if err := mount(ctx, volume.FsType, l.Path, dest); err != nil {
+		return errors.Wrap(err, "mount lun for install")
+	}
+	defer unix.Unmount(dest, 0)
+
+	desc := i.Target()
+	if err := image.Unpack(ctx, s.client.ContentStore(), &desc, dest); err != nil {
+		return errors.Wrap(err, "unpack image to lun")
+	}
+	// apply configuration
+}
+
+func (s *Service) applyConfigurationLayer(ctx context.Context, r *v1.ProvisionRequest, dest string) error {
+	cmd := exec.CommandContext(ctx, "terra", "_configure")
+
+	data, err := proto.Marshal(r)
+	if err != nil {
+		return nil, errors.Wrap(err, "marshal request")
+	}
+	buf := bytes.NewReader(data)
+	cmd.Stdin = buf
+	cmd.SysProcAttr = &syscall.SysProcAttr{}
+	cmd.SysProcAttr.Chroot = dest
+	cmd.Dir = "/"
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return errors.Wrapf(err, "%s", out)
+	}
+	return nil
+}
+
+func mount(ctx context.Context, fstype, lunPath, dest string) error {
+	out, err := exec.CommandContext(ctx, "mount", "-t", fstype, "-o", "loop", lunPath, dest).CombinedOutput()
+	if err != nil {
+		return errors.Wrapf(err, "%s", out)
 	}
 	return nil
 }

@@ -40,8 +40,9 @@ message CPU {
 
 message NIC {
 	string mac = 1;
-	string ip = 2;
+	repeated string addresses = 2;
 	uint32 speed = 3;
+	string name = 4;
 }
 
 message Volume {

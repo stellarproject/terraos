@@ -33,7 +33,7 @@ import (
 	"path/filepath"
 
 	"github.com/pkg/errors"
-	types "github.com/stellarproject/terraos/api/node/v1"
+	types "github.com/stellarproject/terraos/api/types/v1"
 	"github.com/stellarproject/terraos/pkg/btrfs"
 	"github.com/stellarproject/terraos/pkg/fstab"
 	"github.com/stellarproject/terraos/pkg/mkfs"
@@ -49,23 +49,20 @@ const (
 	SnapshotVolume = "snapshots"
 )
 
-func NewGroup(group *types.DiskGroup, dest string) (*Group, error) {
-	if group.Stage != types.Stage1 {
-		return nil, errors.Errorf("unsupported stage %s", group.Stage)
-	}
-	for _, s := range group.Subvolumes {
+func NewGroup(volume *types.Volume, dest string) (*Group, error) {
+	for _, s := range volume.Subvolumes {
 		if s.Path == EtcPath {
 			return nil, errors.Errorf("user managed etc subvol not allowed %s", s.Name)
 		}
 	}
 	return &Group{
-		group: group,
-		dest:  dest,
+		volume: volume,
+		dest:   dest,
 	}, nil
 }
 
 type Group struct {
-	group  *types.DiskGroup
+	volume *types.Volume
 	mounts []string
 	dest   string
 }

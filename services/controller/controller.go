@@ -31,11 +31,9 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"sync"
 
-	"github.com/containerd/containerd"
 	"github.com/containerd/containerd/namespaces"
 	"github.com/gogo/protobuf/proto"
 	"github.com/gogo/protobuf/types"
@@ -47,12 +45,7 @@ import (
 	v1 "github.com/stellarproject/terraos/api/node/v1"
 	pxe "github.com/stellarproject/terraos/api/pxe/v1"
 	"github.com/stellarproject/terraos/pkg/btrfs"
-	"github.com/stellarproject/terraos/pkg/fstab"
-	"github.com/stellarproject/terraos/pkg/image"
-	"github.com/stellarproject/terraos/pkg/resolvconf"
 	"github.com/stellarproject/terraos/remotes"
-	"github.com/stellarproject/terraos/stage0"
-	"github.com/stellarproject/terraos/stage1"
 )
 
 const KeyNodes = "io.stellarproject.nodes"
@@ -258,176 +251,6 @@ func (c *Controller) createVolumes(ctx context.Context, node *v1.Node) (*iscsi.T
 			return nil, errors.Wrap(err, "attach lun to target")
 		}
 		target = final.Target
-	}
-	return target, nil
-}
-
-func (c *Controller) provisionTarget(ctx context.Context, node *v1.Node, image containerd.Image) (err error) {
-	if len(node.DiskGroups) != 1 {
-		return errors.Errorf("only 1 disk group supported with iscsi: %d groups", len(node.DiskGroups))
-	}
-	group := node.DiskGroups[0]
-	if group.Stage == v1.Stage0 {
-		return errors.New("stage0 group not supported with iscsi")
-	}
-	if group.GroupType != v1.Single {
-		return errors.Errorf("group type %s not supported with iscsi", group.GroupType)
-	}
-	// todo support multiple disks
-	if len(group.Disks) != 1 {
-		return errors.Errorf("multiple disks not supported with iscsi: %d disks", len(group.Disks))
-	}
-	// TODO: create controller iqn and allow all luns
-	// also add disk based lun labels for each
-	target, err := c.createTarget(ctx, node)
-	if err != nil {
-		return errors.Wrap(err, "create target")
-	}
-	defer func() {
-		if err != nil {
-			iscsi.Delete(ctx, target, nil)
-		}
-	}()
-	group.Target = target
-
-	if err := c.createGroupLuns(ctx, node, group); err != nil {
-		return errors.Wrapf(err, "provision disk group %s", group.Label)
-	}
-	defer func() {
-		if err != nil {
-			for _, disk := range group.Disks {
-				iscsi.DeleteLun(disk)
-			}
-		}
-	}()
-	if err := stage0.Format(group); err != nil {
-		return errors.Wrap(err, "format group")
-	}
-	if err := c.installImage(ctx, node, group, image); err != nil {
-		return errors.Wrap(err, "install image to disk group")
-	}
-	for _, disk := range group.Disks {
-		if err := iscsi.Attach(ctx, group.Target, disk); err != nil {
-			return errors.Wrapf(err, "attach %d to target", disk.ID)
-		}
-	}
-	return nil
-}
-
-func (c *Controller) installImage(ctx context.Context, node *v1.Node, group *v1.DiskGroup, i containerd.Image) error {
-	var (
-		disk      = group.Disks[0]
-		diskMount = disk.Device + ".mnt"
-		dest      = disk.Device + ".dest"
-	)
-
-	for _, p := range []string{diskMount, dest} {
-		if err := os.MkdirAll(p, 0755); err != nil {
-			return errors.Wrapf(err, "mkdir %s", p)
-		}
-	}
-	if err := mountGroup(ctx, disk, diskMount); err != nil {
-		return errors.Wrap(err, "mount group")
-	}
-	g, err := stage1.NewGroup(group, dest)
-	if err != nil {
-		return err
-	}
-	defer g.Close()
-
-	var mounts []stage1.Mount
-
-	if err := g.Init(diskMount, &stage1.InitConfig{
-		AdditionalMounts: mounts,
-	}); err != nil {
-		return err
-	}
-	desc := i.Target()
-	if err := image.Unpack(ctx, c.client.ContentStore(), &desc, dest); err != nil {
-		return errors.Wrap(err, "unpack image to group")
-	}
-	if err := c.writeFstab(node, g, dest); err != nil {
-		return errors.Wrap(err, "write fstab")
-	}
-	if err := c.writeResolvconf(dest); err != nil {
-		return errors.Wrap(err, "write resolv.conf")
-	}
-	return nil
-}
-
-func (c *Controller) writeFstab(node *v1.Node, g *stage1.Group, root string) error {
-	// add the fstable entrires first
-	entries := []*fstab.Entry{
-		&fstab.Entry{
-			Type:   "9p",
-			Device: c.ips[ISCSI].To4().String(),
-			Path:   "/cluster",
-			Pass:   2,
-			Options: []string{
-				"port=564",
-				"version=9p2000.L",
-				"uname=root",
-				"access=user",
-				"aname=/cluster",
-			},
-		},
-	}
-	entries = append(entries, g.Entries()...)
-
-	f, err := os.Create(filepath.Join(root, fstab.Path))
-	if err != nil {
-		return errors.Wrap(err, "create fstab file")
-	}
-	defer f.Close()
-	if err := fstab.Write(f, entries); err != nil {
-		return errors.Wrap(err, "write fstab")
-	}
-	return nil
-}
-
-func (c *Controller) writeResolvconf(root string) error {
-	path := filepath.Join(root, resolvconf.DefaultPath)
-	f, err := os.Create(path)
-	if err != nil {
-		return errors.Wrapf(err, "create resolv.conf file %s", path)
-	}
-	defer f.Close()
-
-	conf := &resolvconf.Conf{
-		Nameservers: []string{
-			c.ips[Gateway].To4().String(),
-		},
-	}
-	return conf.Write(f)
-}
-
-func mountGroup(ctx context.Context, disk *v1.Disk, path string) error {
-	out, err := exec.CommandContext(ctx, "mount", "-t", stage0.DefaultFilesystem, "-o", "loop", disk.Device, path).CombinedOutput()
-	if err != nil {
-		return errors.Wrapf(err, "%s", out)
-	}
-	return nil
-}
-
-func (c *Controller) createTarget(ctx context.Context, node *v1.Node) (target *v1.Target, err error) {
-	iqn := iscsi.NewIQN(2024, "san.crosbymichael.com", node.Hostname, true)
-	if node.InitiatorIqn == "" {
-		return nil, errors.New("node does not have an initiator id")
-	}
-	for i := int64(1); i < MaxTargetID; i++ {
-		if target, err = iscsi.NewTarget(ctx, iqn, i); err != nil {
-			if !isTargetExists(err) {
-				return nil, errors.Wrapf(err, "create target %s", iqn)
-			}
-			continue
-		}
-		break
-	}
-	if err := iscsi.Accept(ctx, target, node.InitiatorIqn); err != nil {
-		return nil, errors.Wrap(err, "accept initiator iqn")
-	}
-	if err := iscsi.AcceptAllInitiators(ctx, target); err != nil {
-		return nil, errors.Wrap(err, "accept ALL iqn")
 	}
 	return target, nil
 }
