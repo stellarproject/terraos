@@ -135,7 +135,7 @@ func (c *Controller) AttachLUN(ctx context.Context, r *v1.AttachLUNRequest) (*v1
 
 	var target *v1.Target
 	for _, t := range tran.State.Targets {
-		if t.Iqn == r.Target.Iqn {
+		if t.Iqn == r.TargetIqn {
 			target = t
 			break
 		}

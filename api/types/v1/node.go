@@ -25,8 +25,20 @@
 	THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package stage0
+package v1
+
+import "fmt"
 
 const (
-	Image = "docker.io/stellarproject/pxe"
+	year         = 2010
+	nodeIqnFmt   = "iqn.%d.%s:%s"
+	targetIqnFmt = "iqn.%d.%s:%s.%s"
 )
+
+func (n *Node) IQN() string {
+	return fmt.Sprintf(nodeIqnFmt, year, n.Domain, n.Hostname)
+}
+
+func (v *Volume) IQN(n *Node) string {
+	return fmt.Sprintf(targetIqnFmt, year, n.Domain, n.Hostname, v.Label)
+}

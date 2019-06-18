@@ -4,6 +4,8 @@ package io.stellarproject.node.v1;
 
 import weak "gogoproto/gogo.proto";
 import "google/protobuf/empty.proto";
+import "github.com/stellarproject/terraos/api/types/v1/node.proto";
+import "github.com/stellarproject/terraos/api/types/v1/iscsi.proto";
 
 option go_package = "github.com/stellarproject/terraos/api/node/v1;v1";
 
@@ -13,84 +15,15 @@ service Agent {
 }
 
 message InfoResponse {
-	Node node = 1;
+	types.v1.Node node = 1;
 	string image = 2;
 }
-
-enum Role {
-	option (gogoproto.goproto_enum_prefix) = false;
-	option (gogoproto.enum_customname) = "Role";
-
-	COMPUTE = 0 [(gogoproto.enumvalue_customname) = "Compute"];
-	ISCSI = 1 [(gogoproto.enumvalue_customname) = "ISCSI"];
-	NFS = 2 [(gogoproto.enumvalue_customname) = "NFS"];
+service Provisioner {
+	rpc Provision(ProvisionRequest) returns (google.protobuf.Empty);
 }
 
-
-enum BootType {
-	option (gogoproto.goproto_enum_prefix) = false;
-	option (gogoproto.enum_customname) = "BootType";
-
-	NONE = 0 [(gogoproto.enumvalue_customname) = "None"];
-	LOCAL = 1 [(gogoproto.enumvalue_customname) = "Local"];
-	NETWORK = 2 [(gogoproto.enumvalue_customname) = "Network"];
-}
-
-message Node {
-	string hostname = 1;
-	repeated Role roles = 2;
-	repeated NIC nics = 3;
-	repeated Volume volumes = 4;
-	repeated CPU cpus = 5;
-	uint32 memory = 6;
-	repeated GPU gpus = 7;
-	repeated string labels = 8;
-}
-
-message GPU {
-	string model = 1;
-	uint32 cores = 2;
-	uint32 memory = 3;
-	repeated string capabilities = 4;
-}
-
-message CPU {
-	double ghz = 1;
-}
-
-message NIC {
-	string mac = 1;
-	string ip = 2;
-	uint32 speed = 3;
-}
-
-message Volume {
-	enum VolumeType {
-		option (gogoproto.goproto_enum_prefix) = false;
-		option (gogoproto.enum_customname) = "VolumeType";
-
-		SINGLE = 0 [(gogoproto.enumvalue_customname) = "Single"];
-		RAID0 = 1 [(gogoproto.enumvalue_customname) = "RAID0"];
-		RAID5 = 2 [(gogoproto.enumvalue_customname) = "RAID5"];
-		RAID10 = 3 [(gogoproto.enumvalue_customname) = "RAID10"];
-		ISCSI = 4 [(gogoproto.enumvalue_customname) = "ISCSIVolume"];
-	}
-
-	VolumeType type = 1;
-	string label = 2;
-	repeated Subvolume subvolumes = 3;
-	repeated Disk disks = 4;
-	BootType boot_type = 5;
-}
-
-message Subvolume {
-	string name = 1;
-	string path = 2;
-	bool cow = 3;
-}
-
-message Disk {
-	int64 id = 1 [(gogoproto.customname) = "ID"];
-	string device = 2;
-	int64 fs_size = 3;
+message ProvisionRequest {
+	types.v1.Node node = 1;
+	string image = 2;
+	types.v1.Target target = 3;
 }

@@ -7,7 +7,7 @@ import "google/protobuf/empty.proto";
 
 option go_package = "github.com/stellarproject/terraos/api/pxe/v1;v1";
 
-service PXE {
+service Service {
 	rpc Install(InstallRequest) returns (google.protobuf.Empty);
 	rpc List(google.protobuf.Empty) returns (ListResponse);
 	rpc Register(RegisterRequest) returns (google.protobuf.Empty);

@@ -29,7 +29,6 @@ package v1
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -44,17 +43,9 @@ var (
 )
 
 const (
-	AllIQN       = "ALL"
-	targetIqnFmt = "iqn.%d.%s.%s:fs"
-	nodeIqnFmt   = "iqn.%d.%s:%s"
+	AllIQN  = "ALL"
+	OSLabel = "os"
 )
-
-func NewIQN(year int, domain, machine string, fs bool) string {
-	if fs {
-		return fmt.Sprintf(targetIqnFmt, year, domain, machine)
-	}
-	return fmt.Sprintf(nodeIqnFmt, year, domain, machine)
-}
 
 func isLUNNotFound(err error) bool {
 	return strings.Contains(err.Error(), "can't find the logical unit")

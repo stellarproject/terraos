@@ -8,7 +8,7 @@ import (
 	fmt "fmt"
 	proto "github.com/gogo/protobuf/proto"
 	types "github.com/gogo/protobuf/types"
-	v1 "github.com/stellarproject/terraos/api/node/v1"
+	v1 "github.com/stellarproject/terraos/api/types/v1"
 	grpc "google.golang.org/grpc"
 	io "io"
 	math "math"
@@ -144,45 +144,6 @@ func (m *ListNodeResponse) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_ListNodeResponse proto.InternalMessageInfo
 
-type InstallPXERequest struct {
-	Image                string   `protobuf:"bytes,1,opt,name=image,proto3" json:"image,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
-}
-
-func (m *InstallPXERequest) Reset()      { *m = InstallPXERequest{} }
-func (*InstallPXERequest) ProtoMessage() {}
-func (*InstallPXERequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_b9702b43e76dda7d, []int{3}
-}
-func (m *InstallPXERequest) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *InstallPXERequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	if deterministic {
-		return xxx_messageInfo_InstallPXERequest.Marshal(b, m, deterministic)
-	} else {
-		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
-		if err != nil {
-			return nil, err
-		}
-		return b[:n], nil
-	}
-}
-func (m *InstallPXERequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_InstallPXERequest.Merge(m, src)
-}
-func (m *InstallPXERequest) XXX_Size() int {
-	return m.Size()
-}
-func (m *InstallPXERequest) XXX_DiscardUnknown() {
-	xxx_messageInfo_InstallPXERequest.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_InstallPXERequest proto.InternalMessageInfo
-
 type DeleteNodeRequest struct {
 	Hostname             string   `protobuf:"bytes,1,opt,name=hostname,proto3" json:"hostname,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
@@ -193,7 +154,7 @@ type DeleteNodeRequest struct {
 func (m *DeleteNodeRequest) Reset()      { *m = DeleteNodeRequest{} }
 func (*DeleteNodeRequest) ProtoMessage() {}
 func (*DeleteNodeRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_b9702b43e76dda7d, []int{4}
+	return fileDescriptor_b9702b43e76dda7d, []int{3}
 }
 func (m *DeleteNodeRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -222,12 +183,51 @@ func (m *DeleteNodeRequest) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_DeleteNodeRequest proto.InternalMessageInfo
 
+type SetNodeImageRequeset struct {
+	Image                string   `protobuf:"bytes,1,opt,name=image,proto3" json:"image,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *SetNodeImageRequeset) Reset()      { *m = SetNodeImageRequeset{} }
+func (*SetNodeImageRequeset) ProtoMessage() {}
+func (*SetNodeImageRequeset) Descriptor() ([]byte, []int) {
+	return fileDescriptor_b9702b43e76dda7d, []int{4}
+}
+func (m *SetNodeImageRequeset) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *SetNodeImageRequeset) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_SetNodeImageRequeset.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalTo(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *SetNodeImageRequeset) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SetNodeImageRequeset.Merge(m, src)
+}
+func (m *SetNodeImageRequeset) XXX_Size() int {
+	return m.Size()
+}
+func (m *SetNodeImageRequeset) XXX_DiscardUnknown() {
+	xxx_messageInfo_SetNodeImageRequeset.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_SetNodeImageRequeset proto.InternalMessageInfo
+
 func init() {
 	proto.RegisterType((*RegisterNodeRequest)(nil), "io.stellarproject.controller.v1.RegisterNodeRequest")
 	proto.RegisterType((*RegisterNodeResponse)(nil), "io.stellarproject.controller.v1.RegisterNodeResponse")
 	proto.RegisterType((*ListNodeResponse)(nil), "io.stellarproject.controller.v1.ListNodeResponse")
-	proto.RegisterType((*InstallPXERequest)(nil), "io.stellarproject.controller.v1.InstallPXERequest")
 	proto.RegisterType((*DeleteNodeRequest)(nil), "io.stellarproject.controller.v1.DeleteNodeRequest")
+	proto.RegisterType((*SetNodeImageRequeset)(nil), "io.stellarproject.controller.v1.SetNodeImageRequeset")
 }
 
 func init() {
@@ -235,33 +235,33 @@ func init() {
 }
 
 var fileDescriptor_b9702b43e76dda7d = []byte{
-	// 405 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x9c, 0x53, 0x4d, 0xaf, 0xd2, 0x40,
-	0x14, 0xa5, 0x79, 0x1f, 0x79, 0x5e, 0x37, 0xbe, 0x4a, 0xcc, 0x4b, 0x4d, 0xfa, 0x48, 0x57, 0xba,
-	0x99, 0x49, 0x41, 0x4c, 0x8c, 0x3b, 0x85, 0x05, 0x6a, 0x0c, 0x12, 0x17, 0xc4, 0x5d, 0x81, 0xeb,
-	0x50, 0x33, 0xed, 0xad, 0x33, 0x43, 0x8d, 0x3b, 0x97, 0xfe, 0x34, 0x96, 0x2e, 0x5d, 0x4a, 0x7f,
-	0x89, 0x69, 0x4b, 0x11, 0x52, 0x09, 0x3c, 0x76, 0xbd, 0xb9, 0xe7, 0x9c, 0x9e, 0x33, 0x67, 0x06,
-	0x7a, 0x22, 0x34, 0xf3, 0xc5, 0x84, 0x4d, 0x29, 0xe2, 0xda, 0xa0, 0x94, 0x81, 0x4a, 0x14, 0x7d,
-	0xc1, 0xa9, 0xe1, 0x06, 0x95, 0x0a, 0x48, 0xf3, 0x20, 0x09, 0xf9, 0x94, 0x62, 0xa3, 0x48, 0x4a,
-	0x54, 0x3c, 0xf5, 0xb7, 0x26, 0x96, 0x28, 0x32, 0x64, 0xdf, 0x86, 0xc4, 0x76, 0xd9, 0x6c, 0x0b,
-	0x93, 0xfa, 0x4e, 0x53, 0x90, 0xa0, 0x02, 0xcb, 0xf3, 0xaf, 0x92, 0xe6, 0x3c, 0x16, 0x44, 0x42,
-	0x22, 0x2f, 0xa6, 0xc9, 0xe2, 0x33, 0xc7, 0x28, 0x31, 0xdf, 0xd7, 0xcb, 0x17, 0xc7, 0x39, 0x8b,
-	0x69, 0x86, 0xb9, 0xa7, 0x40, 0x60, 0x6c, 0x4a, 0xaa, 0xf7, 0x06, 0x1e, 0x8e, 0x50, 0x84, 0xda,
-	0xa0, 0x7a, 0x4f, 0x33, 0x1c, 0xe1, 0xd7, 0x05, 0x6a, 0x63, 0x77, 0xe0, 0x3c, 0x47, 0xdf, 0x58,
-	0x2d, 0xeb, 0xc9, 0xfd, 0xf6, 0x2d, 0xab, 0x9b, 0xce, 0xd7, 0x2c, 0xf5, 0x59, 0xc1, 0x2a, 0xc0,
-	0xde, 0x5b, 0x68, 0xee, 0x6a, 0xe9, 0x84, 0x62, 0x8d, 0xa7, 0x89, 0x0d, 0xe0, 0xc1, 0xbb, 0x50,
-	0x9b, 0x1d, 0xa1, 0x2e, 0x5c, 0xe4, 0x3b, 0x7d, 0x63, 0xb5, 0xce, 0x8e, 0x51, 0x2a, 0xd1, 0xde,
-	0x53, 0xb8, 0x1e, 0xc4, 0xda, 0x04, 0x52, 0x0e, 0xc7, 0xfd, 0x2a, 0x61, 0x13, 0x2e, 0xc2, 0x28,
-	0x10, 0xa5, 0xab, 0x7b, 0xa3, 0x72, 0xf0, 0x38, 0x5c, 0xf7, 0x50, 0xa2, 0xc1, 0xed, 0xc3, 0x70,
-	0xe0, 0x6a, 0x4e, 0xda, 0xc4, 0x41, 0x54, 0xa1, 0x37, 0x73, 0xfb, 0xe7, 0x19, 0xc0, 0xeb, 0x4d,
-	0x7f, 0xf6, 0x07, 0x38, 0xcf, 0x5d, 0xdb, 0x8f, 0x58, 0xd9, 0x17, 0xab, 0xfa, 0x62, 0xfd, 0xbc,
-	0x2f, 0xc7, 0x67, 0x07, 0xea, 0x67, 0xb5, 0xd0, 0x1f, 0xe1, 0xb2, 0xb4, 0x64, 0xb7, 0x0f, 0x92,
-	0x6b, 0xde, 0x9d, 0x3d, 0x46, 0xec, 0x6f, 0x70, 0x55, 0x75, 0x65, 0x3f, 0x3b, 0xa8, 0xfb, 0x9f,
-	0x2b, 0xe2, 0x74, 0xef, 0xc8, 0x5a, 0xc7, 0x19, 0x03, 0xfc, 0x2b, 0xe3, 0x88, 0x48, 0xb5, 0xe6,
-	0xf6, 0x45, 0x7a, 0x35, 0x5c, 0xae, 0xdc, 0xc6, 0xef, 0x95, 0xdb, 0xf8, 0x91, 0xb9, 0xd6, 0x32,
-	0x73, 0xad, 0x5f, 0x99, 0x6b, 0xfd, 0xc9, 0x5c, 0xeb, 0xd3, 0xf3, 0x13, 0x5e, 0xee, 0xcb, 0xd4,
-	0x1f, 0x37, 0x26, 0x97, 0xc5, 0x3f, 0x3a, 0x7f, 0x03, 0x00, 0x00, 0xff, 0xff, 0xa5, 0x00, 0xe6,
-	0x54, 0xfc, 0x03, 0x00, 0x00,
+	// 407 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x9c, 0x53, 0x4f, 0xef, 0xd2, 0x40,
+	0x14, 0xa4, 0xf9, 0xfd, 0x09, 0x3e, 0x3d, 0xe8, 0xda, 0x18, 0x52, 0x93, 0x4a, 0x7a, 0xf2, 0x60,
+	0x76, 0x53, 0x44, 0x12, 0xe3, 0x4d, 0xf1, 0xa0, 0x12, 0xa3, 0xe8, 0xc1, 0x98, 0x78, 0x28, 0xf0,
+	0x2c, 0x35, 0x6d, 0x5f, 0xdd, 0x5d, 0x6a, 0xb8, 0xf9, 0x05, 0xfc, 0x5e, 0x1c, 0x3d, 0x7a, 0x94,
+	0x7e, 0x12, 0xd3, 0x3f, 0x90, 0x12, 0x20, 0x45, 0x6e, 0x7d, 0xdd, 0x99, 0xd9, 0x99, 0xce, 0x2b,
+	0x0c, 0xfd, 0x40, 0xcf, 0x17, 0x13, 0x3e, 0xa5, 0x48, 0x28, 0x8d, 0x61, 0xe8, 0xc9, 0x44, 0xd2,
+	0x37, 0x9c, 0x6a, 0xa1, 0x51, 0x4a, 0x8f, 0x94, 0xf0, 0x92, 0x40, 0x4c, 0x29, 0xd6, 0x92, 0xc2,
+	0x10, 0xa5, 0x48, 0xdd, 0xda, 0xc4, 0x13, 0x49, 0x9a, 0xd8, 0x83, 0x80, 0xf8, 0x2e, 0x9b, 0xd7,
+	0x30, 0xa9, 0x6b, 0x99, 0x3e, 0xf9, 0x54, 0x60, 0x45, 0xfe, 0x54, 0xd2, 0xac, 0xfb, 0x3e, 0x91,
+	0x1f, 0xa2, 0x28, 0xa6, 0xc9, 0xe2, 0xab, 0xc0, 0x28, 0xd1, 0xcb, 0xea, 0xf0, 0xe9, 0x69, 0xce,
+	0xf4, 0x32, 0x41, 0x95, 0x9b, 0x8a, 0x69, 0x86, 0x25, 0xd5, 0x79, 0x03, 0x77, 0xc7, 0xe8, 0x07,
+	0x4a, 0xa3, 0x7c, 0x4b, 0x33, 0x1c, 0xe3, 0xf7, 0x05, 0x2a, 0xcd, 0xfa, 0x70, 0x99, 0x83, 0x3a,
+	0x46, 0xd7, 0x78, 0x78, 0xb3, 0xd7, 0xe5, 0xfb, 0xa6, 0x0b, 0x31, 0x9e, 0xba, 0xbc, 0xa0, 0x15,
+	0x68, 0x67, 0x04, 0xe6, 0xae, 0x98, 0x4a, 0x28, 0x56, 0x78, 0xa6, 0xda, 0x6b, 0xb8, 0x3d, 0x0a,
+	0x94, 0xde, 0x51, 0x1a, 0xc0, 0x55, 0x7e, 0xa6, 0x3a, 0x46, 0xf7, 0xe2, 0x24, 0xa9, 0x12, 0xee,
+	0x08, 0xb8, 0x33, 0xc4, 0x10, 0x35, 0xd6, 0x43, 0x5a, 0xd0, 0x9e, 0x93, 0xd2, 0xb1, 0x17, 0x95,
+	0xd6, 0x6e, 0x8c, 0xb7, 0xb3, 0xf3, 0x08, 0xcc, 0x0f, 0x58, 0xdc, 0xfd, 0x2a, 0xf2, 0xfc, 0x8a,
+	0x82, 0x9a, 0x99, 0x70, 0x15, 0xe4, 0x2f, 0x2a, 0x42, 0x39, 0xf4, 0x7e, 0x5d, 0x00, 0xbc, 0xd8,
+	0xb6, 0xc8, 0xde, 0xc3, 0x65, 0xee, 0x9c, 0xdd, 0xe3, 0x65, 0x6b, 0x7c, 0xd3, 0x1a, 0x7f, 0x99,
+	0xb7, 0x66, 0xb9, 0xbc, 0x61, 0x09, 0xf8, 0x5e, 0xf0, 0x8f, 0x70, 0x5d, 0x06, 0x60, 0xbd, 0x46,
+	0xf2, 0x5e, 0x52, 0xeb, 0x88, 0x11, 0xf6, 0x03, 0xda, 0x9b, 0xc2, 0x58, 0xbf, 0x51, 0xf7, 0xc0,
+	0xa2, 0x58, 0x4f, 0xfe, 0x93, 0x55, 0xc5, 0xf9, 0x02, 0xb7, 0xea, 0x9f, 0x97, 0x35, 0xcb, 0x1c,
+	0x6a, 0xe3, 0x58, 0xae, 0xe7, 0xef, 0x56, 0x6b, 0xbb, 0xf5, 0x67, 0x6d, 0xb7, 0x7e, 0x66, 0xb6,
+	0xb1, 0xca, 0x6c, 0xe3, 0x77, 0x66, 0x1b, 0x7f, 0x33, 0xdb, 0xf8, 0x3c, 0x38, 0xe3, 0x27, 0x7e,
+	0x96, 0xba, 0x9f, 0x5a, 0x93, 0xeb, 0xe2, 0x8e, 0xc7, 0xff, 0x02, 0x00, 0x00, 0xff, 0xff, 0xf5,
+	0x04, 0xde, 0xcd, 0x07, 0x04, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -283,7 +283,7 @@ type ControllerClient interface {
 	// Register a node(machine) with the cluster, this does not provision
 	// the node's disk or OS
 	Register(ctx context.Context, in *RegisterNodeRequest, opts ...grpc.CallOption) (*RegisterNodeResponse, error)
-	InstallPXE(ctx context.Context, in *InstallPXERequest, opts ...grpc.CallOption) (*types.Empty, error)
+	SetNodeImage(ctx context.Context, in *SetNodeImageRequeset, opts ...grpc.CallOption) (*types.Empty, error)
 }
 
 type controllerClient struct {
@@ -321,9 +321,9 @@ func (c *controllerClient) Register(ctx context.Context, in *RegisterNodeRequest
 	return out, nil
 }
 
-func (c *controllerClient) InstallPXE(ctx context.Context, in *InstallPXERequest, opts ...grpc.CallOption) (*types.Empty, error) {
+func (c *controllerClient) SetNodeImage(ctx context.Context, in *SetNodeImageRequeset, opts ...grpc.CallOption) (*types.Empty, error) {
 	out := new(types.Empty)
-	err := c.cc.Invoke(ctx, "/io.stellarproject.controller.v1.Controller/InstallPXE", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/io.stellarproject.controller.v1.Controller/SetNodeImage", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -339,7 +339,7 @@ type ControllerServer interface {
 	// Register a node(machine) with the cluster, this does not provision
 	// the node's disk or OS
 	Register(context.Context, *RegisterNodeRequest) (*RegisterNodeResponse, error)
-	InstallPXE(context.Context, *InstallPXERequest) (*types.Empty, error)
+	SetNodeImage(context.Context, *SetNodeImageRequeset) (*types.Empty, error)
 }
 
 func RegisterControllerServer(s *grpc.Server, srv ControllerServer) {
@@ -400,20 +400,20 @@ func _Controller_Register_Handler(srv interface{}, ctx context.Context, dec func
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Controller_InstallPXE_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(InstallPXERequest)
+func _Controller_SetNodeImage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetNodeImageRequeset)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ControllerServer).InstallPXE(ctx, in)
+		return srv.(ControllerServer).SetNodeImage(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/io.stellarproject.controller.v1.Controller/InstallPXE",
+		FullMethod: "/io.stellarproject.controller.v1.Controller/SetNodeImage",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ControllerServer).InstallPXE(ctx, req.(*InstallPXERequest))
+		return srv.(ControllerServer).SetNodeImage(ctx, req.(*SetNodeImageRequeset))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -435,8 +435,8 @@ var _Controller_serviceDesc = grpc.ServiceDesc{
 			Handler:    _Controller_Register_Handler,
 		},
 		{
-			MethodName: "InstallPXE",
-			Handler:    _Controller_InstallPXE_Handler,
+			MethodName: "SetNodeImage",
+			Handler:    _Controller_SetNodeImage_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
@@ -538,33 +538,6 @@ func (m *ListNodeResponse) MarshalTo(dAtA []byte) (int, error) {
 	return i, nil
 }
 
-func (m *InstallPXERequest) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *InstallPXERequest) MarshalTo(dAtA []byte) (int, error) {
-	var i int
-	_ = i
-	var l int
-	_ = l
-	if len(m.Image) > 0 {
-		dAtA[i] = 0xa
-		i++
-		i = encodeVarintController(dAtA, i, uint64(len(m.Image)))
-		i += copy(dAtA[i:], m.Image)
-	}
-	if m.XXX_unrecognized != nil {
-		i += copy(dAtA[i:], m.XXX_unrecognized)
-	}
-	return i, nil
-}
-
 func (m *DeleteNodeRequest) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
@@ -585,6 +558,33 @@ func (m *DeleteNodeRequest) MarshalTo(dAtA []byte) (int, error) {
 		i++
 		i = encodeVarintController(dAtA, i, uint64(len(m.Hostname)))
 		i += copy(dAtA[i:], m.Hostname)
+	}
+	if m.XXX_unrecognized != nil {
+		i += copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	return i, nil
+}
+
+func (m *SetNodeImageRequeset) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SetNodeImageRequeset) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if len(m.Image) > 0 {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintController(dAtA, i, uint64(len(m.Image)))
+		i += copy(dAtA[i:], m.Image)
 	}
 	if m.XXX_unrecognized != nil {
 		i += copy(dAtA[i:], m.XXX_unrecognized)
@@ -651,13 +651,13 @@ func (m *ListNodeResponse) Size() (n int) {
 	return n
 }
 
-func (m *InstallPXERequest) Size() (n int) {
+func (m *DeleteNodeRequest) Size() (n int) {
 	if m == nil {
 		return 0
 	}
 	var l int
 	_ = l
-	l = len(m.Image)
+	l = len(m.Hostname)
 	if l > 0 {
 		n += 1 + l + sovController(uint64(l))
 	}
@@ -667,13 +667,13 @@ func (m *InstallPXERequest) Size() (n int) {
 	return n
 }
 
-func (m *DeleteNodeRequest) Size() (n int) {
+func (m *SetNodeImageRequeset) Size() (n int) {
 	if m == nil {
 		return 0
 	}
 	var l int
 	_ = l
-	l = len(m.Hostname)
+	l = len(m.Image)
 	if l > 0 {
 		n += 1 + l + sovController(uint64(l))
 	}
@@ -729,23 +729,23 @@ func (this *ListNodeResponse) String() string {
 	}, "")
 	return s
 }
-func (this *InstallPXERequest) String() string {
-	if this == nil {
-		return "nil"
-	}
-	s := strings.Join([]string{`&InstallPXERequest{`,
-		`Image:` + fmt.Sprintf("%v", this.Image) + `,`,
-		`XXX_unrecognized:` + fmt.Sprintf("%v", this.XXX_unrecognized) + `,`,
-		`}`,
-	}, "")
-	return s
-}
 func (this *DeleteNodeRequest) String() string {
 	if this == nil {
 		return "nil"
 	}
 	s := strings.Join([]string{`&DeleteNodeRequest{`,
 		`Hostname:` + fmt.Sprintf("%v", this.Hostname) + `,`,
+		`XXX_unrecognized:` + fmt.Sprintf("%v", this.XXX_unrecognized) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *SetNodeImageRequeset) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&SetNodeImageRequeset{`,
+		`Image:` + fmt.Sprintf("%v", this.Image) + `,`,
 		`XXX_unrecognized:` + fmt.Sprintf("%v", this.XXX_unrecognized) + `,`,
 		`}`,
 	}, "")
@@ -1027,92 +1027,6 @@ func (m *ListNodeResponse) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *InstallPXERequest) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowController
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: InstallPXERequest: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: InstallPXERequest: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Image", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowController
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthController
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return ErrInvalidLengthController
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Image = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipController(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				return ErrInvalidLengthController
-			}
-			if (iNdEx + skippy) < 0 {
-				return ErrInvalidLengthController
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.XXX_unrecognized = append(m.XXX_unrecognized, dAtA[iNdEx:iNdEx+skippy]...)
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
 func (m *DeleteNodeRequest) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -1173,6 +1087,92 @@ func (m *DeleteNodeRequest) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.Hostname = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipController(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthController
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthController
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.XXX_unrecognized = append(m.XXX_unrecognized, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *SetNodeImageRequeset) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowController
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SetNodeImageRequeset: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SetNodeImageRequeset: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Image", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowController
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthController
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthController
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Image = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

@@ -33,7 +33,7 @@ import (
 	"path/filepath"
 
 	"github.com/pkg/errors"
-	"github.com/stellarproject/terraos/api/v1/types"
+	types "github.com/stellarproject/terraos/api/node/v1"
 )
 
 func Check() error {

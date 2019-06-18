@@ -36,7 +36,6 @@ import (
 	"sync"
 
 	"github.com/containerd/containerd"
-	"github.com/containerd/containerd/errdefs"
 	"github.com/containerd/containerd/namespaces"
 	"github.com/gogo/protobuf/proto"
 	"github.com/gogo/protobuf/types"
@@ -44,41 +43,40 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	api "github.com/stellarproject/terraos/api/controller/v1"
+	iscsi "github.com/stellarproject/terraos/api/iscsi/v1"
+	v1 "github.com/stellarproject/terraos/api/node/v1"
 	pxe "github.com/stellarproject/terraos/api/pxe/v1"
-	v1 "github.com/stellarproject/terraos/api/v1/types"
 	"github.com/stellarproject/terraos/pkg/btrfs"
 	"github.com/stellarproject/terraos/pkg/fstab"
 	"github.com/stellarproject/terraos/pkg/image"
-	"github.com/stellarproject/terraos/pkg/iscsi"
 	"github.com/stellarproject/terraos/pkg/resolvconf"
 	"github.com/stellarproject/terraos/remotes"
 	"github.com/stellarproject/terraos/stage0"
 	"github.com/stellarproject/terraos/stage1"
 )
 
-func New(config Config) (*Controller, error) {
+const KeyNodes = "io.stellarproject.nodes"
+
+func New() (*Controller, error) {
 	if err := btrfs.Check(); err != nil {
 		return nil, err
 	}
+	// TODO: move to redis
 	if err := remotes.LoadRemotes(remotes.DefaultPath); err != nil && !os.IsNotExist(err) {
 		return nil, err
 	}
-	c := &Controller{
-		ips:    config.IPConfig,
-		client: client,
-		orbit:  config.Orbit,
-		pool:   config.Pool,
-		iscsi:  iscsiController,
-	}
+	c := &Controller{}
 	return c, nil
 }
 
 type Controller struct {
 	mu sync.Mutex
 
-	pool  *redis.Pool
-	iscsi api.ISCSIControllerClient
-	pxe   pxe.PXEClient
+	pool *redis.Pool
+
+	iscsi       iscsi.ServiceClient
+	provisioner v1.ProvisionerClient
+	pxe         pxe.ServiceClient
 }
 
 func (c *Controller) List(ctx context.Context, _ *types.Empty) (*api.ListNodeResponse, error) {
@@ -174,21 +172,15 @@ func (c *Controller) delete(ctx context.Context, node *v1.Node) error {
 	return nil
 }
 
-func (c *Controller) Provision(ctx context.Context, r *api.ProvisionNodeRequest) (_ *api.ProvisionNodeResponse, err error) {
+func (c *Controller) Register(ctx context.Context, r *api.RegisterNodeRequest) (_ *api.RegisterNodeResponse, err error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	log := logrus.WithField("node", r.Node.Hostname)
-	log.Info("provisioning new node")
+	ctx = namespaces.WithNamespace(ctx, "controller")
 
 	node := r.Node
-
-	image, err := c.fetch(ctx, node.Image)
-	if err != nil {
-		return nil, errors.Wrap(err, "fetch node image")
-	}
-	initIqn := iscsi.NewIQN(2024, "node.crosbymichael.com", node.Hostname, false)
-	node.InitiatorIqn = string(initIqn)
+	// TODO: validate node
+	// validate nics has > 0
 
 	// do the initial save so we know this host does not exist
 	if err := c.saveNode(node); err != nil {
@@ -201,36 +193,73 @@ func (c *Controller) Provision(ctx context.Context, r *api.ProvisionNodeRequest)
 			}
 		}
 	}()
-	ctx = namespaces.WithNamespace(ctx, "controller")
-	log.Debug("provision disk")
+	targets, err := c.createVolumes(ctx, node)
+	if err != nil {
+		return errors.Wrap(err, "create volumes")
+	}
+	var pxeIscsi *pxe.ISCSI
+	if t, ok := targets["os"]; ok {
+		pxeIscsi = &pxe.ISCSI{
+			InitiatorIqn: node.IQN(),
+			TargetIqn:    t.Iqn,
+			TargetIp:     c.iscsiIP,
+		}
+	}
+	if _, err := c.provisioner.Provision(ctx, &v1.ProvisionRequest{
+		Image: c.image,
+		Node:  node,
+	}); err != nil {
+		return nil, errors.Wrap(err, "provision node")
+	}
+	// TODO: fix mac registration
+	nic := node.Nics[0]
+	if _, err := c.pxe.Register(ctx, &pxe.RegisterRequest{
+		Mac:   nic.Mac,
+		Ip:    nic.Ip,
+		Root:  "LABEL=os",
+		Boot:  "pxe",
+		Iscsi: pxeIscsi,
+		// TODO: fix os_volume mount in initrd
+	}); err != nil {
+		return nil, errors.Wrap(err, "register node with pxe")
+	}
 	if err := c.provisionTarget(ctx, node, image); err != nil {
 		return nil, errors.Wrap(err, "provision node target")
-	}
-	if err := c.writePXEConfig(node); err != nil {
-		return nil, errors.Wrap(err, "write pxe config")
-	}
-	log.Debug("save node information")
-	if err := c.updateNode(node); err != nil {
-		return nil, err
 	}
 	return &api.ProvisionNodeResponse{
 		Node: node,
 	}, nil
 }
 
-func (c *Controller) fetch(ctx context.Context, repo string) (containerd.Image, error) {
-	image, err := c.client.GetImage(ctx, repo)
+func (c *Controller) createVolumes(ctx context.Context, node *v1.Node) (*iscsi.Target, error) {
+	targetResponse, err := c.iscsi.CreateTarget(ctx, &iscsi.CreateTargetRequest{
+		Iqn: v.IQN(node),
+	})
 	if err != nil {
-		if !errdefs.IsNotFound(err) {
-			return nil, errors.Wrapf(err, "image get error %s", repo)
-		}
-		i, err := c.client.Fetch(ctx, repo, remotes.WithPlainRemote(repo))
-		if err != nil {
-			return nil, errors.Wrapf(err, "fetch repo %s", repo)
-		}
-		image = containerd.NewImage(c.client, i)
+		return nil, errors.Wrap(err, "create target")
 	}
-	return image, nil
+	target := targetResponse.Target
+	for _, v := range node.Volumes {
+		if v.Type != v1.ISCSIVolume {
+			continue
+		}
+		lunResponse, err := c.iscsi.CreateLUN(ctx, &iscsi.CreateLUNRequest{
+			ID:     fmt.Sprintf("%s.%s", node.Hostname, v.Label),
+			FsSize: v.FsSize,
+		})
+		if err != nil {
+			return nil, errors.Wrap(err, "create lun")
+		}
+		final, err := c.iscsi.AttachLUN(ctx, &iscsi.AttachLUNRequest{
+			Target: target,
+			Lun:    lunResponse.Lun,
+		})
+		if err != nil {
+			return nil, errors.Wrap(err, "attach lun to target")
+		}
+		target = final.Target
+	}
+	return target, nil
 }
 
 func (c *Controller) provisionTarget(ctx context.Context, node *v1.Node, image containerd.Image) (err error) {
@@ -280,23 +309,6 @@ func (c *Controller) provisionTarget(ctx context.Context, node *v1.Node, image c
 	for _, disk := range group.Disks {
 		if err := iscsi.Attach(ctx, group.Target, disk); err != nil {
 			return errors.Wrapf(err, "attach %d to target", disk.ID)
-		}
-	}
-	return nil
-}
-
-func (c *Controller) createGroupLuns(ctx context.Context, node *v1.Node, group *v1.DiskGroup) error {
-	dir := filepath.Join(ISCSIPath, node.Hostname)
-	if err := os.Mkdir(dir, 0711); err != nil {
-		return errors.Wrapf(err, "create lun dir %s", dir)
-	}
-	// the order of this list is also the lun ids
-	for i, disk := range group.Disks {
-		// assign the file path as the disk device
-		disk.Device = filepath.Join(dir, fmt.Sprintf("%d.lun", i))
-		disk.ID = int64(i + 1)
-		if err := iscsi.NewLun(ctx, disk); err != nil {
-			return errors.Wrapf(err, "create lun %d", i)
 		}
 	}
 	return nil

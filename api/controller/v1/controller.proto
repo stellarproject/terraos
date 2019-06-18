@@ -4,7 +4,7 @@ package io.stellarproject.controller.v1;
 
 import weak "gogoproto/gogo.proto";
 import "google/protobuf/empty.proto";
-import "github.com/stellarproject/terraos/api/node/v1/agent.proto";
+import "github.com/stellarproject/terraos/api/types/v1/node.proto";
 
 option go_package = "github.com/stellarproject/terraos/api/controller/v1;v1";
 
@@ -16,20 +16,25 @@ service Controller {
 	// Register a node(machine) with the cluster, this does not provision
 	// the node's disk or OS
 	rpc Register(RegisterNodeRequest) returns (RegisterNodeResponse);
+	rpc SetNodeImage(SetNodeImageRequeset) returns (google.protobuf.Empty);
 }
 
 message RegisterNodeRequest {
-	node.v1.Node node = 1;
+	types.v1.Node node = 1;
 }
 
 message RegisterNodeResponse {
-	node.v1.Node node = 1;
+	types.v1.Node node = 1;
 }
 
 message ListNodeResponse {
-	repeated node.v1.Node nodes = 1;
+	repeated types.v1.Node nodes = 1;
 }
 
 message DeleteNodeRequest {
 	string hostname = 1;
+}
+
+message SetNodeImageRequeset {
+	string image = 1;
 }

@@ -7,8 +7,8 @@ import (
 	context "context"
 	fmt "fmt"
 	proto "github.com/gogo/protobuf/proto"
-	github_com_gogo_protobuf_sortkeys "github.com/gogo/protobuf/sortkeys"
 	types "github.com/gogo/protobuf/types"
+	v1 "github.com/stellarproject/terraos/api/types/v1"
 	grpc "google.golang.org/grpc"
 	io "io"
 	math "math"
@@ -27,129 +27,6 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.GoGoProtoPackageIsVersion2 // please upgrade the proto package
 
-type Target struct {
-	Iqn                  string   `protobuf:"bytes,1,opt,name=iqn,proto3" json:"iqn,omitempty"`
-	ID                   int64    `protobuf:"varint,2,opt,name=id,proto3" json:"id,omitempty"`
-	Luns                 []*LUN   `protobuf:"bytes,3,rep,name=luns,proto3" json:"luns,omitempty"`
-	Accepts              []string `protobuf:"bytes,4,rep,name=accepts,proto3" json:"accepts,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
-}
-
-func (m *Target) Reset()      { *m = Target{} }
-func (*Target) ProtoMessage() {}
-func (*Target) Descriptor() ([]byte, []int) {
-	return fileDescriptor_5e1d660fc59d4c0a, []int{0}
-}
-func (m *Target) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *Target) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	if deterministic {
-		return xxx_messageInfo_Target.Marshal(b, m, deterministic)
-	} else {
-		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
-		if err != nil {
-			return nil, err
-		}
-		return b[:n], nil
-	}
-}
-func (m *Target) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Target.Merge(m, src)
-}
-func (m *Target) XXX_Size() int {
-	return m.Size()
-}
-func (m *Target) XXX_DiscardUnknown() {
-	xxx_messageInfo_Target.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_Target proto.InternalMessageInfo
-
-type LUN struct {
-	ID                   string   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Path                 string   `protobuf:"bytes,2,opt,name=path,proto3" json:"path,omitempty"`
-	FsSize               int64    `protobuf:"varint,3,opt,name=fs_size,json=fsSize,proto3" json:"fs_size,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
-}
-
-func (m *LUN) Reset()      { *m = LUN{} }
-func (*LUN) ProtoMessage() {}
-func (*LUN) Descriptor() ([]byte, []int) {
-	return fileDescriptor_5e1d660fc59d4c0a, []int{1}
-}
-func (m *LUN) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *LUN) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	if deterministic {
-		return xxx_messageInfo_LUN.Marshal(b, m, deterministic)
-	} else {
-		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
-		if err != nil {
-			return nil, err
-		}
-		return b[:n], nil
-	}
-}
-func (m *LUN) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_LUN.Merge(m, src)
-}
-func (m *LUN) XXX_Size() int {
-	return m.Size()
-}
-func (m *LUN) XXX_DiscardUnknown() {
-	xxx_messageInfo_LUN.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_LUN proto.InternalMessageInfo
-
-type ISCSIState struct {
-	Targets              []*Target       `protobuf:"bytes,1,rep,name=targets,proto3" json:"targets,omitempty"`
-	UnallocatedLuns      map[string]*LUN `protobuf:"bytes,2,rep,name=unallocated_luns,json=unallocatedLuns,proto3" json:"unallocated_luns,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
-	XXX_NoUnkeyedLiteral struct{}        `json:"-"`
-	XXX_unrecognized     []byte          `json:"-"`
-	XXX_sizecache        int32           `json:"-"`
-}
-
-func (m *ISCSIState) Reset()      { *m = ISCSIState{} }
-func (*ISCSIState) ProtoMessage() {}
-func (*ISCSIState) Descriptor() ([]byte, []int) {
-	return fileDescriptor_5e1d660fc59d4c0a, []int{2}
-}
-func (m *ISCSIState) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *ISCSIState) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	if deterministic {
-		return xxx_messageInfo_ISCSIState.Marshal(b, m, deterministic)
-	} else {
-		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
-		if err != nil {
-			return nil, err
-		}
-		return b[:n], nil
-	}
-}
-func (m *ISCSIState) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ISCSIState.Merge(m, src)
-}
-func (m *ISCSIState) XXX_Size() int {
-	return m.Size()
-}
-func (m *ISCSIState) XXX_DiscardUnknown() {
-	xxx_messageInfo_ISCSIState.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_ISCSIState proto.InternalMessageInfo
-
 type CreateTargetRequest struct {
 	Iqn                  string   `protobuf:"bytes,1,opt,name=iqn,proto3" json:"iqn,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
@@ -160,7 +37,7 @@ type CreateTargetRequest struct {
 func (m *CreateTargetRequest) Reset()      { *m = CreateTargetRequest{} }
 func (*CreateTargetRequest) ProtoMessage() {}
 func (*CreateTargetRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_5e1d660fc59d4c0a, []int{3}
+	return fileDescriptor_5e1d660fc59d4c0a, []int{0}
 }
 func (m *CreateTargetRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -190,16 +67,16 @@ func (m *CreateTargetRequest) XXX_DiscardUnknown() {
 var xxx_messageInfo_CreateTargetRequest proto.InternalMessageInfo
 
 type CreateTargetResponse struct {
-	Target               *Target  `protobuf:"bytes,1,opt,name=target,proto3" json:"target,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	Target               *v1.Target `protobuf:"bytes,1,opt,name=target,proto3" json:"target,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}   `json:"-"`
+	XXX_unrecognized     []byte     `json:"-"`
+	XXX_sizecache        int32      `json:"-"`
 }
 
 func (m *CreateTargetResponse) Reset()      { *m = CreateTargetResponse{} }
 func (*CreateTargetResponse) ProtoMessage() {}
 func (*CreateTargetResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_5e1d660fc59d4c0a, []int{4}
+	return fileDescriptor_5e1d660fc59d4c0a, []int{1}
 }
 func (m *CreateTargetResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -239,7 +116,7 @@ type CreateLUNRequest struct {
 func (m *CreateLUNRequest) Reset()      { *m = CreateLUNRequest{} }
 func (*CreateLUNRequest) ProtoMessage() {}
 func (*CreateLUNRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_5e1d660fc59d4c0a, []int{5}
+	return fileDescriptor_5e1d660fc59d4c0a, []int{2}
 }
 func (m *CreateLUNRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -269,7 +146,7 @@ func (m *CreateLUNRequest) XXX_DiscardUnknown() {
 var xxx_messageInfo_CreateLUNRequest proto.InternalMessageInfo
 
 type CreateLUNResponse struct {
-	Lun                  *LUN     `protobuf:"bytes,1,opt,name=lun,proto3" json:"lun,omitempty"`
+	Lun                  *v1.LUN  `protobuf:"bytes,1,opt,name=lun,proto3" json:"lun,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -278,7 +155,7 @@ type CreateLUNResponse struct {
 func (m *CreateLUNResponse) Reset()      { *m = CreateLUNResponse{} }
 func (*CreateLUNResponse) ProtoMessage() {}
 func (*CreateLUNResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_5e1d660fc59d4c0a, []int{6}
+	return fileDescriptor_5e1d660fc59d4c0a, []int{3}
 }
 func (m *CreateLUNResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -308,8 +185,8 @@ func (m *CreateLUNResponse) XXX_DiscardUnknown() {
 var xxx_messageInfo_CreateLUNResponse proto.InternalMessageInfo
 
 type AttachLUNRequest struct {
-	Target               *Target  `protobuf:"bytes,1,opt,name=target,proto3" json:"target,omitempty"`
-	Lun                  *LUN     `protobuf:"bytes,2,opt,name=lun,proto3" json:"lun,omitempty"`
+	TargetIqn            string   `protobuf:"bytes,1,opt,name=target_iqn,json=targetIqn,proto3" json:"target_iqn,omitempty"`
+	Lun                  *v1.LUN  `protobuf:"bytes,2,opt,name=lun,proto3" json:"lun,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -318,7 +195,7 @@ type AttachLUNRequest struct {
 func (m *AttachLUNRequest) Reset()      { *m = AttachLUNRequest{} }
 func (*AttachLUNRequest) ProtoMessage() {}
 func (*AttachLUNRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_5e1d660fc59d4c0a, []int{7}
+	return fileDescriptor_5e1d660fc59d4c0a, []int{4}
 }
 func (m *AttachLUNRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -348,16 +225,16 @@ func (m *AttachLUNRequest) XXX_DiscardUnknown() {
 var xxx_messageInfo_AttachLUNRequest proto.InternalMessageInfo
 
 type AttachLUNResponse struct {
-	Target               *Target  `protobuf:"bytes,1,opt,name=target,proto3" json:"target,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	Target               *v1.Target `protobuf:"bytes,1,opt,name=target,proto3" json:"target,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}   `json:"-"`
+	XXX_unrecognized     []byte     `json:"-"`
+	XXX_sizecache        int32      `json:"-"`
 }
 
 func (m *AttachLUNResponse) Reset()      { *m = AttachLUNResponse{} }
 func (*AttachLUNResponse) ProtoMessage() {}
 func (*AttachLUNResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_5e1d660fc59d4c0a, []int{8}
+	return fileDescriptor_5e1d660fc59d4c0a, []int{5}
 }
 func (m *AttachLUNResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -387,16 +264,16 @@ func (m *AttachLUNResponse) XXX_DiscardUnknown() {
 var xxx_messageInfo_AttachLUNResponse proto.InternalMessageInfo
 
 type ListTargetsResponse struct {
-	Targets              []*Target `protobuf:"bytes,1,rep,name=targets,proto3" json:"targets,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}  `json:"-"`
-	XXX_unrecognized     []byte    `json:"-"`
-	XXX_sizecache        int32     `json:"-"`
+	Targets              []*v1.Target `protobuf:"bytes,1,rep,name=targets,proto3" json:"targets,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}     `json:"-"`
+	XXX_unrecognized     []byte       `json:"-"`
+	XXX_sizecache        int32        `json:"-"`
 }
 
 func (m *ListTargetsResponse) Reset()      { *m = ListTargetsResponse{} }
 func (*ListTargetsResponse) ProtoMessage() {}
 func (*ListTargetsResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_5e1d660fc59d4c0a, []int{9}
+	return fileDescriptor_5e1d660fc59d4c0a, []int{6}
 }
 func (m *ListTargetsResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -435,7 +312,7 @@ type DeleteTargetRequest struct {
 func (m *DeleteTargetRequest) Reset()      { *m = DeleteTargetRequest{} }
 func (*DeleteTargetRequest) ProtoMessage() {}
 func (*DeleteTargetRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_5e1d660fc59d4c0a, []int{10}
+	return fileDescriptor_5e1d660fc59d4c0a, []int{7}
 }
 func (m *DeleteTargetRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -474,7 +351,7 @@ type DeleteLUNRequest struct {
 func (m *DeleteLUNRequest) Reset()      { *m = DeleteLUNRequest{} }
 func (*DeleteLUNRequest) ProtoMessage() {}
 func (*DeleteLUNRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_5e1d660fc59d4c0a, []int{11}
+	return fileDescriptor_5e1d660fc59d4c0a, []int{8}
 }
 func (m *DeleteLUNRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -504,10 +381,6 @@ func (m *DeleteLUNRequest) XXX_DiscardUnknown() {
 var xxx_messageInfo_DeleteLUNRequest proto.InternalMessageInfo
 
 func init() {
-	proto.RegisterType((*Target)(nil), "io.stellarproject.iscsi.v1.Target")
-	proto.RegisterType((*LUN)(nil), "io.stellarproject.iscsi.v1.LUN")
-	proto.RegisterType((*ISCSIState)(nil), "io.stellarproject.iscsi.v1.ISCSIState")
-	proto.RegisterMapType((map[string]*LUN)(nil), "io.stellarproject.iscsi.v1.ISCSIState.UnallocatedLunsEntry")
 	proto.RegisterType((*CreateTargetRequest)(nil), "io.stellarproject.iscsi.v1.CreateTargetRequest")
 	proto.RegisterType((*CreateTargetResponse)(nil), "io.stellarproject.iscsi.v1.CreateTargetResponse")
 	proto.RegisterType((*CreateLUNRequest)(nil), "io.stellarproject.iscsi.v1.CreateLUNRequest")
@@ -524,49 +397,40 @@ func init() {
 }
 
 var fileDescriptor_5e1d660fc59d4c0a = []byte{
-	// 657 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x55, 0xcd, 0x6e, 0xd3, 0x4c,
-	0x14, 0xad, 0xed, 0x34, 0x55, 0x6e, 0x2b, 0x7d, 0xe9, 0xb4, 0xea, 0x67, 0x19, 0x29, 0x8d, 0xbc,
-	0x21, 0x42, 0x60, 0x93, 0x56, 0x48, 0xa8, 0x65, 0xd3, 0x3f, 0xa4, 0x42, 0x54, 0x84, 0x43, 0x01,
-	0xb1, 0xa9, 0xa6, 0xee, 0xc4, 0x31, 0x75, 0x3d, 0xae, 0x67, 0x1c, 0x29, 0x5d, 0xc1, 0x53, 0xf0,
-	0x4a, 0x5d, 0x22, 0x56, 0xac, 0x10, 0xcd, 0x93, 0x20, 0x8f, 0x9d, 0xc4, 0x29, 0x89, 0x93, 0xaa,
-	0xec, 0xc6, 0xf6, 0xb9, 0xf7, 0x9e, 0x7b, 0xce, 0xc9, 0x04, 0xb6, 0x1c, 0x97, 0xb7, 0xa3, 0x53,
-	0xc3, 0xa6, 0x17, 0x26, 0xe3, 0xc4, 0xf3, 0x70, 0x18, 0x84, 0xf4, 0x33, 0xb1, 0xb9, 0xc9, 0x49,
-	0x18, 0x62, 0xca, 0x4c, 0x1c, 0xb8, 0xa6, 0xcb, 0x6c, 0xe6, 0x9a, 0x9d, 0x7a, 0x72, 0x30, 0x82,
-	0x90, 0x72, 0x8a, 0x34, 0x97, 0x1a, 0xa3, 0x35, 0x46, 0xf2, 0xb9, 0x53, 0xd7, 0x56, 0x1d, 0xea,
-	0x50, 0x01, 0x33, 0xe3, 0x53, 0x52, 0xa1, 0x3d, 0x70, 0x28, 0x75, 0x3c, 0x62, 0x8a, 0xa7, 0xd3,
-	0xa8, 0x65, 0x92, 0x8b, 0x80, 0x77, 0x93, 0x8f, 0xfa, 0x57, 0x09, 0x8a, 0xef, 0x70, 0xe8, 0x10,
-	0x8e, 0xca, 0xa0, 0xb8, 0x97, 0xbe, 0x2a, 0x55, 0xa5, 0x5a, 0xc9, 0x8a, 0x8f, 0x68, 0x0d, 0x64,
-	0xf7, 0x4c, 0x95, 0xab, 0x52, 0x4d, 0xd9, 0x2d, 0xf6, 0x7e, 0xad, 0xcb, 0x87, 0xfb, 0x96, 0xec,
-	0x9e, 0xa1, 0x4d, 0x28, 0x78, 0x91, 0xcf, 0x54, 0xa5, 0xaa, 0xd4, 0x16, 0x37, 0xd6, 0x8d, 0xc9,
-	0x94, 0x8c, 0xc6, 0xf1, 0x91, 0x25, 0xc0, 0x48, 0x85, 0x05, 0x6c, 0xdb, 0x24, 0xe0, 0x4c, 0x2d,
-	0x54, 0x95, 0x5a, 0xc9, 0xea, 0x3f, 0xea, 0xaf, 0x40, 0x69, 0x1c, 0x1f, 0xa5, 0xd3, 0xc4, 0xf8,
-	0x91, 0x69, 0x08, 0x0a, 0x01, 0xe6, 0x6d, 0xc1, 0xa3, 0x64, 0x89, 0x33, 0xfa, 0x1f, 0x16, 0x5a,
-	0xec, 0x84, 0xb9, 0x57, 0x44, 0x55, 0x62, 0x7a, 0x56, 0xb1, 0xc5, 0x9a, 0xee, 0x15, 0xd1, 0xbf,
-	0xc9, 0x00, 0x87, 0xcd, 0xbd, 0xe6, 0x61, 0x93, 0x63, 0x4e, 0xd0, 0x0b, 0x58, 0xe0, 0x62, 0x3b,
-	0xa6, 0x4a, 0x82, 0xac, 0x9e, 0x47, 0x36, 0x11, 0xc2, 0xea, 0x97, 0xa0, 0x16, 0x94, 0x23, 0x1f,
-	0x7b, 0x1e, 0xb5, 0x31, 0x27, 0x67, 0x27, 0x62, 0x67, 0x59, 0xb4, 0xd9, 0xce, 0x6b, 0x33, 0x9c,
-	0x6f, 0x1c, 0x0f, 0xcb, 0x1b, 0x91, 0xcf, 0x0e, 0x7c, 0x1e, 0x76, 0xad, 0xff, 0xa2, 0xd1, 0xb7,
-	0x9a, 0x0d, 0xab, 0xe3, 0x80, 0xb1, 0x23, 0xe7, 0xa4, 0xdb, 0x77, 0xe4, 0x9c, 0x74, 0xd1, 0x33,
-	0x98, 0xef, 0x60, 0x2f, 0x22, 0x42, 0x8c, 0x19, 0xa4, 0x4f, 0xd0, 0x5b, 0xf2, 0x73, 0x49, 0x7f,
-	0x08, 0x2b, 0x7b, 0x21, 0xc1, 0x9c, 0xa4, 0x5b, 0x92, 0xcb, 0x88, 0xb0, 0x31, 0xae, 0xeb, 0x16,
-	0xac, 0x8e, 0x02, 0x59, 0x40, 0x7d, 0x46, 0xd0, 0x16, 0x14, 0x13, 0x61, 0x04, 0x78, 0x36, 0x29,
-	0xd3, 0x0a, 0x7d, 0x0f, 0xca, 0x49, 0xcf, 0x98, 0x54, 0x3a, 0x79, 0x92, 0xdf, 0x19, 0x6f, 0xe5,
-	0x11, 0x6f, 0x5f, 0xc2, 0x72, 0xa6, 0x49, 0xca, 0xaa, 0x0e, 0x8a, 0x17, 0xf9, 0x29, 0xa5, 0xa9,
-	0x7a, 0xc4, 0xd8, 0x38, 0xf3, 0xe5, 0x1d, 0xce, 0xb1, 0xdd, 0xce, 0xb0, 0xb9, 0xc7, 0x76, 0x7d,
-	0x0e, 0xf2, 0x1d, 0x38, 0xbc, 0x81, 0xe5, 0x0c, 0x85, 0x7f, 0xa0, 0x70, 0x13, 0x56, 0x1a, 0x2e,
-	0xe3, 0xc9, 0x5b, 0x36, 0x68, 0x79, 0xaf, 0x1f, 0x40, 0x9c, 0x99, 0x7d, 0xe2, 0x91, 0xe9, 0x99,
-	0x79, 0x04, 0xe5, 0x04, 0x38, 0xdd, 0xdf, 0x8d, 0x1f, 0x05, 0x98, 0xdf, 0x71, 0x88, 0xcf, 0xd1,
-	0x25, 0x2c, 0x65, 0x93, 0x86, 0xcc, 0x3c, 0x6e, 0x63, 0xc2, 0xab, 0x3d, 0x9d, 0xbd, 0x20, 0xd5,
-	0xa3, 0x0d, 0xa5, 0x41, 0x86, 0xd0, 0xe3, 0xe9, 0xe5, 0xc3, 0x7d, 0xb4, 0x27, 0x33, 0xa2, 0x87,
-	0x93, 0x06, 0x0e, 0xe7, 0x4f, 0xba, 0x9d, 0xc5, 0xfc, 0x49, 0x7f, 0xc7, 0xe6, 0x3d, 0x2c, 0x66,
-	0xac, 0x47, 0x6b, 0x46, 0x72, 0xe1, 0x1b, 0xfd, 0x0b, 0xdf, 0x38, 0x88, 0x2f, 0x7c, 0x2d, 0x57,
-	0xdd, 0x71, 0xd9, 0xf9, 0x00, 0x4b, 0x59, 0xf7, 0xf3, 0xed, 0x19, 0x93, 0x13, 0x6d, 0x02, 0x13,
-	0xf4, 0x16, 0x4a, 0x83, 0xb4, 0xe4, 0x4b, 0x73, 0x3b, 0x54, 0x93, 0x5a, 0xee, 0xbe, 0xbe, 0xbe,
-	0xa9, 0xcc, 0xfd, 0xbc, 0xa9, 0xcc, 0x7d, 0xe9, 0x55, 0xa4, 0xeb, 0x5e, 0x45, 0xfa, 0xde, 0xab,
-	0x48, 0xbf, 0x7b, 0x15, 0xe9, 0x53, 0xfd, 0x6e, 0x7f, 0xb6, 0xdb, 0x9d, 0xfa, 0xc7, 0xb9, 0xd3,
-	0xa2, 0x68, 0xbf, 0xf9, 0x27, 0x00, 0x00, 0xff, 0xff, 0x59, 0x12, 0x50, 0xa5, 0xaa, 0x07, 0x00,
-	0x00,
+	// 521 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x54, 0x4d, 0x6f, 0xd3, 0x40,
+	0x10, 0xad, 0x1d, 0x94, 0x28, 0xd3, 0x1e, 0x52, 0xb7, 0x2a, 0x91, 0x11, 0x6e, 0xe4, 0x0b, 0x15,
+	0x82, 0x35, 0x2e, 0xb7, 0xc2, 0x85, 0xb6, 0x20, 0x55, 0x54, 0x20, 0x1c, 0xbe, 0xc4, 0xa5, 0x72,
+	0x9c, 0x89, 0xb3, 0xc8, 0xcd, 0x3a, 0xde, 0x8d, 0xa5, 0xf6, 0xc4, 0xcf, 0xeb, 0x91, 0x03, 0x07,
+	0x4e, 0x88, 0xfa, 0x97, 0x20, 0x7b, 0x9d, 0xc4, 0x4d, 0x13, 0x27, 0x95, 0xb8, 0x6d, 0xd6, 0xef,
+	0xcd, 0x7b, 0x3b, 0xf3, 0x32, 0x70, 0xe0, 0x53, 0xd1, 0x1f, 0x75, 0x88, 0xc7, 0xce, 0x2d, 0x2e,
+	0x30, 0x08, 0xdc, 0x28, 0x8c, 0xd8, 0x77, 0xf4, 0x84, 0x25, 0x30, 0x8a, 0x5c, 0xc6, 0x2d, 0x37,
+	0xa4, 0x16, 0xe5, 0x1e, 0xa7, 0x56, 0x6c, 0xcb, 0x03, 0x09, 0x23, 0x26, 0x98, 0xa6, 0x53, 0x46,
+	0x6e, 0x72, 0x88, 0xfc, 0x1c, 0xdb, 0xfa, 0xb6, 0xcf, 0x7c, 0x96, 0xc1, 0xac, 0xf4, 0x24, 0x19,
+	0xfa, 0x03, 0x9f, 0x31, 0x3f, 0x40, 0x2b, 0xfb, 0xd5, 0x19, 0xf5, 0x2c, 0x3c, 0x0f, 0xc5, 0x45,
+	0xfe, 0x71, 0x45, 0x2b, 0xe2, 0x22, 0x44, 0x3e, 0x63, 0xc5, 0x7c, 0x04, 0x5b, 0x47, 0x11, 0xba,
+	0x02, 0x3f, 0xba, 0x91, 0x8f, 0xc2, 0xc1, 0xe1, 0x08, 0xb9, 0xd0, 0x1a, 0x50, 0xa1, 0xc3, 0x41,
+	0x53, 0x69, 0x29, 0x7b, 0x75, 0x27, 0x3d, 0x9a, 0x0e, 0x6c, 0xdf, 0x04, 0xf2, 0x90, 0x0d, 0x38,
+	0x6a, 0x07, 0x50, 0x15, 0xd9, 0x4d, 0x06, 0x5e, 0xdf, 0x37, 0xc9, 0xed, 0xc7, 0x65, 0xca, 0x24,
+	0xb6, 0x49, 0xce, 0xcd, 0x19, 0xe6, 0x11, 0x34, 0x64, 0xcd, 0xd3, 0x4f, 0xef, 0xc6, 0xca, 0x3b,
+	0xa0, 0xd2, 0xae, 0x14, 0x3e, 0xac, 0x26, 0x7f, 0x76, 0xd5, 0x93, 0x63, 0x47, 0xa5, 0x5d, 0xed,
+	0x3e, 0xd4, 0x7a, 0xfc, 0x8c, 0xd3, 0x4b, 0x6c, 0xaa, 0x2d, 0x65, 0xaf, 0xe2, 0x54, 0x7b, 0xbc,
+	0x4d, 0x2f, 0xd1, 0x7c, 0x03, 0x9b, 0x85, 0x22, 0xb9, 0x2b, 0x1b, 0x2a, 0xc1, 0x68, 0x90, 0x5b,
+	0xda, 0x2d, 0xb3, 0x94, 0xb2, 0x52, 0xac, 0xd9, 0x85, 0xc6, 0x2b, 0x21, 0x5c, 0xaf, 0x5f, 0x30,
+	0xf3, 0x10, 0x40, 0x5a, 0x3d, 0x9b, 0x76, 0xa3, 0x2e, 0x6f, 0x4e, 0x86, 0x83, 0xb1, 0x8a, 0x7a,
+	0x07, 0x95, 0xf7, 0xb0, 0x59, 0x50, 0xf9, 0x0f, 0x3d, 0x6c, 0xc3, 0xd6, 0x29, 0xe5, 0x42, 0xde,
+	0xf2, 0x49, 0xc9, 0x97, 0x50, 0x93, 0x00, 0xde, 0x54, 0x5a, 0x95, 0x15, 0x6b, 0x8e, 0x29, 0x69,
+	0x2a, 0x8e, 0x31, 0xc0, 0xe5, 0xa9, 0x78, 0x0c, 0x0d, 0x09, 0x5c, 0x3e, 0xc1, 0xfd, 0x5f, 0xf7,
+	0xa0, 0xd6, 0xc6, 0x28, 0xa6, 0x1e, 0x6a, 0x43, 0xd8, 0x28, 0xa6, 0x49, 0xb3, 0xc8, 0xe2, 0xbf,
+	0x04, 0x99, 0x13, 0x50, 0xfd, 0xd9, 0xea, 0x84, 0xbc, 0x23, 0x7d, 0xa8, 0x4f, 0x72, 0xa2, 0x3d,
+	0x59, 0x4e, 0x9f, 0xbe, 0x48, 0x7f, 0xba, 0x22, 0x7a, 0xaa, 0x34, 0x99, 0x71, 0xb9, 0xd2, 0x6c,
+	0xe0, 0xca, 0x95, 0x6e, 0x07, 0xe7, 0x33, 0xac, 0x17, 0x86, 0xaf, 0xed, 0x10, 0xb9, 0x26, 0xc8,
+	0x78, 0x4d, 0x90, 0xd7, 0xe9, 0x9a, 0xd0, 0x4b, 0xbb, 0x3b, 0x2f, 0x3d, 0x5f, 0x60, 0xa3, 0x38,
+	0xff, 0xf2, 0xf1, 0xcc, 0x49, 0x8a, 0xbe, 0xc0, 0x89, 0xf6, 0x01, 0xea, 0x93, 0xbc, 0x94, 0xb7,
+	0x66, 0x36, 0x56, 0x8b, 0x4a, 0x1e, 0xbe, 0xbd, 0xba, 0x36, 0xd6, 0x7e, 0x5f, 0x1b, 0x6b, 0x3f,
+	0x12, 0x43, 0xb9, 0x4a, 0x0c, 0xe5, 0x67, 0x62, 0x28, 0x7f, 0x13, 0x43, 0xf9, 0x66, 0xdf, 0x6d,
+	0x45, 0xbf, 0x88, 0xed, 0xaf, 0x6b, 0x9d, 0x6a, 0x56, 0xfe, 0xf9, 0xbf, 0x00, 0x00, 0x00, 0xff,
+	0xff, 0xa0, 0x91, 0x07, 0x0b, 0xe0, 0x05, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -577,10 +441,10 @@ var _ grpc.ClientConn
 // is compatible with the grpc package it is being compiled against.
 const _ = grpc.SupportPackageIsVersion4
 
-// AgentClient is the client API for Agent service.
+// ServiceClient is the client API for Service service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
-type AgentClient interface {
+type ServiceClient interface {
 	CreateTarget(ctx context.Context, in *CreateTargetRequest, opts ...grpc.CallOption) (*CreateTargetResponse, error)
 	CreateLUN(ctx context.Context, in *CreateLUNRequest, opts ...grpc.CallOption) (*CreateLUNResponse, error)
 	AttachLUN(ctx context.Context, in *AttachLUNRequest, opts ...grpc.CallOption) (*AttachLUNResponse, error)
@@ -589,70 +453,70 @@ type AgentClient interface {
 	DeleteLUN(ctx context.Context, in *DeleteLUNRequest, opts ...grpc.CallOption) (*types.Empty, error)
 }
 
-type agentClient struct {
+type serviceClient struct {
 	cc *grpc.ClientConn
 }
 
-func NewAgentClient(cc *grpc.ClientConn) AgentClient {
-	return &agentClient{cc}
+func NewServiceClient(cc *grpc.ClientConn) ServiceClient {
+	return &serviceClient{cc}
 }
 
-func (c *agentClient) CreateTarget(ctx context.Context, in *CreateTargetRequest, opts ...grpc.CallOption) (*CreateTargetResponse, error) {
+func (c *serviceClient) CreateTarget(ctx context.Context, in *CreateTargetRequest, opts ...grpc.CallOption) (*CreateTargetResponse, error) {
 	out := new(CreateTargetResponse)
-	err := c.cc.Invoke(ctx, "/io.stellarproject.iscsi.v1.Agent/CreateTarget", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/io.stellarproject.iscsi.v1.Service/CreateTarget", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *agentClient) CreateLUN(ctx context.Context, in *CreateLUNRequest, opts ...grpc.CallOption) (*CreateLUNResponse, error) {
+func (c *serviceClient) CreateLUN(ctx context.Context, in *CreateLUNRequest, opts ...grpc.CallOption) (*CreateLUNResponse, error) {
 	out := new(CreateLUNResponse)
-	err := c.cc.Invoke(ctx, "/io.stellarproject.iscsi.v1.Agent/CreateLUN", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/io.stellarproject.iscsi.v1.Service/CreateLUN", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *agentClient) AttachLUN(ctx context.Context, in *AttachLUNRequest, opts ...grpc.CallOption) (*AttachLUNResponse, error) {
+func (c *serviceClient) AttachLUN(ctx context.Context, in *AttachLUNRequest, opts ...grpc.CallOption) (*AttachLUNResponse, error) {
 	out := new(AttachLUNResponse)
-	err := c.cc.Invoke(ctx, "/io.stellarproject.iscsi.v1.Agent/AttachLUN", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/io.stellarproject.iscsi.v1.Service/AttachLUN", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *agentClient) ListTargets(ctx context.Context, in *types.Empty, opts ...grpc.CallOption) (*ListTargetsResponse, error) {
+func (c *serviceClient) ListTargets(ctx context.Context, in *types.Empty, opts ...grpc.CallOption) (*ListTargetsResponse, error) {
 	out := new(ListTargetsResponse)
-	err := c.cc.Invoke(ctx, "/io.stellarproject.iscsi.v1.Agent/ListTargets", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/io.stellarproject.iscsi.v1.Service/ListTargets", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *agentClient) DeleteTarget(ctx context.Context, in *DeleteTargetRequest, opts ...grpc.CallOption) (*types.Empty, error) {
+func (c *serviceClient) DeleteTarget(ctx context.Context, in *DeleteTargetRequest, opts ...grpc.CallOption) (*types.Empty, error) {
 	out := new(types.Empty)
-	err := c.cc.Invoke(ctx, "/io.stellarproject.iscsi.v1.Agent/DeleteTarget", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/io.stellarproject.iscsi.v1.Service/DeleteTarget", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *agentClient) DeleteLUN(ctx context.Context, in *DeleteLUNRequest, opts ...grpc.CallOption) (*types.Empty, error) {
+func (c *serviceClient) DeleteLUN(ctx context.Context, in *DeleteLUNRequest, opts ...grpc.CallOption) (*types.Empty, error) {
 	out := new(types.Empty)
-	err := c.cc.Invoke(ctx, "/io.stellarproject.iscsi.v1.Agent/DeleteLUN", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/io.stellarproject.iscsi.v1.Service/DeleteLUN", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// AgentServer is the server API for Agent service.
-type AgentServer interface {
+// ServiceServer is the server API for Service service.
+type ServiceServer interface {
 	CreateTarget(context.Context, *CreateTargetRequest) (*CreateTargetResponse, error)
 	CreateLUN(context.Context, *CreateLUNRequest) (*CreateLUNResponse, error)
 	AttachLUN(context.Context, *AttachLUNRequest) (*AttachLUNResponse, error)
@@ -661,307 +525,149 @@ type AgentServer interface {
 	DeleteLUN(context.Context, *DeleteLUNRequest) (*types.Empty, error)
 }
 
-func RegisterAgentServer(s *grpc.Server, srv AgentServer) {
-	s.RegisterService(&_Agent_serviceDesc, srv)
+func RegisterServiceServer(s *grpc.Server, srv ServiceServer) {
+	s.RegisterService(&_Service_serviceDesc, srv)
 }
 
-func _Agent_CreateTarget_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Service_CreateTarget_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(CreateTargetRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AgentServer).CreateTarget(ctx, in)
+		return srv.(ServiceServer).CreateTarget(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/io.stellarproject.iscsi.v1.Agent/CreateTarget",
+		FullMethod: "/io.stellarproject.iscsi.v1.Service/CreateTarget",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AgentServer).CreateTarget(ctx, req.(*CreateTargetRequest))
+		return srv.(ServiceServer).CreateTarget(ctx, req.(*CreateTargetRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Agent_CreateLUN_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Service_CreateLUN_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(CreateLUNRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AgentServer).CreateLUN(ctx, in)
+		return srv.(ServiceServer).CreateLUN(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/io.stellarproject.iscsi.v1.Agent/CreateLUN",
+		FullMethod: "/io.stellarproject.iscsi.v1.Service/CreateLUN",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AgentServer).CreateLUN(ctx, req.(*CreateLUNRequest))
+		return srv.(ServiceServer).CreateLUN(ctx, req.(*CreateLUNRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Agent_AttachLUN_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Service_AttachLUN_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(AttachLUNRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AgentServer).AttachLUN(ctx, in)
+		return srv.(ServiceServer).AttachLUN(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/io.stellarproject.iscsi.v1.Agent/AttachLUN",
+		FullMethod: "/io.stellarproject.iscsi.v1.Service/AttachLUN",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AgentServer).AttachLUN(ctx, req.(*AttachLUNRequest))
+		return srv.(ServiceServer).AttachLUN(ctx, req.(*AttachLUNRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Agent_ListTargets_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Service_ListTargets_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(types.Empty)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AgentServer).ListTargets(ctx, in)
+		return srv.(ServiceServer).ListTargets(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/io.stellarproject.iscsi.v1.Agent/ListTargets",
+		FullMethod: "/io.stellarproject.iscsi.v1.Service/ListTargets",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AgentServer).ListTargets(ctx, req.(*types.Empty))
+		return srv.(ServiceServer).ListTargets(ctx, req.(*types.Empty))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Agent_DeleteTarget_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Service_DeleteTarget_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(DeleteTargetRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AgentServer).DeleteTarget(ctx, in)
+		return srv.(ServiceServer).DeleteTarget(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/io.stellarproject.iscsi.v1.Agent/DeleteTarget",
+		FullMethod: "/io.stellarproject.iscsi.v1.Service/DeleteTarget",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AgentServer).DeleteTarget(ctx, req.(*DeleteTargetRequest))
+		return srv.(ServiceServer).DeleteTarget(ctx, req.(*DeleteTargetRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Agent_DeleteLUN_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Service_DeleteLUN_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(DeleteLUNRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AgentServer).DeleteLUN(ctx, in)
+		return srv.(ServiceServer).DeleteLUN(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/io.stellarproject.iscsi.v1.Agent/DeleteLUN",
+		FullMethod: "/io.stellarproject.iscsi.v1.Service/DeleteLUN",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AgentServer).DeleteLUN(ctx, req.(*DeleteLUNRequest))
+		return srv.(ServiceServer).DeleteLUN(ctx, req.(*DeleteLUNRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-var _Agent_serviceDesc = grpc.ServiceDesc{
-	ServiceName: "io.stellarproject.iscsi.v1.Agent",
-	HandlerType: (*AgentServer)(nil),
+var _Service_serviceDesc = grpc.ServiceDesc{
+	ServiceName: "io.stellarproject.iscsi.v1.Service",
+	HandlerType: (*ServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
 			MethodName: "CreateTarget",
-			Handler:    _Agent_CreateTarget_Handler,
+			Handler:    _Service_CreateTarget_Handler,
 		},
 		{
 			MethodName: "CreateLUN",
-			Handler:    _Agent_CreateLUN_Handler,
+			Handler:    _Service_CreateLUN_Handler,
 		},
 		{
 			MethodName: "AttachLUN",
-			Handler:    _Agent_AttachLUN_Handler,
+			Handler:    _Service_AttachLUN_Handler,
 		},
 		{
 			MethodName: "ListTargets",
-			Handler:    _Agent_ListTargets_Handler,
+			Handler:    _Service_ListTargets_Handler,
 		},
 		{
 			MethodName: "DeleteTarget",
-			Handler:    _Agent_DeleteTarget_Handler,
+			Handler:    _Service_DeleteTarget_Handler,
 		},
 		{
 			MethodName: "DeleteLUN",
-			Handler:    _Agent_DeleteLUN_Handler,
+			Handler:    _Service_DeleteLUN_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "github.com/stellarproject/terraos/api/iscsi/v1/iscsi.proto",
-}
-
-func (m *Target) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *Target) MarshalTo(dAtA []byte) (int, error) {
-	var i int
-	_ = i
-	var l int
-	_ = l
-	if len(m.Iqn) > 0 {
-		dAtA[i] = 0xa
-		i++
-		i = encodeVarintIscsi(dAtA, i, uint64(len(m.Iqn)))
-		i += copy(dAtA[i:], m.Iqn)
-	}
-	if m.ID != 0 {
-		dAtA[i] = 0x10
-		i++
-		i = encodeVarintIscsi(dAtA, i, uint64(m.ID))
-	}
-	if len(m.Luns) > 0 {
-		for _, msg := range m.Luns {
-			dAtA[i] = 0x1a
-			i++
-			i = encodeVarintIscsi(dAtA, i, uint64(msg.Size()))
-			n, err := msg.MarshalTo(dAtA[i:])
-			if err != nil {
-				return 0, err
-			}
-			i += n
-		}
-	}
-	if len(m.Accepts) > 0 {
-		for _, s := range m.Accepts {
-			dAtA[i] = 0x22
-			i++
-			l = len(s)
-			for l >= 1<<7 {
-				dAtA[i] = uint8(uint64(l)&0x7f | 0x80)
-				l >>= 7
-				i++
-			}
-			dAtA[i] = uint8(l)
-			i++
-			i += copy(dAtA[i:], s)
-		}
-	}
-	if m.XXX_unrecognized != nil {
-		i += copy(dAtA[i:], m.XXX_unrecognized)
-	}
-	return i, nil
-}
-
-func (m *LUN) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *LUN) MarshalTo(dAtA []byte) (int, error) {
-	var i int
-	_ = i
-	var l int
-	_ = l
-	if len(m.ID) > 0 {
-		dAtA[i] = 0xa
-		i++
-		i = encodeVarintIscsi(dAtA, i, uint64(len(m.ID)))
-		i += copy(dAtA[i:], m.ID)
-	}
-	if len(m.Path) > 0 {
-		dAtA[i] = 0x12
-		i++
-		i = encodeVarintIscsi(dAtA, i, uint64(len(m.Path)))
-		i += copy(dAtA[i:], m.Path)
-	}
-	if m.FsSize != 0 {
-		dAtA[i] = 0x18
-		i++
-		i = encodeVarintIscsi(dAtA, i, uint64(m.FsSize))
-	}
-	if m.XXX_unrecognized != nil {
-		i += copy(dAtA[i:], m.XXX_unrecognized)
-	}
-	return i, nil
-}
-
-func (m *ISCSIState) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *ISCSIState) MarshalTo(dAtA []byte) (int, error) {
-	var i int
-	_ = i
-	var l int
-	_ = l
-	if len(m.Targets) > 0 {
-		for _, msg := range m.Targets {
-			dAtA[i] = 0xa
-			i++
-			i = encodeVarintIscsi(dAtA, i, uint64(msg.Size()))
-			n, err := msg.MarshalTo(dAtA[i:])
-			if err != nil {
-				return 0, err
-			}
-			i += n
-		}
-	}
-	if len(m.UnallocatedLuns) > 0 {
-		for k, _ := range m.UnallocatedLuns {
-			dAtA[i] = 0x12
-			i++
-			v := m.UnallocatedLuns[k]
-			msgSize := 0
-			if v != nil {
-				msgSize = v.Size()
-				msgSize += 1 + sovIscsi(uint64(msgSize))
-			}
-			mapSize := 1 + len(k) + sovIscsi(uint64(len(k))) + msgSize
-			i = encodeVarintIscsi(dAtA, i, uint64(mapSize))
-			dAtA[i] = 0xa
-			i++
-			i = encodeVarintIscsi(dAtA, i, uint64(len(k)))
-			i += copy(dAtA[i:], k)
-			if v != nil {
-				dAtA[i] = 0x12
-				i++
-				i = encodeVarintIscsi(dAtA, i, uint64(v.Size()))
-				n1, err := v.MarshalTo(dAtA[i:])
-				if err != nil {
-					return 0, err
-				}
-				i += n1
-			}
-		}
-	}
-	if m.XXX_unrecognized != nil {
-		i += copy(dAtA[i:], m.XXX_unrecognized)
-	}
-	return i, nil
 }
 
 func (m *CreateTargetRequest) Marshal() (dAtA []byte, err error) {
@@ -1010,11 +716,11 @@ func (m *CreateTargetResponse) MarshalTo(dAtA []byte) (int, error) {
 		dAtA[i] = 0xa
 		i++
 		i = encodeVarintIscsi(dAtA, i, uint64(m.Target.Size()))
-		n2, err := m.Target.MarshalTo(dAtA[i:])
+		n1, err := m.Target.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n2
+		i += n1
 	}
 	if m.XXX_unrecognized != nil {
 		i += copy(dAtA[i:], m.XXX_unrecognized)
@@ -1073,11 +779,11 @@ func (m *CreateLUNResponse) MarshalTo(dAtA []byte) (int, error) {
 		dAtA[i] = 0xa
 		i++
 		i = encodeVarintIscsi(dAtA, i, uint64(m.Lun.Size()))
-		n3, err := m.Lun.MarshalTo(dAtA[i:])
+		n2, err := m.Lun.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n3
+		i += n2
 	}
 	if m.XXX_unrecognized != nil {
 		i += copy(dAtA[i:], m.XXX_unrecognized)
@@ -1100,25 +806,21 @@ func (m *AttachLUNRequest) MarshalTo(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
-	if m.Target != nil {
+	if len(m.TargetIqn) > 0 {
 		dAtA[i] = 0xa
 		i++
-		i = encodeVarintIscsi(dAtA, i, uint64(m.Target.Size()))
-		n4, err := m.Target.MarshalTo(dAtA[i:])
-		if err != nil {
-			return 0, err
-		}
-		i += n4
+		i = encodeVarintIscsi(dAtA, i, uint64(len(m.TargetIqn)))
+		i += copy(dAtA[i:], m.TargetIqn)
 	}
 	if m.Lun != nil {
 		dAtA[i] = 0x12
 		i++
 		i = encodeVarintIscsi(dAtA, i, uint64(m.Lun.Size()))
-		n5, err := m.Lun.MarshalTo(dAtA[i:])
+		n3, err := m.Lun.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n5
+		i += n3
 	}
 	if m.XXX_unrecognized != nil {
 		i += copy(dAtA[i:], m.XXX_unrecognized)
@@ -1145,11 +847,11 @@ func (m *AttachLUNResponse) MarshalTo(dAtA []byte) (int, error) {
 		dAtA[i] = 0xa
 		i++
 		i = encodeVarintIscsi(dAtA, i, uint64(m.Target.Size()))
-		n6, err := m.Target.MarshalTo(dAtA[i:])
+		n4, err := m.Target.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n6
+		i += n4
 	}
 	if m.XXX_unrecognized != nil {
 		i += copy(dAtA[i:], m.XXX_unrecognized)
@@ -1253,91 +955,6 @@ func encodeVarintIscsi(dAtA []byte, offset int, v uint64) int {
 	dAtA[offset] = uint8(v)
 	return offset + 1
 }
-func (m *Target) Size() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	l = len(m.Iqn)
-	if l > 0 {
-		n += 1 + l + sovIscsi(uint64(l))
-	}
-	if m.ID != 0 {
-		n += 1 + sovIscsi(uint64(m.ID))
-	}
-	if len(m.Luns) > 0 {
-		for _, e := range m.Luns {
-			l = e.Size()
-			n += 1 + l + sovIscsi(uint64(l))
-		}
-	}
-	if len(m.Accepts) > 0 {
-		for _, s := range m.Accepts {
-			l = len(s)
-			n += 1 + l + sovIscsi(uint64(l))
-		}
-	}
-	if m.XXX_unrecognized != nil {
-		n += len(m.XXX_unrecognized)
-	}
-	return n
-}
-
-func (m *LUN) Size() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	l = len(m.ID)
-	if l > 0 {
-		n += 1 + l + sovIscsi(uint64(l))
-	}
-	l = len(m.Path)
-	if l > 0 {
-		n += 1 + l + sovIscsi(uint64(l))
-	}
-	if m.FsSize != 0 {
-		n += 1 + sovIscsi(uint64(m.FsSize))
-	}
-	if m.XXX_unrecognized != nil {
-		n += len(m.XXX_unrecognized)
-	}
-	return n
-}
-
-func (m *ISCSIState) Size() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	if len(m.Targets) > 0 {
-		for _, e := range m.Targets {
-			l = e.Size()
-			n += 1 + l + sovIscsi(uint64(l))
-		}
-	}
-	if len(m.UnallocatedLuns) > 0 {
-		for k, v := range m.UnallocatedLuns {
-			_ = k
-			_ = v
-			l = 0
-			if v != nil {
-				l = v.Size()
-				l += 1 + sovIscsi(uint64(l))
-			}
-			mapEntrySize := 1 + len(k) + sovIscsi(uint64(len(k))) + l
-			n += mapEntrySize + 1 + sovIscsi(uint64(mapEntrySize))
-		}
-	}
-	if m.XXX_unrecognized != nil {
-		n += len(m.XXX_unrecognized)
-	}
-	return n
-}
-
 func (m *CreateTargetRequest) Size() (n int) {
 	if m == nil {
 		return 0
@@ -1411,8 +1028,8 @@ func (m *AttachLUNRequest) Size() (n int) {
 	}
 	var l int
 	_ = l
-	if m.Target != nil {
-		l = m.Target.Size()
+	l = len(m.TargetIqn)
+	if l > 0 {
 		n += 1 + l + sovIscsi(uint64(l))
 	}
 	if m.Lun != nil {
@@ -1504,55 +1121,6 @@ func sovIscsi(x uint64) (n int) {
 func sozIscsi(x uint64) (n int) {
 	return sovIscsi(uint64((x << 1) ^ uint64((int64(x) >> 63))))
 }
-func (this *Target) String() string {
-	if this == nil {
-		return "nil"
-	}
-	s := strings.Join([]string{`&Target{`,
-		`Iqn:` + fmt.Sprintf("%v", this.Iqn) + `,`,
-		`ID:` + fmt.Sprintf("%v", this.ID) + `,`,
-		`Luns:` + strings.Replace(fmt.Sprintf("%v", this.Luns), "LUN", "LUN", 1) + `,`,
-		`Accepts:` + fmt.Sprintf("%v", this.Accepts) + `,`,
-		`XXX_unrecognized:` + fmt.Sprintf("%v", this.XXX_unrecognized) + `,`,
-		`}`,
-	}, "")
-	return s
-}
-func (this *LUN) String() string {
-	if this == nil {
-		return "nil"
-	}
-	s := strings.Join([]string{`&LUN{`,
-		`ID:` + fmt.Sprintf("%v", this.ID) + `,`,
-		`Path:` + fmt.Sprintf("%v", this.Path) + `,`,
-		`FsSize:` + fmt.Sprintf("%v", this.FsSize) + `,`,
-		`XXX_unrecognized:` + fmt.Sprintf("%v", this.XXX_unrecognized) + `,`,
-		`}`,
-	}, "")
-	return s
-}
-func (this *ISCSIState) String() string {
-	if this == nil {
-		return "nil"
-	}
-	keysForUnallocatedLuns := make([]string, 0, len(this.UnallocatedLuns))
-	for k, _ := range this.UnallocatedLuns {
-		keysForUnallocatedLuns = append(keysForUnallocatedLuns, k)
-	}
-	github_com_gogo_protobuf_sortkeys.Strings(keysForUnallocatedLuns)
-	mapStringForUnallocatedLuns := "map[string]*LUN{"
-	for _, k := range keysForUnallocatedLuns {
-		mapStringForUnallocatedLuns += fmt.Sprintf("%v: %v,", k, this.UnallocatedLuns[k])
-	}
-	mapStringForUnallocatedLuns += "}"
-	s := strings.Join([]string{`&ISCSIState{`,
-		`Targets:` + strings.Replace(fmt.Sprintf("%v", this.Targets), "Target", "Target", 1) + `,`,
-		`UnallocatedLuns:` + mapStringForUnallocatedLuns + `,`,
-		`XXX_unrecognized:` + fmt.Sprintf("%v", this.XXX_unrecognized) + `,`,
-		`}`,
-	}, "")
-	return s
-}
 func (this *CreateTargetRequest) String() string {
 	if this == nil {
 		return "nil"
@@ -1569,7 +1137,7 @@ func (this *CreateTargetResponse) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&CreateTargetResponse{`,
-		`Target:` + strings.Replace(fmt.Sprintf("%v", this.Target), "Target", "Target", 1) + `,`,
+		`Target:` + strings.Replace(fmt.Sprintf("%v", this.Target), "Target", "v1.Target", 1) + `,`,
 		`XXX_unrecognized:` + fmt.Sprintf("%v", this.XXX_unrecognized) + `,`,
 		`}`,
 	}, "")
@@ -1592,7 +1160,7 @@ func (this *CreateLUNResponse) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&CreateLUNResponse{`,
-		`Lun:` + strings.Replace(fmt.Sprintf("%v", this.Lun), "LUN", "LUN", 1) + `,`,
+		`Lun:` + strings.Replace(fmt.Sprintf("%v", this.Lun), "LUN", "v1.LUN", 1) + `,`,
 		`XXX_unrecognized:` + fmt.Sprintf("%v", this.XXX_unrecognized) + `,`,
 		`}`,
 	}, "")
@@ -1603,8 +1171,8 @@ func (this *AttachLUNRequest) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&AttachLUNRequest{`,
-		`Target:` + strings.Replace(fmt.Sprintf("%v", this.Target), "Target", "Target", 1) + `,`,
-		`Lun:` + strings.Replace(fmt.Sprintf("%v", this.Lun), "LUN", "LUN", 1) + `,`,
+		`TargetIqn:` + fmt.Sprintf("%v", this.TargetIqn) + `,`,
+		`Lun:` + strings.Replace(fmt.Sprintf("%v", this.Lun), "LUN", "v1.LUN", 1) + `,`,
 		`XXX_unrecognized:` + fmt.Sprintf("%v", this.XXX_unrecognized) + `,`,
 		`}`,
 	}, "")
@@ -1615,7 +1183,7 @@ func (this *AttachLUNResponse) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&AttachLUNResponse{`,
-		`Target:` + strings.Replace(fmt.Sprintf("%v", this.Target), "Target", "Target", 1) + `,`,
+		`Target:` + strings.Replace(fmt.Sprintf("%v", this.Target), "Target", "v1.Target", 1) + `,`,
 		`XXX_unrecognized:` + fmt.Sprintf("%v", this.XXX_unrecognized) + `,`,
 		`}`,
 	}, "")
@@ -1626,7 +1194,7 @@ func (this *ListTargetsResponse) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&ListTargetsResponse{`,
-		`Targets:` + strings.Replace(fmt.Sprintf("%v", this.Targets), "Target", "Target", 1) + `,`,
+		`Targets:` + strings.Replace(fmt.Sprintf("%v", this.Targets), "Target", "v1.Target", 1) + `,`,
 		`XXX_unrecognized:` + fmt.Sprintf("%v", this.XXX_unrecognized) + `,`,
 		`}`,
 	}, "")
@@ -1661,531 +1229,6 @@ func valueToStringIscsi(v interface{}) string {
 	}
 	pv := reflect.Indirect(rv).Interface()
 	return fmt.Sprintf("*%v", pv)
-}
-func (m *Target) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowIscsi
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: Target: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: Target: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Iqn", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowIscsi
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthIscsi
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return ErrInvalidLengthIscsi
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Iqn = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 2:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ID", wireType)
-			}
-			m.ID = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowIscsi
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.ID |= int64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 3:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Luns", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowIscsi
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthIscsi
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthIscsi
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Luns = append(m.Luns, &LUN{})
-			if err := m.Luns[len(m.Luns)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 4:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Accepts", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowIscsi
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthIscsi
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return ErrInvalidLengthIscsi
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Accepts = append(m.Accepts, string(dAtA[iNdEx:postIndex]))
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipIscsi(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				return ErrInvalidLengthIscsi
-			}
-			if (iNdEx + skippy) < 0 {
-				return ErrInvalidLengthIscsi
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.XXX_unrecognized = append(m.XXX_unrecognized, dAtA[iNdEx:iNdEx+skippy]...)
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *LUN) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowIscsi
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: LUN: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: LUN: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ID", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowIscsi
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthIscsi
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return ErrInvalidLengthIscsi
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.ID = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Path", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowIscsi
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthIscsi
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return ErrInvalidLengthIscsi
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Path = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 3:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field FsSize", wireType)
-			}
-			m.FsSize = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowIscsi
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.FsSize |= int64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		default:
-			iNdEx = preIndex
-			skippy, err := skipIscsi(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				return ErrInvalidLengthIscsi
-			}
-			if (iNdEx + skippy) < 0 {
-				return ErrInvalidLengthIscsi
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.XXX_unrecognized = append(m.XXX_unrecognized, dAtA[iNdEx:iNdEx+skippy]...)
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *ISCSIState) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowIscsi
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: ISCSIState: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: ISCSIState: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Targets", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowIscsi
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthIscsi
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthIscsi
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Targets = append(m.Targets, &Target{})
-			if err := m.Targets[len(m.Targets)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field UnallocatedLuns", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowIscsi
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthIscsi
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthIscsi
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.UnallocatedLuns == nil {
-				m.UnallocatedLuns = make(map[string]*LUN)
-			}
-			var mapkey string
-			var mapvalue *LUN
-			for iNdEx < postIndex {
-				entryPreIndex := iNdEx
-				var wire uint64
-				for shift := uint(0); ; shift += 7 {
-					if shift >= 64 {
-						return ErrIntOverflowIscsi
-					}
-					if iNdEx >= l {
-						return io.ErrUnexpectedEOF
-					}
-					b := dAtA[iNdEx]
-					iNdEx++
-					wire |= uint64(b&0x7F) << shift
-					if b < 0x80 {
-						break
-					}
-				}
-				fieldNum := int32(wire >> 3)
-				if fieldNum == 1 {
-					var stringLenmapkey uint64
-					for shift := uint(0); ; shift += 7 {
-						if shift >= 64 {
-							return ErrIntOverflowIscsi
-						}
-						if iNdEx >= l {
-							return io.ErrUnexpectedEOF
-						}
-						b := dAtA[iNdEx]
-						iNdEx++
-						stringLenmapkey |= uint64(b&0x7F) << shift
-						if b < 0x80 {
-							break
-						}
-					}
-					intStringLenmapkey := int(stringLenmapkey)
-					if intStringLenmapkey < 0 {
-						return ErrInvalidLengthIscsi
-					}
-					postStringIndexmapkey := iNdEx + intStringLenmapkey
-					if postStringIndexmapkey < 0 {
-						return ErrInvalidLengthIscsi
-					}
-					if postStringIndexmapkey > l {
-						return io.ErrUnexpectedEOF
-					}
-					mapkey = string(dAtA[iNdEx:postStringIndexmapkey])
-					iNdEx = postStringIndexmapkey
-				} else if fieldNum == 2 {
-					var mapmsglen int
-					for shift := uint(0); ; shift += 7 {
-						if shift >= 64 {
-							return ErrIntOverflowIscsi
-						}
-						if iNdEx >= l {
-							return io.ErrUnexpectedEOF
-						}
-						b := dAtA[iNdEx]
-						iNdEx++
-						mapmsglen |= int(b&0x7F) << shift
-						if b < 0x80 {
-							break
-						}
-					}
-					if mapmsglen < 0 {
-						return ErrInvalidLengthIscsi
-					}
-					postmsgIndex := iNdEx + mapmsglen
-					if postmsgIndex < 0 {
-						return ErrInvalidLengthIscsi
-					}
-					if postmsgIndex > l {
-						return io.ErrUnexpectedEOF
-					}
-					mapvalue = &LUN{}
-					if err := mapvalue.Unmarshal(dAtA[iNdEx:postmsgIndex]); err != nil {
-						return err
-					}
-					iNdEx = postmsgIndex
-				} else {
-					iNdEx = entryPreIndex
-					skippy, err := skipIscsi(dAtA[iNdEx:])
-					if err != nil {
-						return err
-					}
-					if skippy < 0 {
-						return ErrInvalidLengthIscsi
-					}
-					if (iNdEx + skippy) > postIndex {
-						return io.ErrUnexpectedEOF
-					}
-					iNdEx += skippy
-				}
-			}
-			m.UnallocatedLuns[mapkey] = mapvalue
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipIscsi(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				return ErrInvalidLengthIscsi
-			}
-			if (iNdEx + skippy) < 0 {
-				return ErrInvalidLengthIscsi
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.XXX_unrecognized = append(m.XXX_unrecognized, dAtA[iNdEx:iNdEx+skippy]...)
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
 }
 func (m *CreateTargetRequest) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
@@ -2332,7 +1375,7 @@ func (m *CreateTargetResponse) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.Target == nil {
-				m.Target = &Target{}
+				m.Target = &v1.Target{}
 			}
 			if err := m.Target.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -2527,7 +1570,7 @@ func (m *CreateLUNResponse) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.Lun == nil {
-				m.Lun = &LUN{}
+				m.Lun = &v1.LUN{}
 			}
 			if err := m.Lun.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -2589,9 +1632,9 @@ func (m *AttachLUNRequest) Unmarshal(dAtA []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Target", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field TargetIqn", wireType)
 			}
-			var msglen int
+			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowIscsi
@@ -2601,27 +1644,23 @@ func (m *AttachLUNRequest) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= int(b&0x7F) << shift
+				stringLen |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if msglen < 0 {
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
 				return ErrInvalidLengthIscsi
 			}
-			postIndex := iNdEx + msglen
+			postIndex := iNdEx + intStringLen
 			if postIndex < 0 {
 				return ErrInvalidLengthIscsi
 			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if m.Target == nil {
-				m.Target = &Target{}
-			}
-			if err := m.Target.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
+			m.TargetIqn = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
@@ -2653,7 +1692,7 @@ func (m *AttachLUNRequest) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.Lun == nil {
-				m.Lun = &LUN{}
+				m.Lun = &v1.LUN{}
 			}
 			if err := m.Lun.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -2743,7 +1782,7 @@ func (m *AttachLUNResponse) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.Target == nil {
-				m.Target = &Target{}
+				m.Target = &v1.Target{}
 			}
 			if err := m.Target.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -2832,7 +1871,7 @@ func (m *ListTargetsResponse) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Targets = append(m.Targets, &Target{})
+			m.Targets = append(m.Targets, &v1.Target{})
 			if err := m.Targets[len(m.Targets)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
