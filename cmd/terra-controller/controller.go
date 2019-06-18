@@ -84,6 +84,7 @@ func main() {
 				return err
 			}
 		}
+		config = t
 		if t.Debug {
 			logrus.SetLevel(logrus.DebugLevel)
 		}
