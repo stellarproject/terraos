@@ -44,6 +44,9 @@ func Mkfs(t string, label string, args ...string) error {
 	ca := append([]string{
 		"-L", label,
 	}, args...)
+	if t == Btrfs {
+		ca = append([]string{"-f"}, ca...)
+	}
 	out, err := exec.Command(fmt.Sprintf("mkfs.%s", t), ca...).CombinedOutput()
 	if err != nil {
 		return errors.Wrapf(err, "%s", out)
