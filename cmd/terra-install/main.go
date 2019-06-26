@@ -37,15 +37,12 @@ import (
 	"github.com/containerd/containerd/content"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	v1 "github.com/stellarproject/terraos/api/v1/types"
 	"github.com/stellarproject/terraos/cmd"
-	"github.com/stellarproject/terraos/pkg/btrfs"
 	"github.com/stellarproject/terraos/pkg/fstab"
 	"github.com/stellarproject/terraos/pkg/image"
+	"github.com/stellarproject/terraos/pkg/mkfs"
 	"github.com/stellarproject/terraos/pkg/resolvconf"
 	"github.com/stellarproject/terraos/pkg/syslinux"
-	"github.com/stellarproject/terraos/stage0"
-	"github.com/stellarproject/terraos/stage1"
 	"github.com/stellarproject/terraos/version"
 	"github.com/urfave/cli"
 	"golang.org/x/sys/unix"
@@ -109,6 +106,10 @@ Install terra onto a physical disk`
 		if err != nil {
 			return errors.Wrap(err, "load node")
 		}
+		imageName := clix.Args().Get(1)
+		if imageName == "" {
+			return errors.New("no image passed on the command line")
+		}
 		var (
 			diskmount = "/tmp/mnt"
 			dest      = "/tmp/dest"
@@ -120,77 +121,43 @@ Install terra onto a physical disk`
 			}
 		}
 
-		var (
-			entries []*fstab.Entry
-			store   content.Store
-		)
-		for _, g := range node.DiskGroups {
-			if g.Stage != v1.Stage1 {
-				continue
+		var store content.Store
+		for _, v := range node.Volumes {
+			if len(v.Disks) > 1 {
+				return errors.New("only one disk supported now")
 			}
-			path := filepath.Join(diskmount, g.Label)
-			if err := os.MkdirAll(path, 0755); err != nil {
-				return errors.Wrapf(err, "mkdir %s", path)
+			if err := mkfs.Mkfs(v.FsType, v.Label, v.Disks[0].Device); err != nil {
+				return errors.Wrap(err, "format volume")
 			}
-			if err := stage0.Format(g); err != nil {
-				return errors.Wrap(err, "format group")
-			}
-
 			// mount the entire diskmount group before subsystems
-			if err := unix.Mount(g.Disks[0].Device, path, stage0.DefaultFilesystem, 0, ""); err != nil {
-				return errors.Wrapf(err, "mount %s to %s", g.Disks[0].Device, path)
+			if err := unix.Mount(v.Disks[0].Device, dest, v.FsType, 0, ""); err != nil {
+				return errors.Wrapf(err, "mount %s to %s", v.Disks[0].Device, dest)
 			}
 			if store == nil {
-				storePath := filepath.Join(path, "terra-install-content")
+				storePath := filepath.Join(dest, "terra-install-content")
 				if store, err = image.NewContentStore(storePath); err != nil {
 					return errors.Wrap(err, "new content store")
 				}
 			}
-			group, err := stage1.NewGroup(g, dest)
-			if err != nil {
-				return errors.Wrap(err, "new stage1 disk group")
-			}
-			defer group.Close()
-
-			if err := group.Init(path, &stage1.InitConfig{
-				EtcSubvolume: true,
-			}); err != nil {
-				return err
-			}
-			entries = append(entries, group.Entries()...)
 		}
 		if store == nil {
 			return errors.New("store not created on any group")
 		}
 		// install
-		desc, err := image.Fetch(ctx, clix.GlobalBool("http"), store, node.Image)
+		desc, err := image.Fetch(ctx, clix.GlobalBool("http"), store, imageName)
 		if err != nil {
 			return errors.Wrap(err, "fetch image")
 		}
 		if err := image.Unpack(ctx, store, desc, dest); err != nil {
 			return errors.Wrap(err, "unpack image")
 		}
-
-		for _, g := range node.DiskGroups {
-			if g.Mbr {
-				/*
-					add the boot dir?
-						entries = append(entries, &fstab.Entry{
-							Type:   mkfs.Btrfs,
-							Device: fmt.Sprintf("LABEL=%s", d.Label),
-							Path:   "/boot",
-							Pass:   2,
-							Options: []string{
-								"bind",
-							},
-						})
-				*/
-
-				path := filepath.Join(diskmount, g.Label)
+		for _, v := range node.Volumes {
+			if v.Boot {
+				path := dest
 				if err := syslinux.Copy(path); err != nil {
 					return errors.Wrap(err, "copy syslinux from live cd")
 				}
-				if err := syslinux.InstallMBR(removePartition(g.Disks[0].Device), "/boot/syslinux/mbr.bin"); err != nil {
+				if err := syslinux.InstallMBR(removePartition(v.Disks[0].Device), "/boot/syslinux/mbr.bin"); err != nil {
 					return errors.Wrap(err, "install mbr")
 				}
 				if err := syslinux.ExtlinuxInstall(filepath.Join(path, "boot", "syslinux")); err != nil {
@@ -198,28 +165,8 @@ Install terra onto a physical disk`
 				}
 			}
 		}
-		if err := writeFstab(entries, dest); err != nil {
-			return errors.Wrap(err, "write fstab")
-		}
 		if err := writeResolvconf(dest, gateway); err != nil {
 			return errors.Wrap(err, "write resolv.conf")
-		}
-		// snapshot the os install
-		for _, g := range node.DiskGroups {
-			if g.Label == stage1.OSLabel {
-				var (
-					path   = filepath.Join(diskmount, g.Label)
-					source = filepath.Join(path, stage1.OSVolume)
-					dest   = filepath.Join(path, stage1.SnapshotVolume)
-				)
-				if err := os.MkdirAll(dest, 0711); err != nil {
-					return err
-				}
-				if err := btrfs.Snapshot(source, dest); err != nil {
-					return err
-				}
-				break
-			}
 		}
 		return nil
 	}
