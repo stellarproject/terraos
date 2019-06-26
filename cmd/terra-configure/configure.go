@@ -42,8 +42,8 @@ import (
 	"github.com/stellarproject/terraos/pkg/fstab"
 	"github.com/stellarproject/terraos/pkg/netplan"
 	"github.com/stellarproject/terraos/pkg/resolvconf"
+	"github.com/stellarproject/terraos/version"
 	"github.com/urfave/cli"
-	"honnef.co/go/tools/version"
 )
 
 const hostsTemplate = `127.0.0.1       localhost %s

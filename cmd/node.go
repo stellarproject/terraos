@@ -41,7 +41,7 @@ type Node struct {
 	Hostname string   `toml:"hostname"`
 	Labels   []string `toml:"labels"`
 	Nics     []NIC    `toml:"nic"`
-	Volumes  []Volume `toml:"volume"`
+	Volumes  []Volume `toml:"volumes"`
 	GPUs     []GPU    `toml:"gpus"`
 	CPUs     []CPU    `toml:"cpus"`
 	Memory   uint32   `toml:"memory"`
@@ -115,6 +115,7 @@ func (n *Node) ToProto() *v1.Node {
 			Disks:      disks(g.Disks),
 			Boot:       g.Mbr,
 			FsSize:     g.Size,
+			FsType:     g.FSType,
 		})
 	}
 	for _, nic := range n.Nics {

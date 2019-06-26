@@ -36,7 +36,7 @@ import (
 	"syscall"
 
 	"github.com/containerd/containerd"
-	"github.com/docker/docker/errdefs"
+	"github.com/containerd/containerd/errdefs"
 	"github.com/gogo/protobuf/proto"
 	"github.com/gogo/protobuf/types"
 	"github.com/gomodule/redigo/redis"
