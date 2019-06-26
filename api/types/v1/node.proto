@@ -46,25 +46,10 @@ message NIC {
 }
 
 message Volume {
-	enum VolumeType {
-		option (gogoproto.goproto_enum_prefix) = false;
-		option (gogoproto.enum_customname) = "VolumeType";
-
-		SINGLE = 0 [(gogoproto.enumvalue_customname) = "Single"];
-		RAID0 = 1 [(gogoproto.enumvalue_customname) = "RAID0"];
-		RAID5 = 2 [(gogoproto.enumvalue_customname) = "RAID5"];
-		RAID10 = 3 [(gogoproto.enumvalue_customname) = "RAID10"];
-		ISCSI = 4 [(gogoproto.enumvalue_customname) = "ISCSIVolume"];
-	}
-
-	VolumeType type = 1;
-	string label = 2;
-	repeated Subvolume subvolumes = 3;
-	repeated Disk disks = 4;
-	bool boot = 5;
-	string fs_type = 6;
-	string path = 7;
-	int64 fs_size = 8;
+	string label = 1;
+	string type = 2;
+	int64 fs_size = 3;
+	string path = 4;
 }
 
 message Subvolume {
@@ -75,4 +60,5 @@ message Subvolume {
 
 message Disk {
 	string device = 1;
+	bool boot = 2;
 }

@@ -37,15 +37,14 @@ import (
 	"github.com/containerd/containerd/content"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	v1 "github.com/stellarproject/terraos/api/types/v1"
 	"github.com/stellarproject/terraos/cmd"
 	"github.com/stellarproject/terraos/pkg/fstab"
 	"github.com/stellarproject/terraos/pkg/image"
-	"github.com/stellarproject/terraos/pkg/mkfs"
 	"github.com/stellarproject/terraos/pkg/resolvconf"
 	"github.com/stellarproject/terraos/pkg/syslinux"
 	"github.com/stellarproject/terraos/version"
 	"github.com/urfave/cli"
-	"golang.org/x/sys/unix"
 )
 
 func main() {
@@ -89,6 +88,15 @@ Install terra onto a physical disk`
 			Name:  "gateway",
 			Usage: "gateway ip",
 		},
+		cli.StringSliceFlag{
+			Name:  "device",
+			Usage: "device for volume LABEL:dev",
+			Value: &cli.StringSlice{},
+		},
+		cli.StringFlag{
+			Name:  "boot",
+			Usage: "select the boot device by label",
+		},
 	}
 	app.Before = func(clix *cli.Context) error {
 		if clix.GlobalBool("debug") {
@@ -110,6 +118,10 @@ Install terra onto a physical disk`
 		if imageName == "" {
 			return errors.New("no image passed on the command line")
 		}
+		devices, err := getDevices(clix)
+		if err != nil {
+			return errors.Wrap(err, "get devices")
+		}
 		var (
 			diskmount = "/tmp/mnt"
 			dest      = "/tmp/dest"
@@ -123,18 +135,26 @@ Install terra onto a physical disk`
 
 		var store content.Store
 		for _, v := range node.Volumes {
-			if len(v.Disks) > 1 {
-				return errors.New("only one disk supported now")
+			dev, ok := devices[v.Label]
+			if !ok {
+				return errors.Errorf("device for label %s does not exist", v.Label)
 			}
-			if err := mkfs.Mkfs(v.FsType, v.Label, v.Disks[0].Device); err != nil {
+			if err := v.Format(dev.Device); err != nil {
 				return errors.Wrap(err, "format volume")
 			}
-			// mount the entire diskmount group before subsystems
-			if err := unix.Mount(v.Disks[0].Device, dest, v.FsType, 0, ""); err != nil {
-				return errors.Wrapf(err, "mount %s to %s", v.Disks[0].Device, dest)
+			path := filepath.Join(diskmount, v.Label)
+			if err := os.MkdirAll(path, 0755); err != nil {
+				return errors.Wrap(err, "mkdir volume mount")
 			}
+			// mount the entire diskmount group before subsystems
+			closer, err := v.Mount(dev.Device, path)
+			if err != nil {
+				return err
+			}
+			defer closer()
+
 			if store == nil {
-				storePath := filepath.Join(dest, "terra-install-content")
+				storePath := filepath.Join(path, "terra-install-content")
 				if store, err = image.NewContentStore(storePath); err != nil {
 					return errors.Wrap(err, "new content store")
 				}
@@ -152,12 +172,13 @@ Install terra onto a physical disk`
 			return errors.Wrap(err, "unpack image")
 		}
 		for _, v := range node.Volumes {
-			if v.Boot {
+			dev, ok := devices[v.Label]
+			if ok && dev.Boot {
 				path := dest
 				if err := syslinux.Copy(path); err != nil {
 					return errors.Wrap(err, "copy syslinux from live cd")
 				}
-				if err := syslinux.InstallMBR(removePartition(v.Disks[0].Device), "/boot/syslinux/mbr.bin"); err != nil {
+				if err := syslinux.InstallMBR(removePartition(dev.Device), "/boot/syslinux/mbr.bin"); err != nil {
 					return errors.Wrap(err, "install mbr")
 				}
 				if err := syslinux.ExtlinuxInstall(filepath.Join(path, "boot", "syslinux")); err != nil {
@@ -213,4 +234,22 @@ func writeResolvconf(root, gateway string) error {
 		},
 	}
 	return conf.Write(f)
+}
+
+func getDevices(clix *cli.Context) (map[string]v1.Disk, error) {
+	var (
+		boot = clix.GlobalString("boot")
+		out  = make(map[string]v1.Disk)
+	)
+	for _, d := range clix.GlobalStringSlice("device") {
+		parts := strings.Split(d, ":")
+		if len(parts) != 2 {
+			return nil, errors.Errorf("device %s not valid format", d)
+		}
+		out[parts[0]] = v1.Disk{
+			Device: parts[1],
+			Boot:   boot == parts[0],
+		}
+	}
+	return out, nil
 }

@@ -45,7 +45,6 @@ import (
 	prov "github.com/stellarproject/terraos/api/node/v1"
 	api "github.com/stellarproject/terraos/api/types/v1"
 	"github.com/stellarproject/terraos/pkg/image"
-	"github.com/stellarproject/terraos/pkg/mkfs"
 	"github.com/stellarproject/terraos/remotes"
 	"golang.org/x/sys/unix"
 )
@@ -295,8 +294,8 @@ func (s *Controller) Provision(ctx context.Context, r *prov.ProvisionRequest) (*
 		if !ok {
 			return nil, errors.New("no os volume for os install")
 		}
-		if volume.FsType != "ext4" {
-			return nil, errors.Errorf("only ext4 is supported for luns: %s", volume.FsType)
+		if volume.Type != "ext4" {
+			return nil, errors.Errorf("only ext4 is supported for luns: %s", volume.Type)
 		}
 		image, err := s.fetch(ctx, r.Image)
 		if err != nil {
@@ -325,8 +324,8 @@ func (s *Controller) fetch(ctx context.Context, repo string) (containerd.Image, 
 }
 
 func (s *Controller) format(ctx context.Context, volume *api.Volume, l *api.LUN) error {
-	if err := mkfs.Mkfs(volume.FsType, l.Label, l.Path); err != nil {
-		return errors.Wrapf(err, "format lun for %s with %s", l.Label, volume.FsType)
+	if err := volume.Format(l.Path); err != nil {
+		return errors.Wrapf(err, "format lun for %s with %s", l.Label, volume.Type)
 	}
 	return nil
 }
@@ -338,7 +337,7 @@ func (s *Controller) installImage(ctx context.Context, volume *api.Volume, l *ap
 	}
 	defer os.Remove(dest)
 
-	if err := mount(ctx, volume.FsType, l.Path, dest); err != nil {
+	if err := mount(ctx, volume.Type, l.Path, dest); err != nil {
 		return errors.Wrap(err, "mount lun for install")
 	}
 	defer unix.Unmount(dest, 0)

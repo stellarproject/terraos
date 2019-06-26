@@ -59,20 +59,10 @@ type Disk struct {
 }
 
 type Volume struct {
-	Label      string      `toml:"label"`
-	Type       string      `toml:"type"`
-	Subvolumes []Subvolume `toml:"subvolumes"`
-	Disks      []Disk      `toml:"disk"`
-	FSType     string      `toml:"fs_type"`
-	Mbr        bool        `toml:"mbr"`
-	Path       string      `toml:"path"`
-	Size       int64       `toml:"size"`
-}
-
-type Subvolume struct {
-	Name string `toml:"name"`
-	Path string `toml:"path"`
-	COW  bool   `toml:"cow"`
+	Label string `toml:"label"`
+	Type  string `toml:"type"`
+	Path  string `toml:"path"`
+	Size  int64  `toml:"size"`
 }
 
 type CPU struct {
@@ -94,28 +84,11 @@ func (n *Node) ToProto() *v1.Node {
 		Labels:   n.Labels,
 	}
 	for _, g := range n.Volumes {
-		t := v1.Single
-		switch g.Type {
-		case "single":
-			t = v1.Single
-		case "raid0":
-			t = v1.RAID0
-		case "raid5":
-			t = v1.RAID5
-		case "raid10":
-			t = v1.RAID10
-		case "iscsi":
-			t = v1.ISCSIVolume
-		}
 		p.Volumes = append(p.Volumes, &v1.Volume{
-			Path:       g.Path,
-			Type:       t,
-			Label:      g.Label,
-			Subvolumes: subvolumes(g.Subvolumes),
-			Disks:      disks(g.Disks),
-			Boot:       g.Mbr,
-			FsSize:     g.Size,
-			FsType:     g.FSType,
+			Path:   g.Path,
+			Type:   g.Type,
+			Label:  g.Label,
+			FsSize: g.Size,
 		})
 	}
 	for _, nic := range n.Nics {
@@ -139,26 +112,6 @@ func (n *Node) ToProto() *v1.Node {
 		})
 	}
 	return p
-}
-
-func disks(disks []Disk) (out []*v1.Disk) {
-	for _, d := range disks {
-		out = append(out, &v1.Disk{
-			Device: d.Device,
-		})
-	}
-	return out
-}
-
-func subvolumes(subvolumes []Subvolume) (out []*v1.Subvolume) {
-	for _, s := range subvolumes {
-		out = append(out, &v1.Subvolume{
-			Name: s.Name,
-			Path: s.Path,
-			Cow:  s.COW,
-		})
-	}
-	return out
 }
 
 func LoadNode(path string) (*v1.Node, error) {
@@ -220,41 +173,14 @@ func DumpNodeConfig() error {
 		},
 		Volumes: []Volume{
 			{
-				Type:   "single",
-				Path:   "/",
-				Label:  "os",
-				FSType: "ext4",
-				Disks: []Disk{
-					{
-						Device: "/dev/sda1",
-					},
-				},
+				Path:  "/",
+				Label: "os",
+				Type:  "btrfs",
 			},
 			{
-				Label:  "data",
-				Type:   "raid10",
-				FSType: "btrfs",
-				Disks: []Disk{
-					{
-						Device: "/dev/sda2",
-					},
-					{
-						Device: "/dev/sdb",
-					},
-				},
-				Subvolumes: []Subvolume{
-					{
-						Name: "tftp",
-						Path: "/tftp",
-					},
-				},
-			},
-			{
-				Type:   "iscsi",
-				Label:  "containerd",
-				Path:   "/var/lib/containerd",
-				FSType: "ext4",
-				Size:   64000,
+				Label: "ctd",
+				Type:  "btrfs",
+				Path:  "/var/lib/containerd",
 			},
 		},
 	}

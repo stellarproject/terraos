@@ -339,9 +339,6 @@ func (c *Controller) createVolumes(ctx context.Context, addr string, node *v1.No
 	}
 	target := targetResponse.Target
 	for _, v := range node.Volumes {
-		if v.Type != v1.ISCSIVolume {
-			continue
-		}
 		lunResponse, err := is.CreateLUN(ctx, &iscsi.CreateLUNRequest{
 			ID:     fmt.Sprintf("%s.%s", node.Hostname, v.Label),
 			FsSize: v.FsSize,
