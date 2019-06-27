@@ -42,7 +42,6 @@ import (
 	"github.com/stellarproject/terraos/pkg/fstab"
 	"github.com/stellarproject/terraos/pkg/netplan"
 	"github.com/stellarproject/terraos/pkg/resolvconf"
-	"github.com/stellarproject/terraos/version"
 	"github.com/urfave/cli"
 )
 
@@ -55,35 +54,10 @@ var dirs = []string{
 	"/var/lib/containerd",
 }
 
-func main() {
-	app := cli.NewApp()
-	app.Name = "terra-configure"
-	app.Version = version.Version
-	app.Usage = "Terra node configuration"
-	app.Description = `
-                                                     ___
-                                                  ,o88888
-                                               ,o8888888'
-                         ,:o:o:oooo.        ,8O88Pd8888"
-                     ,.::.::o:ooooOoOoO. ,oO8O8Pd888'"
-                   ,.:.::o:ooOoOoOO8O8OOo.8OOPd8O8O"
-                  , ..:.::o:ooOoOOOO8OOOOo.FdO8O8"
-                 , ..:.::o:ooOoOO8O888O8O,COCOO"
-                , . ..:.::o:ooOoOOOO8OOOOCOCO"
-                 . ..:.::o:ooOoOoOO8O8OCCCC"o
-                    . ..:.::o:ooooOoCoCCC"o:o
-                    . ..:.::o:o:,cooooCo"oo:o:
-                 ` + "`" + `   . . ..:.:cocoooo"'o:o:::'
-                 .` + "`" + `   . ..::ccccoc"'o:o:o:::'
-                :.:.    ,c:cccc"':.:.:.:.:.'
-              ..:.:"'` + "`" + `::::c:"'..:.:.:.:.:.'
-            ...:.'.:.::::"'    . . . . .'
-           .. . ....:."' ` + "`" + `   .  . . ''
-         . . . ...."'
-         .. . ."'
-        .
-`
-	app.Action = func(clix *cli.Context) error {
+var configureCommand = cli.Command{
+	Name:  "configure",
+	Usage: "configure the machine image",
+	Action: func(clix *cli.Context) error {
 		ctx := cmd.CancelContext()
 		data, err := ioutil.ReadAll(os.Stdin)
 		if err != nil {
@@ -117,11 +91,7 @@ func main() {
 			return errors.Wrap(err, "setup machine id")
 		}
 		return nil
-	}
-	if err := app.Run(os.Args); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
+	},
 }
 
 func setupFstab(r *v1.ProvisionRequest) error {

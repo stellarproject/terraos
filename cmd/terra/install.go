@@ -28,7 +28,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -36,50 +35,19 @@ import (
 
 	"github.com/containerd/containerd/content"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 	v1 "github.com/stellarproject/terraos/api/types/v1"
 	"github.com/stellarproject/terraos/cmd"
 	"github.com/stellarproject/terraos/pkg/fstab"
 	"github.com/stellarproject/terraos/pkg/image"
 	"github.com/stellarproject/terraos/pkg/resolvconf"
 	"github.com/stellarproject/terraos/pkg/syslinux"
-	"github.com/stellarproject/terraos/version"
 	"github.com/urfave/cli"
 )
 
-func main() {
-	app := cli.NewApp()
-	app.Name = "terra-install"
-	app.Version = version.Version
-	app.Usage = "[repo] [destination]"
-	app.Description = `
-                                                     ___
-                                                  ,o88888
-                                               ,o8888888'
-                         ,:o:o:oooo.        ,8O88Pd8888"
-                     ,.::.::o:ooooOoOoO. ,oO8O8Pd888'"
-                   ,.:.::o:ooOoOoOO8O8OOo.8OOPd8O8O"
-                  , ..:.::o:ooOoOOOO8OOOOo.FdO8O8"
-                 , ..:.::o:ooOoOO8O888O8O,COCOO"
-                , . ..:.::o:ooOoOOOO8OOOOCOCO"
-                 . ..:.::o:ooOoOoOO8O8OCCCC"o
-                    . ..:.::o:ooooOoCoCCC"o:o
-                    . ..:.::o:o:,cooooCo"oo:o:
-                 ` + "`" + `   . . ..:.:cocoooo"'o:o:::'
-                 .` + "`" + `   . ..::ccccoc"'o:o:o:::'
-                :.:.    ,c:cccc"':.:.:.:.:.'
-              ..:.:"'` + "`" + `::::c:"'..:.:.:.:.:.'
-            ...:.'.:.::::"'    . . . . .'
-           .. . ....:."' ` + "`" + `   .  . . ''
-         . . . ...."'
-         .. . ."'
-        .
-Install terra onto a physical disk`
-	app.Flags = []cli.Flag{
-		cli.BoolFlag{
-			Name:  "debug",
-			Usage: "enable debug output in the logs",
-		},
+var installCommand = cli.Command{
+	Name:  "install",
+	Usage: "install terra onto a physical disk",
+	Flags: []cli.Flag{
 		cli.BoolFlag{
 			Name:  "http",
 			Usage: "fetch image over http",
@@ -97,15 +65,9 @@ Install terra onto a physical disk`
 			Name:  "boot",
 			Usage: "select the boot device by label",
 		},
-	}
-	app.Before = func(clix *cli.Context) error {
-		if clix.GlobalBool("debug") {
-			logrus.SetLevel(logrus.DebugLevel)
-		}
-		return nil
-	}
-	app.Action = func(clix *cli.Context) error {
-		gateway := clix.GlobalString("gateway")
+	},
+	Action: func(clix *cli.Context) error {
+		gateway := clix.String("gateway")
 		if gateway == "" {
 			return errors.New("--gateway not specified")
 		}
@@ -164,7 +126,7 @@ Install terra onto a physical disk`
 			return errors.New("store not created on any group")
 		}
 		// install
-		desc, err := image.Fetch(ctx, clix.GlobalBool("http"), store, imageName)
+		desc, err := image.Fetch(ctx, clix.Bool("http"), store, imageName)
 		if err != nil {
 			return errors.Wrap(err, "fetch image")
 		}
@@ -190,11 +152,7 @@ Install terra onto a physical disk`
 			return errors.Wrap(err, "write resolv.conf")
 		}
 		return nil
-	}
-	if err := app.Run(os.Args); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
+	},
 }
 
 func removePartition(device string) string {
@@ -238,10 +196,10 @@ func writeResolvconf(root, gateway string) error {
 
 func getDevices(clix *cli.Context) (map[string]v1.Disk, error) {
 	var (
-		boot = clix.GlobalString("boot")
+		boot = clix.String("boot")
 		out  = make(map[string]v1.Disk)
 	)
-	for _, d := range clix.GlobalStringSlice("device") {
+	for _, d := range clix.StringSlice("device") {
 		parts := strings.Split(d, ":")
 		if len(parts) != 2 {
 			return nil, errors.Errorf("device %s not valid format", d)

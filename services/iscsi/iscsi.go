@@ -354,16 +354,16 @@ func (s *Controller) installImage(ctx context.Context, volume *api.Volume, l *ap
 }
 
 func (s *Controller) applyConfigurationLayer(ctx context.Context, r *prov.ProvisionRequest, dest string) error {
-	cmd := exec.CommandContext(ctx, "terra-configure")
-
+	cmd := exec.CommandContext(ctx, "terra", "configure")
 	data, err := proto.Marshal(r)
 	if err != nil {
 		return errors.Wrap(err, "marshal request")
 	}
 	buf := bytes.NewReader(data)
 	cmd.Stdin = buf
-	cmd.SysProcAttr = &syscall.SysProcAttr{}
-	cmd.SysProcAttr.Chroot = dest
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		Chroot: dest,
+	}
 	cmd.Dir = "/"
 	out, err := cmd.CombinedOutput()
 	if err != nil {

@@ -28,7 +28,6 @@
 package main
 
 import (
-	"fmt"
 	"net"
 	"os"
 	"os/signal"
@@ -36,65 +35,20 @@ import (
 
 	"github.com/containerd/containerd"
 	"github.com/containerd/containerd/defaults"
-	raven "github.com/getsentry/raven-go"
 	"github.com/gomodule/redigo/redis"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 	v1 "github.com/stellarproject/terraos/api/iscsi/v1"
 	node "github.com/stellarproject/terraos/api/node/v1"
 	"github.com/stellarproject/terraos/cmd"
 	"github.com/stellarproject/terraos/services/iscsi"
-	"github.com/stellarproject/terraos/version"
 	"github.com/urfave/cli"
 )
 
-func main() {
-	app := cli.NewApp()
-	app.Name = "terra-iscsi"
-	app.Version = version.Version
-	app.Usage = "Terra iSCSI Server"
-	app.Description = `
-                                                     ___
-                                                  ,o88888
-                                               ,o8888888'
-                         ,:o:o:oooo.        ,8O88Pd8888"
-                     ,.::.::o:ooooOoOoO. ,oO8O8Pd888'"
-                   ,.:.::o:ooOoOoOO8O8OOo.8OOPd8O8O"
-                  , ..:.::o:ooOoOOOO8OOOOo.FdO8O8"
-                 , ..:.::o:ooOoOO8O888O8O,COCOO"
-                , . ..:.::o:ooOoOOOO8OOOOCOCO"
-                 . ..:.::o:ooOoOoOO8O8OCCCC"o
-                    . ..:.::o:ooooOoCoCCC"o:o
-                    . ..:.::o:o:,cooooCo"oo:o:
-                 ` + "`" + `   . . ..:.:cocoooo"'o:o:::'
-                 .` + "`" + `   . ..::ccccoc"'o:o:o:::'
-                :.:.    ,c:cccc"':.:.:.:.:.'
-              ..:.:"'` + "`" + `::::c:"'..:.:.:.:.:.'
-            ...:.'.:.::::"'    . . . . .'
-           .. . ....:."' ` + "`" + `   .  . . ''
-         . . . ...."'
-         .. . ."'
-        .
-`
-	var config *cmd.Terra
-	app.Before = func(clix *cli.Context) error {
-		t, err := cmd.LoadTerra()
-		if err != nil {
-			if !os.IsNotExist(err) {
-				return err
-			}
-		}
-		config = t
-		if t.Debug {
-			logrus.SetLevel(logrus.DebugLevel)
-		}
-		if t.SentryDSN != "" {
-			raven.SetDSN(t.SentryDSN)
-			raven.DefaultClient.SetRelease(version.Version)
-		}
-		return nil
-	}
-	app.Action = func(clix *cli.Context) error {
+var iscsiCommand = cli.Command{
+	Name:   "iscsi",
+	Usage:  "iscsi server",
+	Before: Before,
+	Action: func(clix *cli.Context) error {
 		client, err := containerd.New(
 			defaults.DefaultAddress,
 			containerd.WithDefaultNamespace("iscsi"),
@@ -131,10 +85,5 @@ func main() {
 		defer l.Close()
 
 		return server.Serve(l)
-	}
-	if err := app.Run(os.Args); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		raven.CaptureErrorAndWait(err, nil)
-		os.Exit(1)
-	}
+	},
 }

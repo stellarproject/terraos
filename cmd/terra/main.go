@@ -31,7 +31,9 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/getsentry/raven-go"
 	"github.com/sirupsen/logrus"
+	"github.com/stellarproject/terraos/cmd"
 	"github.com/stellarproject/terraos/version"
 	"github.com/urfave/cli"
 )
@@ -85,8 +87,12 @@ Terra OS management`
 	}
 	app.Commands = []cli.Command{
 		createCommand,
+		configureCommand,
+		controllerCommand,
 		deleteCommand,
+		initCommand,
 		infoCommand,
+		iscsiCommand,
 		provisionCommand,
 		listCommand,
 		pxeCommand,
@@ -95,4 +101,24 @@ Terra OS management`
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
+}
+
+var config *cmd.Terra
+
+func Before(clix *cli.Context) error {
+	t, err := cmd.LoadTerra()
+	if err != nil {
+		if !os.IsNotExist(err) {
+			return err
+		}
+	}
+	config = t
+	if t.Debug {
+		logrus.SetLevel(logrus.DebugLevel)
+	}
+	if t.SentryDSN != "" {
+		raven.SetDSN(t.SentryDSN)
+		raven.DefaultClient.SetRelease(version.Version)
+	}
+	return nil
 }
