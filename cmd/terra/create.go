@@ -175,14 +175,14 @@ var createCommand = cli.Command{
 	},
 }
 
-func writeDockerfile(path string, ctx *ImageContext, destl string) error {
+func writeDockerfile(path string, ctx *ImageContext, temp string) error {
 	f, err := os.Create(filepath.Join(path, "Dockerfile"))
 	if err != nil {
 		return err
 	}
 	defer f.Close()
 
-	if err := render(f, destl, ctx); err != nil {
+	if err := render(f, temp, ctx); err != nil {
 		return err
 	}
 	return nil
@@ -203,7 +203,13 @@ RUN systemctl enable {{$s}}
 {{end}}
 {{end}}
 
-ADD . /
+ADD etc/hostname /etc/
+ADD etc/hosts /etc/
+ADD etc/resolv.conf /etc/
+ADD etc/hostname /etc/
+ADD etc/netplan/01-netcfg.yaml /etc/netplan/
+
+ADD home/terra/.ssh /home/terra/.ssh
 
 RUN dbus-uuidgen --ensure=/etc/machine-id && dbus-uuidgen --ensure
 
@@ -226,12 +232,12 @@ func imageName(c *cmd.Component) string {
 	return c.Image
 }
 
-func render(w io.Writer, dest string, ctx *ImageContext) error {
+func render(w io.Writer, temp string, ctx *ImageContext) error {
 	t, err := template.New("dockerfile").Funcs(template.FuncMap{
 		"cname":     cname,
 		"imageName": imageName,
 		"cmdargs":   cmdargs,
-	}).Parse(dest)
+	}).Parse(temp)
 	if err != nil {
 		return err
 	}
