@@ -31,7 +31,6 @@ import (
 	"context"
 	"fmt"
 	"sync"
-	"time"
 
 	"github.com/containerd/containerd/namespaces"
 	"github.com/gogo/protobuf/proto"
@@ -45,7 +44,6 @@ import (
 	pxe "github.com/stellarproject/terraos/api/pxe/v1"
 	v1 "github.com/stellarproject/terraos/api/types/v1"
 	"github.com/stellarproject/terraos/util"
-	"github.com/vishvananda/netlink"
 	"google.golang.org/grpc"
 )
 
@@ -56,7 +54,7 @@ const (
 )
 
 func New(pool *redis.Pool, keys []string) (*Controller, error) {
-	ip, gateway, err := ipAndGateway()
+	ip, gateway, err := util.IPAndGateway()
 	if err != nil {
 		return nil, err
 	}
@@ -67,31 +65,6 @@ func New(pool *redis.Pool, keys []string) (*Controller, error) {
 		gateway: gateway,
 	}
 	return c, nil
-}
-
-func ipAndGateway() (string, string, error) {
-	for i := 0; i < 15; i++ {
-		routes, err := netlink.RouteList(nil, netlink.FAMILY_V4)
-		if err != nil {
-			return "", "", err
-		}
-		for _, r := range routes {
-			if r.Gw != nil {
-				link, err := netlink.LinkByIndex(r.LinkIndex)
-				if err != nil {
-					return "", "", err
-				}
-				name := link.Attrs().Name
-				ip, err := util.GetIP(name)
-				if err != nil {
-					return "", "", err
-				}
-				return ip, r.Gw.To4().String(), nil
-			}
-		}
-		time.Sleep(500 * time.Millisecond)
-	}
-	return "", "", util.ErrNoDefaultRoute
 }
 
 type Controller struct {

@@ -27,6 +27,7 @@
 
 package main
 
+/*
 import (
 	"net"
 	"os"
@@ -90,3 +91,5 @@ var controllerCommand = cli.Command{
 		return server.Serve(l)
 	},
 }
+
+*/

@@ -33,13 +33,11 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/containerd/containerd/content"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	v1 "github.com/stellarproject/terraos/api/types/v1"
 	"github.com/stellarproject/terraos/cmd"
-	"github.com/stellarproject/terraos/pkg/fstab"
 	"github.com/stellarproject/terraos/pkg/image"
-	"github.com/stellarproject/terraos/pkg/resolvconf"
 	"github.com/stellarproject/terraos/pkg/syslinux"
 	"github.com/urfave/cli"
 )
@@ -52,10 +50,6 @@ var installCommand = cli.Command{
 			Name:  "http",
 			Usage: "fetch image over http",
 		},
-		cli.StringFlag{
-			Name:  "gateway",
-			Usage: "gateway ip",
-		},
 		cli.StringSliceFlag{
 			Name:  "device",
 			Usage: "device for volume LABEL:dev",
@@ -67,35 +61,31 @@ var installCommand = cli.Command{
 		},
 	},
 	Action: func(clix *cli.Context) error {
-		gateway := clix.String("gateway")
-		if gateway == "" {
-			return errors.New("--gateway not specified")
-		}
-
 		node, err := cmd.LoadNode(clix.Args().First())
 		if err != nil {
 			return errors.Wrap(err, "load node")
-		}
-		imageName := clix.Args().Get(1)
-		if imageName == "" {
-			return errors.New("no image passed on the command line")
 		}
 		devices, err := getDevices(clix)
 		if err != nil {
 			return errors.Wrap(err, "get devices")
 		}
-		var (
-			diskmount = "/tmp/mnt"
-			dest      = "/tmp/dest"
-			ctx       = cmd.CancelContext()
-		)
-		for _, p := range []string{diskmount, dest} {
-			if err := os.MkdirAll(p, 0755); err != nil {
-				return errors.Wrapf(err, "mkdir %s", p)
-			}
+
+		ctx := cmd.CancelContext()
+		store, err := image.NewContentStore(filepath.Join("/tmp", "contentstore"))
+		if err != nil {
+			return errors.Wrap(err, "new content store")
 		}
 
-		var store content.Store
+		desc, err := image.Fetch(ctx, clix.Bool("http"), store, node.Image.Name)
+		if err != nil {
+			return errors.Wrap(err, "fetch image")
+		}
+
+		dest := "/tmp/install"
+		if err := os.MkdirAll(dest, 0755); err != nil {
+			return errors.Wrapf(err, "mkdir for install")
+		}
+
 		for _, v := range node.Volumes {
 			dev, ok := devices[v.Label]
 			if !ok {
@@ -104,38 +94,21 @@ var installCommand = cli.Command{
 			if err := v.Format(dev.Device); err != nil {
 				return errors.Wrap(err, "format volume")
 			}
-			path := filepath.Join(diskmount, v.Label)
-			if err := os.MkdirAll(path, 0755); err != nil {
-				return errors.Wrap(err, "mkdir volume mount")
-			}
 			// mount the entire diskmount group before subsystems
-			closer, err := v.Mount(dev.Device, path)
+			closer, err := v.Mount(dev.Device, dest)
 			if err != nil {
 				return err
 			}
 			defer closer()
-
-			if store == nil {
-				storePath := filepath.Join(path, "terra-install-content")
-				if store, err = image.NewContentStore(storePath); err != nil {
-					return errors.Wrap(err, "new content store")
-				}
-			}
 		}
-		if store == nil {
-			return errors.New("store not created on any group")
-		}
-		// install
-		desc, err := image.Fetch(ctx, clix.Bool("http"), store, imageName)
-		if err != nil {
-			return errors.Wrap(err, "fetch image")
-		}
+		// unpack image onto the destination
 		if err := image.Unpack(ctx, store, desc, dest); err != nil {
 			return errors.Wrap(err, "unpack image")
 		}
 		for _, v := range node.Volumes {
 			dev, ok := devices[v.Label]
 			if ok && dev.Boot {
+				logrus.Info("installing bootloader")
 				path := dest
 				if err := syslinux.Copy(path); err != nil {
 					return errors.Wrap(err, "copy syslinux from live cd")
@@ -147,9 +120,6 @@ var installCommand = cli.Command{
 					return errors.Wrap(err, "install extlinux")
 				}
 			}
-		}
-		if err := writeResolvconf(dest, gateway); err != nil {
-			return errors.Wrap(err, "write resolv.conf")
 		}
 		return nil
 	},
@@ -164,34 +134,6 @@ func removePartition(device string) string {
 		partition = "p" + partition
 	}
 	return strings.TrimSuffix(device, partition)
-}
-
-func writeFstab(entries []*fstab.Entry, root string) error {
-	f, err := os.Create(filepath.Join(root, fstab.Path))
-	if err != nil {
-		return errors.Wrap(err, "create fstab file")
-	}
-	defer f.Close()
-	if err := fstab.Write(f, entries); err != nil {
-		return errors.Wrap(err, "write fstab")
-	}
-	return nil
-}
-
-func writeResolvconf(root, gateway string) error {
-	path := filepath.Join(root, resolvconf.DefaultPath)
-	f, err := os.Create(path)
-	if err != nil {
-		return errors.Wrapf(err, "create resolv.conf file %s", path)
-	}
-	defer f.Close()
-
-	conf := &resolvconf.Conf{
-		Nameservers: []string{
-			gateway,
-		},
-	}
-	return conf.Write(f)
 }
 
 func getDevices(clix *cli.Context) (map[string]v1.Disk, error) {

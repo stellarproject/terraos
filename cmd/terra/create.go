@@ -40,12 +40,8 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/BurntSushi/toml"
 	"github.com/pkg/errors"
 	"github.com/stellarproject/terraos/cmd"
-	v1 "github.com/stellarproject/terraos/config/v1"
-	"github.com/stellarproject/terraos/pkg/netplan"
-	"github.com/stellarproject/terraos/pkg/resolvconf"
 	"github.com/urfave/cli"
 )
 
@@ -53,11 +49,6 @@ var createCommand = cli.Command{
 	Name:  "create",
 	Usage: "create a new machine image",
 	Flags: []cli.Flag{
-		cli.StringFlag{
-			Name:  "context,c",
-			Usage: "specify the context path",
-			Value: ".",
-		},
 		cli.BoolFlag{
 			Name:  "push",
 			Usage: "push the resulting image",
@@ -71,10 +62,6 @@ var createCommand = cli.Command{
 			Usage: "userland file path",
 		},
 		cli.BoolFlag{
-			Name:  "dump",
-			Usage: "dump and example config",
-		},
-		cli.BoolFlag{
 			Name:  "dry,n",
 			Usage: "dry run without building",
 		},
@@ -83,31 +70,26 @@ var createCommand = cli.Command{
 			Usage: "build with no cache",
 		},
 		cli.StringFlag{
-			Name:  "vhost",
-			Usage: "file to output vhost config",
+			Name:   "vhost",
+			Usage:  "file to output vhost config",
+			Hidden: true,
 		},
 	},
 	Action: func(clix *cli.Context) error {
-		if clix.Bool("dump") {
-			return dumpConfig()
-		}
-		config, err := loadServerConfig(clix.Args().First())
+		node, err := cmd.LoadNode(clix.Args().First())
 		if err != nil {
-			return errors.Wrap(err, "load server toml")
+			return errors.Wrap(err, "load node")
 		}
-		abs, err := filepath.Abs(clix.String("context"))
+		dest, err := filepath.Abs(".")
 		if err != nil {
-			return errors.Wrap(err, "context absolute path")
+			return errors.Wrap(err, "get context abs")
 		}
-		var (
-			paths []string
-			ctx   = cmd.CancelContext()
-		)
+		ctx := cmd.CancelContext()
 		imageContext := &ImageContext{
-			Base:     config.OS,
-			Userland: config.Userland,
-			Init:     config.Init,
-			Hostname: config.Hostname,
+			Base:     node.Image.Base,
+			Userland: node.Image.Userland,
+			Init:     node.Image.Init,
+			Hostname: node.Hostname,
 		}
 		if userland := clix.String("userland"); userland != "" {
 			data, err := ioutil.ReadFile(userland)
@@ -116,30 +98,26 @@ var createCommand = cli.Command{
 			}
 			imageContext.Userland = string(data)
 		}
-		if !clix.Bool("dry") {
-			defer func() {
-				for _, p := range paths {
-					os.Remove(p)
-				}
-			}()
-		}
-		for _, c := range config.Components {
-			imageContext.Imports = append(imageContext.Imports, c)
-		}
-		path, err := writeDockerfile(imageContext, serverTemplate)
-		if err != nil {
-			return errors.Wrap(err, "write dockerfile")
+		if err := node.InstallConfig(dest); err != nil {
+			return errors.Wrap(err, "install node configuration to context")
 		}
 
-		if !clix.Bool("dry") {
-			defer os.RemoveAll(path)
+		for _, c := range node.Image.Components {
+			imageContext.Imports = append(imageContext.Imports, &cmd.Component{
+				Image:   c.Image,
+				Systemd: c.Systemd,
+			})
+		}
+		if err := writeDockerfile(dest, imageContext, serverTemplate); err != nil {
+			return errors.Wrap(err, "write dockerfile")
 		}
 		if clix.Bool("dry") {
+			fmt.Printf("dumped data to %s\n", dest)
 			return nil
 		}
-		ref := fmt.Sprintf("%s/%s:%s", config.Repo, config.Hostname, config.Version)
+		ref := node.Image.Name
 		cmd := exec.CommandContext(ctx, "vab", "build",
-			"-c", abs,
+			"-c", dest,
 			"--ref", ref,
 			"--push="+strconv.FormatBool(clix.Bool("push")),
 			"--no-cache="+strconv.FormatBool(clix.Bool("no-cache")),
@@ -147,10 +125,10 @@ var createCommand = cli.Command{
 		)
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
-		cmd.Dir = path
+		cmd.Dir = dest
 
 		if err := cmd.Run(); err != nil {
-			f, ferr := os.Open(filepath.Join(path, "Dockerfile"))
+			f, ferr := os.Open(filepath.Join(dest, "Dockerfile"))
 			if ferr != nil {
 				return errors.Wrap(ferr, "open Dockerfile")
 			}
@@ -158,57 +136,56 @@ var createCommand = cli.Command{
 			io.Copy(os.Stdout, f)
 			return errors.Wrap(err, "execute build")
 		}
-		if vhost := clix.String("vhost"); vhost != "" {
-			c := &v1.Container{
-				ID:         fmt.Sprintf("%s-vhost", config.Hostname),
-				Image:      ref,
-				Privileged: true,
-				MaskedPaths: []string{
-					"/etc/netplan",
-				},
-				Networks: []*v1.Network{
-					{
-						Type: "macvlan",
-						Name: "vhost0",
-						IPAM: v1.IPAM{
-							Type: "dhcp",
+		/*
+			if vhost := clix.String("vhost"); vhost != "" {
+				c := &v1.Container{
+					ID:         fmt.Sprintf("%s-vhost", config.Hostname),
+					Image:      ref,
+					Privileged: true,
+					MaskedPaths: []string{
+						"/etc/netplan",
+					},
+					Networks: []*v1.Network{
+						{
+							Type: "macvlan",
+							Name: "vhost0",
+							IPAM: v1.IPAM{
+								Type: "dhcp",
+							},
 						},
 					},
-				},
-				Resources: &v1.Resources{
-					CPU:    1.0,
-					Memory: 128,
-				},
-			}
+					Resources: &v1.Resources{
+						CPU:    1.0,
+						Memory: 128,
+					},
+				}
 
-			f, err := os.Create(vhost)
-			if err != nil {
-				return errors.Wrapf(err, "create vhost file %s", vhost)
-			}
-			defer f.Close()
+				f, err := os.Create(vhost)
+				if err != nil {
+					return errors.Wrapf(err, "create vhost file %s", vhost)
+				}
+				defer f.Close()
 
-			if err := toml.NewEncoder(f).Encode(c); err != nil {
-				return errors.Wrap(err, "write vhost config")
+				if err := toml.NewEncoder(f).Encode(c); err != nil {
+					return errors.Wrap(err, "write vhost config")
+				}
 			}
-		}
+		*/
 		return nil
 	},
 }
 
-func writeDockerfile(ctx *ImageContext, tmpl string) (string, error) {
-	tmp, err := ioutil.TempDir("", "osb-")
+func writeDockerfile(path string, ctx *ImageContext, destl string) error {
+	f, err := os.Create(filepath.Join(path, "Dockerfile"))
 	if err != nil {
-		return "", err
-	}
-	f, err := os.Create(filepath.Join(tmp, "Dockerfile"))
-	if err != nil {
-		return "", err
+		return err
 	}
 	defer f.Close()
-	if err := render(f, tmpl, ctx); err != nil {
-		return "", err
+
+	if err := render(f, destl, ctx); err != nil {
+		return err
 	}
-	return tmp, nil
+	return nil
 }
 
 const serverTemplate = `# syntax=docker/dockerfile:experimental
@@ -226,6 +203,8 @@ RUN systemctl enable {{$s}}
 {{end}}
 {{end}}
 
+ADD . /
+
 RUN dbus-uuidgen --ensure=/etc/machine-id && dbus-uuidgen --ensure
 
 {{.Userland}}
@@ -233,7 +212,7 @@ RUN dbus-uuidgen --ensure=/etc/machine-id && dbus-uuidgen --ensure
 {{if .Init}}CMD ["{{.Init}}"]{{end}}
 `
 
-func cname(c Component) string {
+func cname(c *cmd.Component) string {
 	h := md5.New()
 	h.Write([]byte(c.Image))
 	return "I" + hex.EncodeToString(h.Sum(nil))
@@ -243,98 +222,28 @@ func cmdargs(args []string) string {
 	return strings.Join(args, " ")
 }
 
-func imageName(c Component) string {
+func imageName(c *cmd.Component) string {
 	return c.Image
 }
 
-func render(w io.Writer, tmp string, ctx *ImageContext) error {
+func render(w io.Writer, dest string, ctx *ImageContext) error {
 	t, err := template.New("dockerfile").Funcs(template.FuncMap{
 		"cname":     cname,
 		"imageName": imageName,
 		"cmdargs":   cmdargs,
-	}).Parse(tmp)
+	}).Parse(dest)
 	if err != nil {
 		return err
 	}
 	return t.Execute(w, ctx)
 }
 
-func loadServerConfig(path string) (*ServerConfig, error) {
-	var c ServerConfig
-	if _, err := toml.DecodeFile(path, &c); err != nil {
-		return nil, err
-	}
-	if c.Version == "" {
-		return nil, errors.New("no version specified")
-	}
-	if c.OS == "" {
-		return nil, errors.New("no os defined")
-	}
-	return &c, nil
-}
-
-type Component struct {
-	Image   string   `toml:"image"`
-	Systemd []string `toml:"systemd"`
-}
-
 type ImageContext struct {
 	Base       string
 	Userland   string
-	Imports    []*Component
+	Imports    []*cmd.Component
 	Kernel     string
 	Init       string
 	Hostname   string
 	ResolvConf bool
-}
-
-type ServerConfig struct {
-	Hostname   string           `toml:"hostname"`
-	Version    string           `toml:"version"`
-	Repo       string           `toml:"repo"`
-	OS         string           `toml:"os"`
-	Components []*Component     `toml:"components"`
-	Userland   string           `toml:"userland"`
-	Init       string           `toml:"init"`
-	SSH        SSH              `toml:"ssh"`
-	Netplan    *netplan.Netplan `toml:"netplan"`
-	ResolvConf *resolvconf.Conf `toml:"resolvconf"`
-}
-
-type SSH struct {
-	Github string `toml:"github"`
-}
-
-func dumpConfig() error {
-	c := &ServerConfig{
-		Hostname: "terra-01",
-		Version:  "v1",
-		Repo:     "docker.io/stellarproject",
-		OS:       "docker.io/stellarproject/terraos:v10",
-		Init:     "/sbin/init",
-		Components: []*Component{
-			{
-				Image:   "docker.io/stellarproject/buildkit:v10",
-				Systemd: []string{"buildkit"},
-			},
-		},
-		Userland: "RUN apt install htop",
-		SSH: SSH{
-			Github: "crosbymichael",
-		},
-		Netplan: &netplan.Netplan{
-			Interfaces: []netplan.Interface{
-				{
-					Name:      "eth0",
-					Addresses: []string{"192.168.1.10"},
-					Gateway:   "192.168.1.1",
-				},
-			},
-		},
-		ResolvConf: &resolvconf.Conf{
-			Nameservers: resolvconf.DefaultNameservers,
-		},
-	}
-
-	return toml.NewEncoder(os.Stdout).Encode(c)
 }

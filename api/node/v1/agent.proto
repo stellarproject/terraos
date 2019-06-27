@@ -24,7 +24,6 @@ service Provisioner {
 
 message ProvisionRequest {
 	types.v1.Node node = 1;
-	string image = 2;
 	types.v1.Target target = 3;
 	repeated string nameservers = 4;
 	repeated string ssh_keys = 5;

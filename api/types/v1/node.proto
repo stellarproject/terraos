@@ -6,18 +6,9 @@ import weak "gogoproto/gogo.proto";
 
 option go_package = "github.com/stellarproject/terraos/api/types/v1;v1";
 
-enum Role {
-	option (gogoproto.goproto_enum_prefix) = false;
-	option (gogoproto.enum_customname) = "Role";
-
-	COMPUTE = 0 [(gogoproto.enumvalue_customname) = "Compute"];
-	ISCSI = 1 [(gogoproto.enumvalue_customname) = "ISCSI"];
-	NFS = 2 [(gogoproto.enumvalue_customname) = "NFS"];
-}
-
 message Node {
 	string hostname = 1;
-	repeated Role roles = 2;
+	string gateway = 2;
 	repeated NIC nics = 3;
 	repeated Volume volumes = 4;
 	repeated CPU cpus = 5;
@@ -25,6 +16,28 @@ message Node {
 	repeated GPU gpus = 7;
 	repeated string labels = 8;
 	string domain = 9;
+	Image image = 10;
+	repeated string nameservers = 11;
+	string cluster_fs = 12;
+}
+
+message Image {
+	string name = 1;
+	string base = 2;
+	string init = 3;
+	repeated Component components = 4;
+	string userland = 5;
+	SSH ssh = 6;
+}
+
+message SSH {
+	string github = 1;
+	repeated string keys = 2;
+}
+
+message Component {
+	string image = 1;
+	repeated string systemd = 2;
 }
 
 message GPU {

@@ -27,6 +27,7 @@
 
 package main
 
+/*
 import (
 	"net"
 	"os"
@@ -87,3 +88,5 @@ var iscsiCommand = cli.Command{
 		return server.Serve(l)
 	},
 }
+
+*/
