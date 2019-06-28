@@ -228,7 +228,7 @@ func (i *Node) setupSSH(dest string) error {
 	if i.Image.Ssh == nil {
 		return nil
 	}
-	if err := os.MkdirAll(filepath.Join(dest, "/home/terra/.ssh"), 0711); err != nil {
+	if err := os.MkdirAll(filepath.Join(dest, "/home/terra/.ssh"), 0755); err != nil {
 		return errors.Wrap(err, "create .ssh dir")
 	}
 	f, err := os.Create(filepath.Join(dest, "/home/terra/.ssh/authorized_keys"))
@@ -236,6 +236,10 @@ func (i *Node) setupSSH(dest string) error {
 		return errors.Wrap(err, "create ssh key file")
 	}
 	defer f.Close()
+
+	if err := f.Chmod(0644); err != nil {
+		return errors.Wrap(err, "chmod ssh files")
+	}
 
 	if i.Image.Ssh.Github != "" {
 		r, err := http.Get(i.Image.Ssh.Github)

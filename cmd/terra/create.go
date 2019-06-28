@@ -211,6 +211,8 @@ ADD etc/netplan/01-netcfg.yaml /etc/netplan/
 
 ADD home/terra/.ssh /home/terra/.ssh
 
+RUN chown -R terra:terra /home/terra
+
 RUN dbus-uuidgen --ensure=/etc/machine-id && dbus-uuidgen --ensure
 
 {{.Userland}}
