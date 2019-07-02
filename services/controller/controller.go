@@ -48,21 +48,17 @@ import (
 )
 
 const (
-	KeyNodes       = "io.stellarproject.nodes"
-	KeyISCSIServer = "io.stellarproject.iscsi/address"
-	KeyNodeImage   = "io.stellarproject.nodes/image"
+	KeyNodes = "io.stellarproject.nodes"
 )
 
-func New(pool *redis.Pool, keys []string) (*Controller, error) {
+func New(pool *redis.Pool, iscsi ISCSI) (*Controller, error) {
 	ip, gateway, err := util.IPAndGateway()
 	if err != nil {
 		return nil, err
 	}
 	c := &Controller{
-		pool:    pool,
-		sshKeys: keys,
-		ip:      ip,
-		gateway: gateway,
+		pool:  pool,
+		iscsi: iscsi,
 	}
 	return c, nil
 }
@@ -70,30 +66,8 @@ func New(pool *redis.Pool, keys []string) (*Controller, error) {
 type Controller struct {
 	mu sync.Mutex
 
-	pool *redis.Pool
-
-	image   string
-	ip      string
-	gateway string
-	sshKeys []string
-}
-
-func (c *Controller) SetNodeImage(ctx context.Context, r *api.SetNodeImageRequeset) (*types.Empty, error) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	conn, err := c.pool.GetContext(ctx)
-	if err != nil {
-		return nil, errors.Wrap(err, "get connection")
-	}
-	defer conn.Close()
-
-	c.image = r.Image
-
-	if _, err := conn.Do("SET", KeyNodeImage, r.Image); err != nil {
-		return nil, errors.Wrap(err, "set node image")
-	}
-	return empty, nil
+	pool  *redis.Pool
+	iscsi ISCSI
 }
 
 func (c *Controller) List(ctx context.Context, _ *types.Empty) (*api.ListNodeResponse, error) {
@@ -170,33 +144,8 @@ func (c *Controller) delete(ctx context.Context, node *v1.Node) error {
 	}
 	defer conn.Close()
 
-	addr, err := redis.String(conn.Do("GET", KeyISCSIServer))
-	if err != nil {
-		return errors.Wrap(err, "get iscsi address")
-	}
-	gConn, err := grpc.Dial(addr, grpc.WithInsecure())
-	if err != nil {
-		return errors.Wrap(err, "dial iscsi service")
-	}
-	defer gConn.Close()
-	is := iscsi.NewServiceClient(gConn)
-	get, err := is.Get(ctx, &iscsi.GetRequest{
-		Iqn: node.IQN(),
-	})
-	if err != nil {
-		return errors.Wrap(err, "get node target")
-	}
-	for _, l := range get.Target.Luns {
-		if _, err := is.DeleteLUN(ctx, &iscsi.DeleteLUNRequest{
-			ID: l.ID,
-		}); err != nil {
-			return errors.Wrap(err, "delete lun")
-		}
-	}
-	if _, err := is.DeleteTarget(ctx, &iscsi.DeleteTargetRequest{
-		Iqn: get.Target.Iqn,
-	}); err != nil {
-		return errors.Wrap(err, "delete target")
+	if err := c.iscsi.Delete(ctx, node); err != nil {
+		return errors.Wrap(err, "delete node from iscsi")
 	}
 	if _, err := conn.Do("HDEL", KeyNodes, node.Hostname); err != nil {
 		return errors.Wrap(err, "delete node from kv")

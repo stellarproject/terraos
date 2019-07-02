@@ -28,7 +28,14 @@
 package controller
 
 import (
+	"context"
+
 	"github.com/gogo/protobuf/types"
+	v1 "github.com/stellarproject/terraos/api/types/v1"
 )
 
 var empty = &types.Empty{}
+
+type ISCSI interface {
+	Delete(ctx context.Context, node *v1.Node) error
+}

@@ -17,7 +17,6 @@ service Controller {
 	// Register a node(machine) with the cluster, this does not provision
 	// the node's disk or OS
 	rpc Register(RegisterNodeRequest) returns (RegisterNodeResponse);
-	rpc SetNodeImage(SetNodeImageRequeset) returns (google.protobuf.Empty);
 }
 
 message RegisterNodeRequest {
@@ -35,8 +34,4 @@ message ListNodeResponse {
 
 message DeleteNodeRequest {
 	string hostname = 1;
-}
-
-message SetNodeImageRequeset {
-	string image = 1;
 }
