@@ -31,9 +31,11 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/containerd/containerd/content"
 	"github.com/getsentry/raven-go"
 	"github.com/sirupsen/logrus"
 	"github.com/stellarproject/terraos/cmd"
+	"github.com/stellarproject/terraos/pkg/image"
 	"github.com/stellarproject/terraos/version"
 	"github.com/urfave/cli"
 )
@@ -87,14 +89,8 @@ Terra OS management`
 	}
 	app.Commands = []cli.Command{
 		createCommand,
-		//		controllerCommand,
-		deleteCommand,
 		initCommand,
-		infoCommand,
 		installCommand,
-		//		iscsiCommand,
-		provisionCommand,
-		listCommand,
 		pxeCommand,
 	}
 	if err := app.Run(os.Args); err != nil {
@@ -121,4 +117,8 @@ func Before(clix *cli.Context) error {
 		raven.DefaultClient.SetRelease(version.Version)
 	}
 	return nil
+}
+
+func getStore() (content.Store, error) {
+	return image.NewContentStore("/content")
 }

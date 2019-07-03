@@ -35,7 +35,6 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	v1 "github.com/stellarproject/terraos/api/types/v1"
 	"github.com/stellarproject/terraos/cmd"
 	"github.com/stellarproject/terraos/pkg/image"
 	"github.com/stellarproject/terraos/pkg/syslinux"
@@ -54,10 +53,6 @@ var installCommand = cli.Command{
 			Name:  "device",
 			Usage: "device for volume LABEL:dev",
 			Value: &cli.StringSlice{},
-		},
-		cli.StringFlag{
-			Name:  "boot",
-			Usage: "select the boot device by label",
 		},
 	},
 	Action: func(clix *cli.Context) error {
@@ -85,17 +80,20 @@ var installCommand = cli.Command{
 		if err := os.MkdirAll(dest, 0755); err != nil {
 			return errors.Wrapf(err, "mkdir for install")
 		}
-
+		var isISCSI bool
 		for _, v := range node.Volumes {
+			if !isISCSI {
+				isISCSI = v.IsISCSI()
+			}
 			dev, ok := devices[v.Label]
 			if !ok {
 				return errors.Errorf("device for label %s does not exist", v.Label)
 			}
-			if err := v.Format(dev.Device); err != nil {
+			if err := v.Format(dev); err != nil {
 				return errors.Wrap(err, "format volume")
 			}
 			// mount the entire diskmount group before subsystems
-			closer, err := v.Mount(dev.Device, dest)
+			closer, err := v.Mount(dev, dest)
 			if err != nil {
 				return err
 			}
@@ -105,15 +103,19 @@ var installCommand = cli.Command{
 		if err := image.Unpack(ctx, store, desc, dest); err != nil {
 			return errors.Wrap(err, "unpack image")
 		}
+		if isISCSI {
+			// for iscsi, there is no need to setup a boot device
+			return nil
+		}
 		for _, v := range node.Volumes {
 			dev, ok := devices[v.Label]
-			if ok && dev.Boot {
+			if ok && v.Boot {
 				logrus.Info("installing bootloader")
 				path := dest
 				if err := syslinux.Copy(path); err != nil {
 					return errors.Wrap(err, "copy syslinux from live cd")
 				}
-				if err := syslinux.InstallMBR(removePartition(dev.Device), "/boot/syslinux/mbr.bin"); err != nil {
+				if err := syslinux.InstallMBR(removePartition(dev), "/boot/syslinux/mbr.bin"); err != nil {
 					return errors.Wrap(err, "install mbr")
 				}
 				if err := syslinux.ExtlinuxInstall(filepath.Join(path, "boot", "syslinux")); err != nil {
@@ -136,20 +138,16 @@ func removePartition(device string) string {
 	return strings.TrimSuffix(device, partition)
 }
 
-func getDevices(clix *cli.Context) (map[string]v1.Disk, error) {
+func getDevices(clix *cli.Context) (map[string]string, error) {
 	var (
-		boot = clix.String("boot")
-		out  = make(map[string]v1.Disk)
+		out = make(map[string]string)
 	)
 	for _, d := range clix.StringSlice("device") {
 		parts := strings.Split(d, ":")
 		if len(parts) != 2 {
 			return nil, errors.Errorf("device %s not valid format", d)
 		}
-		out[parts[0]] = v1.Disk{
-			Device: parts[1],
-			Boot:   boot == parts[0],
-		}
+		out[parts[0]] = parts[1]
 	}
 	return out, nil
 }

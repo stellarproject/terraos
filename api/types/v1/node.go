@@ -43,21 +43,16 @@ import (
 )
 
 const (
-	year       = 2019
-	nodeIqnFmt = "iqn.%d.%s:%s"
-	initIQN    = "iqn.%d.%s:%s.%s"
+	year   = 2019
+	iqnFmt = "iqn.%d.%s:%s"
 )
 const hostsTemplate = `127.0.0.1       localhost %s
 ::1             localhost ip6-localhost ip6-loopback
 ff02::1         ip6-allnodes
 ff02::2         ip6-allrouters`
 
-func (n *Node) InitiatorIQN() string {
-	return fmt.Sprintf(initIQN, year, n.Domain, "node", n.Hostname)
-}
-
 func (n *Node) IQN() string {
-	return fmt.Sprintf(nodeIqnFmt, year, n.Domain, n.Hostname)
+	return fmt.Sprintf(iqnFmt, year, n.Domain, n.Hostname)
 }
 
 func (v *Volume) IsISCSI() bool {

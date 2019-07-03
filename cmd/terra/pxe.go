@@ -28,45 +28,156 @@
 package main
 
 import (
+	"context"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+
 	"github.com/pkg/errors"
-	v1 "github.com/stellarproject/terraos/api/pxe/v1"
 	"github.com/stellarproject/terraos/cmd"
+	"github.com/stellarproject/terraos/pkg/image"
+	"github.com/stellarproject/terraos/pkg/pxe"
 	"github.com/urfave/cli"
-	"google.golang.org/grpc"
+)
+
+const (
+	kernel    = "vmlinuz"
+	initrd    = "initrd.img"
+	configDir = "pxelinux.cfg"
 )
 
 var pxeCommand = cli.Command{
 	Name:        "pxe",
-	Description: "update the pxe and kernel on the controller",
+	Description: "manage the pxe setup for terra",
+	Subcommands: []cli.Command{
+		pxeInstallCommand,
+	},
+}
+
+var pxeInstallCommand = cli.Command{
+	Name:        "install",
+	Description: "install a new pxe image to a directory",
+	ArgsUsage:   "[image]",
 	Flags: []cli.Flag{
 		cli.StringFlag{
-			Name:  "kernel,k",
-			Usage: "kernel version of the pxe image",
+			Name:  "tftp,t",
+			Usage: "tftp location",
+			Value: "/tftp",
 		},
-		cli.StringFlag{
-			Name:  "id,i",
-			Usage: "id of the pxe image",
+		cli.BoolFlag{
+			Name:  "http",
+			Usage: "fetch over http",
 		},
 	},
 	Action: func(clix *cli.Context) error {
-		address := clix.GlobalString("controller") + ":9000"
-		conn, err := grpc.Dial(address, grpc.WithInsecure())
-		if err != nil {
-			return errors.Wrap(err, "dial controller")
-		}
-		defer conn.Close()
-		client := v1.NewServiceClient(conn)
 		ctx := cmd.CancelContext()
+		i := clix.Args().First()
+		if i == "" {
+			return errors.New("image config should be passed on command line")
+		}
+		store, err := getStore()
+		if err != nil {
+			return errors.Wrap(err, "get content store")
+		}
+		img, err := image.Fetch(ctx, clix.Bool("http"), store, i)
+		if err != nil {
+			return errors.Wrapf(err, "fetch %s", i)
+		}
+		path, err := ioutil.TempDir("", "terra-pxe-install")
+		if err != nil {
+			return errors.Wrap(err, "create tmp pxe dir")
+		}
+		defer os.RemoveAll(path)
 
-		if _, err := client.Install(ctx, &v1.InstallRequest{
-			Loader: &v1.Bootloader{
-				ID:            clix.String("id"),
-				KernelVersion: clix.String("kernel"),
-				Image:         clix.Args().First(),
-			},
-		}); err != nil {
-			return errors.Wrap(err, "install pxe image")
+		if err := image.Unpack(ctx, store, img, path); err != nil {
+			return errors.Wrap(err, "unpack pxe image")
+		}
+		if err := syncDir(ctx, filepath.Join(path, "tftp")+"/", clix.String("tftp")+"/"); err != nil {
+			return errors.Wrap(err, "sync tftp dir")
 		}
 		return nil
 	},
+}
+
+var pxeSaveCommand = cli.Command{
+	Name:        "save",
+	Description: "save a node's pxe configuration",
+	Flags: []cli.Flag{
+		cli.StringFlag{
+			Name:  "iscsi-target,t",
+			Usage: "iscsi target IP",
+		},
+		cli.StringFlag{
+			Name:  "tftp,t",
+			Usage: "tftp location",
+			Value: "/tftp",
+		},
+	},
+	Action: func(clix *cli.Context) error {
+		node, err := cmd.LoadNode(clix.Args().First())
+		if err != nil {
+			return errors.Wrap(err, "load node")
+		}
+		if len(node.Nics) == 0 {
+			return errors.New("node must have atlest 1 NIC for PXE")
+		}
+		var (
+			ip  = "dhcp"
+			nic = node.Nics[0]
+		)
+		if len(nic.Addresses) > 0 {
+			// FIXME: this will have to be fixed to get gateway, subnet, etc
+			ip = nic.Addresses[0]
+		}
+		p := &pxe.PXE{
+			Default: "pxe",
+			MAC:     nic.Mac,
+			IP:      ip,
+			Entries: []pxe.Entry{
+				{
+					Root:   "LABEL=os",
+					Boot:   "pxe",
+					Label:  "pxe",
+					Kernel: kernel,
+					Initrd: initrd,
+					// TODO: support options
+				},
+			},
+		}
+		for _, v := range node.Volumes {
+			if v.IsISCSI() {
+				p.TargetIP = clix.String("iscsi-target")
+				p.TargetIQN = v.TargetIqn
+				p.InitiatorIQN = node.IQN()
+				break
+			}
+		}
+		path := filepath.Join(clix.String("tftp"), configDir, p.Filename())
+		f, err := os.Create(path)
+		if err != nil {
+			return errors.Wrapf(err, "create pxe config file %s", path)
+		}
+		defer f.Close()
+		if err := p.Write(f); err != nil {
+			return errors.Wrap(err, "write pxe configuration")
+		}
+		return nil
+	},
+}
+
+func syncDir(ctx context.Context, source, target string) error {
+	path := target
+	if err := os.MkdirAll(path, 0711); err != nil {
+		return errors.Wrapf(err, "mkdir %s", path)
+	}
+	for _, f := range []string{
+		filepath.Join(source, kernel),
+		filepath.Join(source, initrd),
+	} {
+		to := filepath.Join(path, filepath.Base(f))
+		if err := os.Rename(f, to); err != nil {
+			return errors.Wrapf(err, "rename %s to %s", f, to)
+		}
+	}
+	return nil
 }
