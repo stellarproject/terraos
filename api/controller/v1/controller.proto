@@ -5,7 +5,6 @@ package io.stellarproject.controller.v1;
 import weak "gogoproto/gogo.proto";
 import "google/protobuf/empty.proto";
 import "github.com/stellarproject/terraos/api/types/v1/node.proto";
-import "github.com/stellarproject/terraos/api/types/v1/iscsi.proto";
 
 option go_package = "github.com/stellarproject/terraos/api/controller/v1;v1";
 
@@ -25,7 +24,6 @@ message RegisterNodeRequest {
 
 message RegisterNodeResponse {
 	types.v1.Node node = 1;
-	types.v1.Target target = 2;
 }
 
 message ListNodeResponse {

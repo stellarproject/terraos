@@ -27,7 +27,6 @@
 
 package main
 
-/*
 import (
 	"net"
 	"os"
@@ -57,7 +56,7 @@ var controllerCommand = cli.Command{
 		defer pool.Close()
 
 		logrus.Info("creating new controller...")
-		controller, err := controller.New(pool, config.SSHKeys)
+		controller, err := controller.New(pool, nil)
 		if err != nil {
 			return errors.Wrap(err, "new controller")
 		}
@@ -91,5 +90,3 @@ var controllerCommand = cli.Command{
 		return server.Serve(l)
 	},
 }
-
-*/

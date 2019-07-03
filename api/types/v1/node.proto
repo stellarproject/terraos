@@ -53,6 +53,7 @@ message CPU {
 
 message NIC {
 	string mac = 1;
+	// addresses should contain subnet
 	repeated string addresses = 2;
 	uint32 speed = 3;
 	string name = 4;
@@ -60,18 +61,15 @@ message NIC {
 
 message Volume {
 	string label = 1;
+	// type is filesystem type, btrfs, zfs, ext4
 	string type = 2;
-	int64 fs_size = 3;
+	bool boot = 3;
 	string path = 4;
+	string target_iqn = 5;
 }
 
 message Subvolume {
 	string name = 1;
 	string path = 2;
 	bool cow = 3;
-}
-
-message Disk {
-	string device = 1;
-	bool boot = 2;
 }

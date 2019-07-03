@@ -5,7 +5,6 @@ package io.stellarproject.node.v1;
 import weak "gogoproto/gogo.proto";
 import "google/protobuf/empty.proto";
 import "github.com/stellarproject/terraos/api/types/v1/node.proto";
-import "github.com/stellarproject/terraos/api/types/v1/iscsi.proto";
 
 option go_package = "github.com/stellarproject/terraos/api/node/v1;v1";
 
@@ -24,9 +23,8 @@ service Provisioner {
 
 message ProvisionRequest {
 	types.v1.Node node = 1;
-	types.v1.Target target = 3;
-	repeated string nameservers = 4;
-	repeated string ssh_keys = 5;
-	string gateway = 6;
-	string cluster_fs = 7;
+	repeated string nameservers = 2;
+	repeated string ssh_keys = 3;
+	string gateway = 4;
+	string cluster_fs = 5;
 }

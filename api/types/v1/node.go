@@ -60,16 +60,25 @@ func (n *Node) IQN() string {
 	return fmt.Sprintf(nodeIqnFmt, year, n.Domain, n.Hostname)
 }
 
+func (v *Volume) IsISCSI() bool {
+	return v.TargetIqn != ""
+}
+
 func (v *Volume) Format(device string) error {
 	return mkfs.Mkfs(v.Type, v.Label, device)
 }
 
-func (v *Volume) Mount(device, path string) (func() error, error) {
-	if err := unix.Mount(device, filepath.Join(path, v.Path), v.Type, 0, ""); err != nil {
-		return nil, errors.Wrapf(err, "mount %s to %s", v.Label, path)
+func (v *Volume) MountLabel() string {
+	return fmt.Sprintf("LABEL=%s", v.Label)
+}
+
+func (v *Volume) Mount(device, dest string) (func() error, error) {
+	p := filepath.Join(dest, v.Path)
+	if err := unix.Mount(device, p, v.Type, 0, ""); err != nil {
+		return nil, errors.Wrapf(err, "mount %s to %s", v.Label, p)
 	}
 	return func() error {
-		return unix.Unmount(path, 0)
+		return unix.Unmount(p, 0)
 	}, nil
 }
 

@@ -29,7 +29,6 @@ package controller
 
 import (
 	"context"
-	"fmt"
 	"sync"
 
 	"github.com/containerd/containerd/namespaces"
@@ -39,8 +38,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	api "github.com/stellarproject/terraos/api/controller/v1"
-	iscsi "github.com/stellarproject/terraos/api/iscsi/v1"
-	nodev1 "github.com/stellarproject/terraos/api/node/v1"
 	pxe "github.com/stellarproject/terraos/api/pxe/v1"
 	v1 "github.com/stellarproject/terraos/api/types/v1"
 	"github.com/stellarproject/terraos/util"
@@ -48,17 +45,17 @@ import (
 )
 
 const (
-	KeyNodes = "io.stellarproject.nodes"
+	KeyNodes       = "io.stellarproject.nodes"
+	KeyISCSIServer = "io.stellarproject.iscsi/address"
 )
 
-func New(pool *redis.Pool, iscsi ISCSI) (*Controller, error) {
+func New(pool *redis.Pool) (*Controller, error) {
 	ip, gateway, err := util.IPAndGateway()
 	if err != nil {
 		return nil, err
 	}
 	c := &Controller{
-		pool:  pool,
-		iscsi: iscsi,
+		pool: pool,
 	}
 	return c, nil
 }
@@ -66,8 +63,7 @@ func New(pool *redis.Pool, iscsi ISCSI) (*Controller, error) {
 type Controller struct {
 	mu sync.Mutex
 
-	pool  *redis.Pool
-	iscsi ISCSI
+	pool *redis.Pool
 }
 
 func (c *Controller) List(ctx context.Context, _ *types.Empty) (*api.ListNodeResponse, error) {
@@ -144,9 +140,6 @@ func (c *Controller) delete(ctx context.Context, node *v1.Node) error {
 	}
 	defer conn.Close()
 
-	if err := c.iscsi.Delete(ctx, node); err != nil {
-		return errors.Wrap(err, "delete node from iscsi")
-	}
 	if _, err := conn.Do("HDEL", KeyNodes, node.Hostname); err != nil {
 		return errors.Wrap(err, "delete node from kv")
 	}
@@ -156,6 +149,11 @@ func (c *Controller) delete(ctx context.Context, node *v1.Node) error {
 func (c *Controller) Register(ctx context.Context, r *api.RegisterNodeRequest) (_ *api.RegisterNodeResponse, err error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+
+	node := r.Node
+	if len(node.Nics) == 0 {
+		return nil, errors.New("node NICs required for registration")
+	}
 
 	ctx = namespaces.WithNamespace(ctx, "controller")
 	conn, err := c.pool.GetContext(ctx)
@@ -169,10 +167,6 @@ func (c *Controller) Register(ctx context.Context, r *api.RegisterNodeRequest) (
 		return nil, errors.Wrap(err, "get iscsi address")
 	}
 
-	node := r.Node
-	// TODO: validate node
-	// validate nics has > 0
-
 	// do the initial save so we know this host does not exist
 	if err := c.saveNode(node); err != nil {
 		return nil, err
@@ -184,31 +178,16 @@ func (c *Controller) Register(ctx context.Context, r *api.RegisterNodeRequest) (
 			}
 		}
 	}()
-	target, provisioner, err := c.createVolumes(ctx, addr, node)
-	if err != nil {
-		return nil, errors.Wrap(err, "create volumes")
-	}
 	var pxeIscsi *pxe.ISCSI
-	for _, l := range target.Luns {
+	for _, l := range node.Volumes {
 		if l.Label == v1.OSLabel {
 			pxeIscsi = &pxe.ISCSI{
 				InitiatorIqn: node.InitiatorIQN(),
-				TargetIqn:    target.Iqn,
+				TargetIqn:    l.TargetIqn,
 				TargetIp:     addr,
 			}
 			break
 		}
-	}
-	if _, err := provisioner.Provision(ctx, &nodev1.ProvisionRequest{
-		Image:       c.image,
-		Node:        node,
-		Target:      target,
-		Nameservers: []string{c.gateway},
-		SshKeys:     c.sshKeys,
-		Gateway:     c.gateway,
-		ClusterFs:   c.ip,
-	}); err != nil {
-		return nil, errors.Wrap(err, "provision node")
 	}
 
 	gconn, err := grpc.Dial("127.0.0.1:9000", grpc.WithInsecure())
@@ -218,7 +197,7 @@ func (c *Controller) Register(ctx context.Context, r *api.RegisterNodeRequest) (
 	defer gconn.Close()
 	pxeClient := pxe.NewServiceClient(gconn)
 
-	// TODO: fix mac registration
+	// TODO: fix mac registration when more than one nics
 	var (
 		ip  string
 		nic = node.Nics[0]
@@ -242,42 +221,6 @@ func (c *Controller) Register(ctx context.Context, r *api.RegisterNodeRequest) (
 		Node:   node,
 		Target: target,
 	}, nil
-}
-
-func (c *Controller) createVolumes(ctx context.Context, addr string, node *v1.Node) (*v1.Target, nodev1.ProvisionerClient, error) {
-	gConn, err := grpc.Dial(addr, grpc.WithInsecure())
-	if err != nil {
-		return nil, nil, errors.Wrap(err, "dial iscsi service")
-	}
-	defer gConn.Close()
-	is := iscsi.NewServiceClient(gConn)
-	prov := nodev1.NewProvisionerClient(gConn)
-
-	targetResponse, err := is.CreateTarget(ctx, &iscsi.CreateTargetRequest{
-		Iqn: node.IQN(),
-	})
-	if err != nil {
-		return nil, nil, errors.Wrap(err, "create target")
-	}
-	target := targetResponse.Target
-	for _, v := range node.Volumes {
-		lunResponse, err := is.CreateLUN(ctx, &iscsi.CreateLUNRequest{
-			ID:     fmt.Sprintf("%s.%s", node.Hostname, v.Label),
-			FsSize: v.FsSize,
-		})
-		if err != nil {
-			return nil, nil, errors.Wrap(err, "create lun")
-		}
-		final, err := is.AttachLUN(ctx, &iscsi.AttachLUNRequest{
-			TargetIqn: target.Iqn,
-			Lun:       lunResponse.Lun,
-		})
-		if err != nil {
-			return nil, nil, errors.Wrap(err, "attach lun to target")
-		}
-		target = final.Target
-	}
-	return target, prov, nil
 }
 
 func (c *Controller) saveNode(node *v1.Node) error {

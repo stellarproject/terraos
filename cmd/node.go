@@ -83,10 +83,11 @@ type Disk struct {
 }
 
 type Volume struct {
-	Label string `toml:"label"`
-	Type  string `toml:"type"`
-	Path  string `toml:"path"`
-	Size  int64  `toml:"size"`
+	Label     string `toml:"label"`
+	Type      string `toml:"type"`
+	Path      string `toml:"path"`
+	Boot      bool   `toml:"boot"`
+	TargetIQN string `toml:"target_iqn"`
 }
 
 type CPU struct {
@@ -128,10 +129,11 @@ func (n *Node) ToProto() *v1.Node {
 	}
 	for _, g := range n.Volumes {
 		p.Volumes = append(p.Volumes, &v1.Volume{
-			Path:   g.Path,
-			Type:   g.Type,
-			Label:  g.Label,
-			FsSize: g.Size,
+			Path:      g.Path,
+			Type:      g.Type,
+			Label:     g.Label,
+			Boot:      g.Boot,
+			TargetIqn: g.TargetIQN,
 		})
 	}
 	for _, nic := range n.Nics {
