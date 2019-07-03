@@ -40,6 +40,8 @@ import (
 	"github.com/urfave/cli"
 )
 
+const contentStorePath = "/content"
+
 func main() {
 	app := cli.NewApp()
 	app.Name = "terra"
@@ -120,5 +122,5 @@ func Before(clix *cli.Context) error {
 }
 
 func getStore() (content.Store, error) {
-	return image.NewContentStore("/content")
+	return image.NewContentStore(contentStorePath)
 }

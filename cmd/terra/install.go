@@ -66,7 +66,14 @@ var installCommand = cli.Command{
 		}
 
 		ctx := cmd.CancelContext()
-		store, err := image.NewContentStore(filepath.Join("/tmp", "contentstore"))
+
+		// handle running on a provisioning machine vs in the iso
+		storePath := filepath.Join("/tmp", "contentstore")
+		if _, err := os.Stat(contentStorePath); err == nil {
+			storePath = contentStorePath
+		}
+
+		store, err := image.NewContentStore(storePath)
 		if err != nil {
 			return errors.Wrap(err, "new content store")
 		}
