@@ -31,6 +31,7 @@ import (
 	"context"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path/filepath"
 
 	"github.com/pkg/errors"
@@ -51,6 +52,7 @@ var pxeCommand = cli.Command{
 	Description: "manage the pxe setup for terra",
 	Subcommands: []cli.Command{
 		pxeInstallCommand,
+		pxeSaveCommand,
 	},
 }
 
@@ -166,18 +168,11 @@ var pxeSaveCommand = cli.Command{
 }
 
 func syncDir(ctx context.Context, source, target string) error {
-	path := target
-	if err := os.MkdirAll(path, 0711); err != nil {
-		return errors.Wrapf(err, "mkdir %s", path)
-	}
-	for _, f := range []string{
-		filepath.Join(source, kernel),
-		filepath.Join(source, initrd),
-	} {
-		to := filepath.Join(path, filepath.Base(f))
-		if err := os.Rename(f, to); err != nil {
-			return errors.Wrapf(err, "rename %s to %s", f, to)
-		}
+	cmd := exec.CommandContext(ctx, "rsync", "--progress", "-a", source, target)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		return errors.Wrap(err, "failed to rsync directories")
 	}
 	return nil
 }
