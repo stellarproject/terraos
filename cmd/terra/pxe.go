@@ -106,7 +106,7 @@ var pxeSaveCommand = cli.Command{
 	Description: "save a node's pxe configuration",
 	Flags: []cli.Flag{
 		cli.StringFlag{
-			Name:  "iscsi-target,t",
+			Name:  "iscsi-target,target",
 			Usage: "iscsi target IP",
 		},
 		cli.StringFlag{
