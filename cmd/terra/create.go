@@ -137,11 +137,14 @@ var createCommand = cli.Command{
 			io.Copy(os.Stdout, f)
 			return errors.Wrap(err, "execute build")
 		}
+		var uid int
 		if vhost := clix.String("vhost"); vhost != "" {
 			c := &v1.Container{
 				ID:         fmt.Sprintf("%s-vhost", node.Hostname),
 				Image:      ref,
 				Privileged: true,
+				UID:        &uid,
+				GID:        &uid,
 				MaskedPaths: []string{
 					"/etc/netplan",
 				},
