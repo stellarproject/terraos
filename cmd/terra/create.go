@@ -40,8 +40,10 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/BurntSushi/toml"
 	"github.com/pkg/errors"
 	"github.com/stellarproject/terraos/cmd"
+	v1 "github.com/stellarproject/terraos/config/v1"
 	"github.com/urfave/cli"
 )
 
@@ -70,9 +72,8 @@ var createCommand = cli.Command{
 			Usage: "build with no cache",
 		},
 		cli.StringFlag{
-			Name:   "vhost",
-			Usage:  "file to output vhost config",
-			Hidden: true,
+			Name:  "vhost",
+			Usage: "file to output vhost config",
 		},
 	},
 	Action: func(clix *cli.Context) error {
@@ -136,41 +137,39 @@ var createCommand = cli.Command{
 			io.Copy(os.Stdout, f)
 			return errors.Wrap(err, "execute build")
 		}
-		/*
-			if vhost := clix.String("vhost"); vhost != "" {
-				c := &v1.Container{
-					ID:         fmt.Sprintf("%s-vhost", config.Hostname),
-					Image:      ref,
-					Privileged: true,
-					MaskedPaths: []string{
-						"/etc/netplan",
-					},
-					Networks: []*v1.Network{
-						{
-							Type: "macvlan",
-							Name: "vhost0",
-							IPAM: v1.IPAM{
-								Type: "dhcp",
-							},
+		if vhost := clix.String("vhost"); vhost != "" {
+			c := &v1.Container{
+				ID:         fmt.Sprintf("%s-vhost", node.Hostname),
+				Image:      ref,
+				Privileged: true,
+				MaskedPaths: []string{
+					"/etc/netplan",
+				},
+				Networks: []*v1.Network{
+					{
+						Type: "macvlan",
+						Name: "vhost0",
+						IPAM: v1.IPAM{
+							Type: "dhcp",
 						},
 					},
-					Resources: &v1.Resources{
-						CPU:    1.0,
-						Memory: 128,
-					},
-				}
-
-				f, err := os.Create(vhost)
-				if err != nil {
-					return errors.Wrapf(err, "create vhost file %s", vhost)
-				}
-				defer f.Close()
-
-				if err := toml.NewEncoder(f).Encode(c); err != nil {
-					return errors.Wrap(err, "write vhost config")
-				}
+				},
+				Resources: &v1.Resources{
+					CPU:    1.0,
+					Memory: 128,
+				},
 			}
-		*/
+
+			f, err := os.Create(vhost)
+			if err != nil {
+				return errors.Wrapf(err, "create vhost file %s", vhost)
+			}
+			defer f.Close()
+
+			if err := toml.NewEncoder(f).Encode(c); err != nil {
+				return errors.Wrap(err, "write vhost config")
+			}
+		}
 		return nil
 	},
 }
