@@ -75,6 +75,10 @@ var createCommand = cli.Command{
 			Name:  "vhost",
 			Usage: "file to output vhost config",
 		},
+		cli.StringFlag{
+			Name:  "vhost-mount",
+			Usage: "vhost containerd mount path",
+		},
 	},
 	Action: func(clix *cli.Context) error {
 		node, err := cmd.LoadNode(clix.Args().First())
@@ -161,6 +165,14 @@ var createCommand = cli.Command{
 					CPU:    1.0,
 					Memory: 128,
 				},
+			}
+			if m := clix.String("vhost-mount"); m != "" {
+				c.Mounts = append(c.Mounts, v1.Mount{
+					Type:        "bind",
+					Source:      m,
+					Destination: "/var/lib/containerd",
+					Options:     []string{"bind", "rw"},
+				})
 			}
 
 			f, err := os.Create(vhost)
