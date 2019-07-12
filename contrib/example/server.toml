@@ -1,15 +1,40 @@
-hostname = "example"
-version = "9"
-os = "docker.io/stellarproject/terraos:v13"
-repo = "docker.io/stellarproject"
-userland = """
+hostname = "terra-01"
+labels = ["testing", "example"]
+memory = 4096
+domain = "home"
+gateway = "10.0.10.1"
+nameservers = []
+cluster_fs = ""
+
+[[nic]]
+  name = "eth0"
+  mac = "xx:xx:xx:xx:xx:xx"
+  addresses = []
+  speed = 1000
+
+[[volumes]]
+  label = "os"
+  type = "btrfs"
+  boot = true
+  path = "/"
+
+[[gpus]]
+  model = "Geforce Titian X"
+  cores = 6400
+  memory = 12000
+  capabilities = ["compute", "video"]
+
+[[cpus]]
+  ghz = 3.4
+
+[[cpus]]
+  ghz = 3.4
+
+[image]
+  name = "docker.io/stellarproject/example:10"
+  base = "registry.compute:5000/terraos:v14"
+  init = "/sbin/init"
+  userland = """
 RUN echo 'terra:terra' | chpasswd
 ADD sshd_config /etc/ssh/
 """
-
-[netplan]
-  [[netplan.interfaces]]
-    name = "eth0"
-
-[resolvconf]
-  nameservers = ["8.8.8.8", "8.8.4.4"]
