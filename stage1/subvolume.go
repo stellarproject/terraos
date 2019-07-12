@@ -28,7 +28,7 @@
 package stage1
 
 import (
-	"github.com/stellarproject/terraos/api/v1/types"
+	types "github.com/stellarproject/terraos/api/node/v1"
 )
 
 func DefaultSubvolumes() []*types.Subvolume {

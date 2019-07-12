@@ -31,11 +31,16 @@ import (
 	"fmt"
 	"os"
 
-	raven "github.com/getsentry/raven-go"
+	"github.com/containerd/containerd/content"
+	"github.com/getsentry/raven-go"
 	"github.com/sirupsen/logrus"
+	"github.com/stellarproject/terraos/cmd"
+	"github.com/stellarproject/terraos/pkg/image"
 	"github.com/stellarproject/terraos/version"
 	"github.com/urfave/cli"
 )
+
+const contentStorePath = "/content"
 
 func main() {
 	app := cli.NewApp()
@@ -77,39 +82,45 @@ Terra OS management`
 			Value:  "127.0.0.1",
 			EnvVar: "TERRA_CONTROLLER",
 		},
-		cli.StringFlag{
-			Name:   "sentry-dsn",
-			Usage:  "sentry DSN",
-			EnvVar: "SENTRY_DSN",
-		},
-		cli.StringSliceFlag{
-			Name:  "plain-remote",
-			Usage: "http registries",
-			Value: &cli.StringSlice{},
-		},
 	}
 	app.Before = func(clix *cli.Context) error {
 		if clix.GlobalBool("debug") {
 			logrus.SetLevel(logrus.DebugLevel)
 		}
-		if dsn := clix.GlobalString("sentry-dsn"); dsn != "" {
-			raven.SetDSN(dsn)
-			raven.DefaultClient.SetRelease(version.Version)
-		}
 		return nil
 	}
 	app.Commands = []cli.Command{
 		createCommand,
-		controllerCommand,
-		deleteCommand,
-		infoCommand,
-		provisionCommand,
-		listCommand,
+		initCommand,
+		installCommand,
 		pxeCommand,
 	}
 	if err := app.Run(os.Args); err != nil {
 		fmt.Fprintln(os.Stderr, err)
-		raven.CaptureErrorAndWait(err, nil)
 		os.Exit(1)
 	}
+}
+
+var config *cmd.Terra
+
+func Before(clix *cli.Context) error {
+	t, err := cmd.LoadTerra()
+	if err != nil {
+		if !os.IsNotExist(err) {
+			return err
+		}
+	}
+	config = t
+	if t.Debug {
+		logrus.SetLevel(logrus.DebugLevel)
+	}
+	if t.SentryDSN != "" {
+		raven.SetDSN(t.SentryDSN)
+		raven.DefaultClient.SetRelease(version.Version)
+	}
+	return nil
+}
+
+func getStore() (content.Store, error) {
+	return image.NewContentStore(contentStorePath)
 }

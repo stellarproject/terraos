@@ -41,10 +41,5 @@ local_mount_root()
 	modprobe ${FSTYPE}
 	checkfs ${ROOT} root "${FSTYPE}"
 
-	mkdir /lower
-	mount -t ${FSTYPE} ${ROOTFLAGS} ${ROOT} /lower || rescue_shell
-	if [ -z "${VERSION}" ]; then
-		VERSION="os"
-	fi
-	mount -o subvol=/${VERSION} -t btrfs ${ROOT} ${rootmnt} || rescue_shell
+	mount -t ${FSTYPE} ${ROOTFLAGS} ${ROOT} ${rootmnt} || rescue_shell
 }

@@ -25,7 +25,7 @@
 
 FROM golang:1.12 as cni
 
-ENV COMMIT 19cad9e318e8763e5f706ccb777d6dadd95495be
+ENV COMMIT 957e9197c2bc7e031bd6df16e5712a182923042a
 RUN git clone https://github.com/crosbymichael/plugins /go/src/github.com/containernetworking/plugins
 WORKDIR /go/src/github.com/containernetworking/plugins
 RUN git checkout $COMMIT

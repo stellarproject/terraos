@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package io.stellarproject.node.v1;
+
+import weak "gogoproto/gogo.proto";
+import "google/protobuf/empty.proto";
+import "github.com/stellarproject/terraos/api/types/v1/node.proto";
+
+option go_package = "github.com/stellarproject/terraos/api/node/v1;v1";
+
+service Agent {
+	rpc Ping(google.protobuf.Empty) returns (google.protobuf.Empty);
+	rpc Info(google.protobuf.Empty) returns (InfoResponse);
+}
+
+message InfoResponse {
+	types.v1.Node node = 1;
+	string image = 2;
+}
+service Provisioner {
+	rpc Provision(ProvisionRequest) returns (google.protobuf.Empty);
+}
+
+message ProvisionRequest {
+	types.v1.Node node = 1;
+	repeated string nameservers = 2;
+	repeated string ssh_keys = 3;
+	string gateway = 4;
+	string cluster_fs = 5;
+}

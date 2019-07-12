@@ -1,6 +1,6 @@
 hostname = "example"
-version = "7"
-os = "docker.io/stellarproject/terraos:v12"
+version = "9"
+os = "docker.io/stellarproject/terraos:v13"
 repo = "docker.io/stellarproject"
 userland = """
 RUN echo 'terra:terra' | chpasswd

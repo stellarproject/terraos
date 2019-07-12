@@ -107,3 +107,28 @@ func GetDefaultIface() (string, error) {
 	}
 	return "", ErrNoDefaultRoute
 }
+
+func IPAndGateway() (string, string, error) {
+	for i := 0; i < 15; i++ {
+		routes, err := netlink.RouteList(nil, netlink.FAMILY_V4)
+		if err != nil {
+			return "", "", err
+		}
+		for _, r := range routes {
+			if r.Gw != nil {
+				link, err := netlink.LinkByIndex(r.LinkIndex)
+				if err != nil {
+					return "", "", err
+				}
+				name := link.Attrs().Name
+				ip, err := GetIP(name)
+				if err != nil {
+					return "", "", err
+				}
+				return ip, r.Gw.To4().String(), nil
+			}
+		}
+		time.Sleep(500 * time.Millisecond)
+	}
+	return "", "", ErrNoDefaultRoute
+}
