@@ -27,7 +27,7 @@ PACKAGES=$(shell go list ./... | grep -v /vendor/)
 REVISION=$(shell git rev-parse HEAD)
 VERSION=v14
 GO_LDFLAGS=-s -w -X github.com/stellarproject/terraos/version.Version=$(VERSION) -X github.com/stellarproject/terraos/version.Revision=$(REVISION)
-KERNEL=5.2.0
+KERNEL=5.2.1
 REPO=$(shell cat REPO || echo "stellarproject")
 WIREGUARD=0.0.20190702
 VAB_ARGS=""
@@ -72,7 +72,7 @@ live:
 # -------------------- stage0 -------------------------
 
 kernel: FORCE
-	vab build ${VAB_ARGS} -c stage0/kernel -d stage0/kernel --push --ref stellarproject/kernel:${KERNEL} ${ARGS}
+	vab build ${VAB_ARGS} -c stage0/kernel -d stage0/kernel --push --ref ${REPO}/kernel:${KERNEL} ${ARGS}
 
 pxe: FORCE
 	vab build ${VAB_ARGS} --push -c stage0/pxe -d stage0/pxe --ref ${REPO}/pxe:${VERSION}  ${ARGS}
