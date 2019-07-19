@@ -155,8 +155,8 @@ var pxeSaveCommand = cli.Command{
 			k, i = kernel, initrd
 		)
 		if kv := clix.String("kv"); kv != "" {
-			k = k + kv
-			i = i + kv
+			k = fmt.Sprintf(kvFmt, k, kv)
+			i = fmt.Sprintf(kvFmt, i, kv)
 		}
 		p := &pxe.PXE{
 			Default: "pxe",
@@ -194,10 +194,12 @@ var pxeSaveCommand = cli.Command{
 	},
 }
 
+const kvFmt = "%s-%s"
+
 func copyKernel(source, version, target string) error {
 	// rename kernel images
 	for _, name := range []string{initrd, kernel} {
-		if err := os.Rename(filepath.Join(source, name), filepath.Join(target, fmt.Sprintf("%s%s", name, version))); err != nil {
+		if err := os.Rename(filepath.Join(source, name), filepath.Join(target, fmt.Sprintf(kvFmt, name, version))); err != nil {
 			return errors.Wrap(err, "rename kernels to target")
 		}
 	}
