@@ -30,6 +30,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -199,8 +200,27 @@ const kvFmt = "%s-%s"
 func copyKernel(source, version, target string) error {
 	// rename kernel images
 	for _, name := range []string{initrd, kernel} {
-		if err := os.Rename(filepath.Join(source, name), filepath.Join(target, fmt.Sprintf(kvFmt, name, version))); err != nil {
+		sourceFile := filepath.Join(source, name)
+		fn := filepath.Join(source, fmt.Sprintf(kvFmt, name, version))
+		if err := os.Rename(sourceFile, fn); err != nil {
 			return errors.Wrap(err, "rename kernels to target")
+		}
+		sf, err := os.Open(fn)
+		if err != nil {
+			return err
+		}
+
+		fn = filepath.Join(target, fmt.Sprintf(kvFmt, name, version))
+		f, err := os.Create(fn)
+		if err != nil {
+			sf.Close()
+			return err
+		}
+		_, err = io.Copy(f, sf)
+		sf.Close()
+		f.Close()
+		if err != nil {
+			return err
 		}
 	}
 	return nil
