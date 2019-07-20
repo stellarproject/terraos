@@ -30,7 +30,7 @@ ARG VERSION
 ARG REPO
 
 # ------------------ imports ------------------------------ #
-FROM stellarproject/kernel:$KERNEL_VERSION as kernel
+FROM $REPO/kernel:$KERNEL_VERSION as kernel
 
 # ------------------ pxe build --------------------------- #
 

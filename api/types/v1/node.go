@@ -69,6 +69,9 @@ func (v *Volume) MountLabel() string {
 
 func (v *Volume) Mount(device, dest string) (func() error, error) {
 	p := filepath.Join(dest, v.Path)
+	if err := os.MkdirAll(p, 0755); err != nil {
+		return nil, errors.Wrapf(err, "mkdir %s", p)
+	}
 	if err := unix.Mount(device, p, v.Type, 0, ""); err != nil {
 		return nil, errors.Wrapf(err, "mount %s to %s", v.Label, p)
 	}

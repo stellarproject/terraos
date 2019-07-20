@@ -219,6 +219,7 @@ RUN systemctl enable {{$s}}
 
 ADD etc/hostname /etc/
 ADD etc/hosts /etc/
+ADD etc/fstab /etc/
 ADD etc/resolv.conf /etc/
 ADD etc/hostname /etc/
 ADD etc/netplan/01-netcfg.yaml /etc/netplan/

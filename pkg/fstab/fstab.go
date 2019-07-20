@@ -53,6 +53,9 @@ func Write(w io.Writer, entries []*Entry) error {
 		if e.Dump {
 			dump = 1
 		}
+		if len(e.Options) == 0 {
+			e.Options = []string{"defaults"}
+		}
 		fmt.Fprintf(tw, tfmt,
 			e.Device,
 			e.Path,

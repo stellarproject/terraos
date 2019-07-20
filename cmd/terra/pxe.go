@@ -29,10 +29,13 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/stellarproject/terraos/cmd"
@@ -70,6 +73,10 @@ var pxeInstallCommand = cli.Command{
 			Name:  "http",
 			Usage: "fetch over http",
 		},
+		cli.BoolFlag{
+			Name:  "default",
+			Usage: "set this pxe install as the default",
+		},
 	},
 	Action: func(clix *cli.Context) error {
 		ctx := cmd.CancelContext()
@@ -94,8 +101,18 @@ var pxeInstallCommand = cli.Command{
 		if err := image.Unpack(ctx, store, img, path); err != nil {
 			return errors.Wrap(err, "unpack pxe image")
 		}
-		if err := syncDir(ctx, filepath.Join(path, "tftp")+"/", clix.String("tftp")+"/"); err != nil {
-			return errors.Wrap(err, "sync tftp dir")
+		var (
+			source = filepath.Join(path, "tftp") + "/"
+			target = clix.String("tftp") + "/"
+		)
+		if clix.Bool("default") {
+			if err := syncDir(ctx, source, target); err != nil {
+				return errors.Wrap(err, "sync tftp dir")
+			}
+		} else {
+			if err := copyKernel(source, getVersion(i), target); err != nil {
+				return errors.Wrap(err, "copy kernel")
+			}
 		}
 		return nil
 	},
@@ -114,6 +131,10 @@ var pxeSaveCommand = cli.Command{
 			Usage: "tftp location",
 			Value: "/tftp",
 		},
+		cli.StringFlag{
+			Name:  "kv",
+			Usage: "kernel version to pin for the config",
+		},
 	},
 	Action: func(clix *cli.Context) error {
 		node, err := cmd.LoadNode(clix.Args().First())
@@ -131,6 +152,13 @@ var pxeSaveCommand = cli.Command{
 			// FIXME: this will have to be fixed to get gateway, subnet, etc
 			ip = nic.Addresses[0]
 		}
+		var (
+			k, i = kernel, initrd
+		)
+		if kv := clix.String("kv"); kv != "" {
+			k = fmt.Sprintf(kvFmt, k, kv)
+			i = fmt.Sprintf(kvFmt, i, kv)
+		}
 		p := &pxe.PXE{
 			Default: "pxe",
 			MAC:     nic.Mac,
@@ -140,8 +168,8 @@ var pxeSaveCommand = cli.Command{
 					Root:   "LABEL=os",
 					Boot:   "pxe",
 					Label:  "pxe",
-					Kernel: kernel,
-					Initrd: initrd,
+					Kernel: k,
+					Initrd: i,
 					// TODO: support options
 				},
 			},
@@ -167,6 +195,37 @@ var pxeSaveCommand = cli.Command{
 	},
 }
 
+const kvFmt = "%s-%s"
+
+func copyKernel(source, version, target string) error {
+	// rename kernel images
+	for _, name := range []string{initrd, kernel} {
+		sourceFile := filepath.Join(source, name)
+		fn := filepath.Join(source, fmt.Sprintf(kvFmt, name, version))
+		if err := os.Rename(sourceFile, fn); err != nil {
+			return errors.Wrap(err, "rename kernels to target")
+		}
+		sf, err := os.Open(fn)
+		if err != nil {
+			return err
+		}
+
+		fn = filepath.Join(target, fmt.Sprintf(kvFmt, name, version))
+		f, err := os.Create(fn)
+		if err != nil {
+			sf.Close()
+			return err
+		}
+		_, err = io.Copy(f, sf)
+		sf.Close()
+		f.Close()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func syncDir(ctx context.Context, source, target string) error {
 	cmd := exec.CommandContext(ctx, "rsync", "--progress", "-a", source, target)
 	cmd.Stdout = os.Stdout
@@ -175,4 +234,9 @@ func syncDir(ctx context.Context, source, target string) error {
 		return errors.Wrap(err, "failed to rsync directories")
 	}
 	return nil
+}
+
+func getVersion(i string) string {
+	parts := strings.Split(i, ":")
+	return parts[len(parts)-1]
 }

@@ -23,7 +23,7 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH
 # THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-FROM ubuntu:18.10 as builder
+FROM ubuntu:19.04 as builder
 ARG KERNEL_VERSION
 ARG WIREGUARD
 
@@ -45,7 +45,7 @@ RUN apt-get update && apt-get install -y \
 	libmnl-dev \
 	btrfs-progs \
 	btrfs-tools \
-	iptables \
+	libssl-dev \
 	make
 
 ENV WIREGUARD_URL=https://git.zx2c4.com/WireGuard/snapshot/WireGuard-${WIREGUARD}.tar.xz
