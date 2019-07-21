@@ -52,7 +52,7 @@ RUN rm -rf /go/src/github.com/opencontainers/runc && \
 RUN ./script/setup/install-protobuf
 RUN ./script/setup/install-runc
 
-RUN make BUILDTAGS='no_cri no_devmapper'
+RUN make BUILDTAGS='no_cri no_devmapper no_btrfs'
 
 ADD config.toml /etc/containerd/
 
