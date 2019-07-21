@@ -92,6 +92,7 @@ Terra OS management`
 	app.Commands = []cli.Command{
 		createCommand,
 		installCommand,
+		iscsiCommand,
 		pxeCommand,
 	}
 	if err := app.Run(os.Args); err != nil {
