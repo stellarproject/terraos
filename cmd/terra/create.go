@@ -91,10 +91,11 @@ var createCommand = cli.Command{
 		}
 		ctx := cmd.CancelContext()
 		imageContext := &ImageContext{
-			Base:     node.Image.Base,
-			Userland: node.Image.Userland,
-			Init:     node.Image.Init,
-			Hostname: node.Hostname,
+			Base:      node.Image.Base,
+			Userland:  node.Image.Userland,
+			Init:      node.Image.Init,
+			Hostname:  node.Hostname,
+			RemoveApt: !node.Image.AllowApt,
 		}
 		if userland := clix.String("userland"); userland != "" {
 			data, err := ioutil.ReadFile(userland)
@@ -232,6 +233,8 @@ RUN dbus-uuidgen --ensure=/etc/machine-id && dbus-uuidgen --ensure
 
 {{.Userland}}
 
+{{if .RemoveApt}}RUN apt remove --purge --allow-remove-essential -y apt{{end}}
+
 {{if .Init}}CMD ["{{.Init}}"]{{end}}
 `
 
@@ -269,4 +272,5 @@ type ImageContext struct {
 	Init       string
 	Hostname   string
 	ResolvConf bool
+	RemoveApt  bool
 }

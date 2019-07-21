@@ -28,6 +28,7 @@ message Image {
 	repeated Component components = 4;
 	string userland = 5;
 	SSH ssh = 6;
+	bool allow_apt = 7;
 }
 
 message SSH {

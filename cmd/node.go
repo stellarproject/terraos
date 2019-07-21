@@ -50,6 +50,7 @@ type Node struct {
 	Gateway     string   `toml:"gateway"`
 	Nameservers []string `toml:"nameservers"`
 	ClusterFS   string   `toml:"cluster_fs"`
+	AllowApt    bool     `toml:"allow_apt"`
 }
 
 type Image struct {
@@ -119,6 +120,7 @@ func (n *Node) ToProto() *v1.Node {
 				Github: n.Image.SSH.Github,
 				Keys:   n.Image.SSH.Keys,
 			},
+			AllowApt: n.AllowApt,
 		},
 	}
 	for _, c := range n.Image.Components {
