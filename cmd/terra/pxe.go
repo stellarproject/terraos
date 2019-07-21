@@ -55,7 +55,57 @@ var pxeCommand = cli.Command{
 	Description: "manage the pxe setup for terra",
 	Subcommands: []cli.Command{
 		pxeInstallCommand,
+		pxeMoudlesCommand,
 		pxeSaveCommand,
+	},
+}
+
+var pxeMoudlesCommand = cli.Command{
+	Name:        "modules",
+	Description: "install a new pxe's modules to the system",
+	ArgsUsage:   "[image]",
+	Flags: []cli.Flag{
+		cli.StringFlag{
+			Name:  "location,l",
+			Usage: "modules location",
+			Value: "/lib/modules",
+		},
+		cli.BoolFlag{
+			Name:  "http",
+			Usage: "fetch over http",
+		},
+	},
+	Action: func(clix *cli.Context) error {
+		ctx := cmd.CancelContext()
+		i := clix.Args().First()
+		if i == "" {
+			return errors.New("image config should be passed on command line")
+		}
+		store, err := getStore()
+		if err != nil {
+			return errors.Wrap(err, "get content store")
+		}
+		img, err := image.Fetch(ctx, clix.Bool("http"), store, i)
+		if err != nil {
+			return errors.Wrapf(err, "fetch %s", i)
+		}
+		path, err := ioutil.TempDir("", "terra-pxe-install")
+		if err != nil {
+			return errors.Wrap(err, "create tmp pxe dir")
+		}
+		defer os.RemoveAll(path)
+
+		if err := image.Unpack(ctx, store, img, path); err != nil {
+			return errors.Wrap(err, "unpack pxe image")
+		}
+		var (
+			source = filepath.Join(path, "lib/modules") + "/"
+			target = clix.String("location") + "/"
+		)
+		if err := syncDir(ctx, source, target); err != nil {
+			return errors.Wrap(err, "sync tftp dir")
+		}
+		return nil
 	},
 }
 
