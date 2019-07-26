@@ -39,7 +39,7 @@ RUN apt update && \
 	make \
 	xfsprogs
 
-ENV COMMIT 041d8d70510fababcca15830df33bb2718227fcf
+ENV COMMIT ab78270e03d8e3c854ddbef66d8b77ccd893661e
 RUN git clone https://github.com/containerd/containerd /go/src/github.com/containerd/containerd
 WORKDIR /go/src/github.com/containerd/containerd
 RUN git checkout $COMMIT
