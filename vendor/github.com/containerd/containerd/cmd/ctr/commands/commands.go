@@ -21,10 +21,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 
-	"github.com/containerd/containerd"
+	"github.com/containerd/containerd/defaults"
 	"github.com/urfave/cli"
 )
 
@@ -34,7 +33,6 @@ var (
 		cli.StringFlag{
 			Name:   "snapshotter",
 			Usage:  "snapshotter name. Empty value stands for the default value.",
-			Value:  containerd.DefaultSnapshotter,
 			EnvVar: "CONTAINERD_SNAPSHOTTER",
 		},
 	}
@@ -102,7 +100,7 @@ var (
 		cli.StringFlag{
 			Name:  "runtime",
 			Usage: "runtime name",
-			Value: fmt.Sprintf("io.containerd.runtime.v1.%s", runtime.GOOS),
+			Value: defaults.DefaultRuntime,
 		},
 		cli.BoolFlag{
 			Name:  "tty,t",
@@ -127,6 +125,26 @@ var (
 		cli.Uint64Flag{
 			Name:  "memory-limit",
 			Usage: "memory limit (in bytes) for the container",
+		},
+		cli.StringSliceFlag{
+			Name:  "device",
+			Usage: "add a device to a container",
+		},
+	}
+	// ImageDecryptionFlags are cli flags needed when decrypting an image
+	ImageDecryptionFlags = []cli.Flag{
+		cli.StringFlag{
+			Name:  "gpg-homedir",
+			Usage: "The GPG homedir to use; by default gpg uses ~/.gnupg",
+		}, cli.StringFlag{
+			Name:  "gpg-version",
+			Usage: "The GPG version (\"v1\" or \"v2\"), default will make an educated guess",
+		}, cli.StringSliceFlag{
+			Name:  "key",
+			Usage: "A secret key's filename and an optional password separated by colon; this option may be provided multiple times",
+		}, cli.StringSliceFlag{
+			Name:  "dec-recipient",
+			Usage: "Recipient of the image; used only for PKCS7 and must be an x509 certificate",
 		},
 	}
 )

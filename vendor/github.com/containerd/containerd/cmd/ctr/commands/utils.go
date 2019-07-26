@@ -14,11 +14,14 @@
    limitations under the License.
 */
 
-package progress
+package commands
 
-const (
-	escape = "\x1b"
-	reset  = escape + "[0m"
-	red    = escape + "[31m" // nolint: deadcode, varcheck, unused
-	green  = escape + "[32m"
-)
+// IntToInt32Array converts an array of int's to int32's
+func IntToInt32Array(in []int) []int32 {
+	var ret []int32
+
+	for _, v := range in {
+		ret = append(ret, int32(v))
+	}
+	return ret
+}
