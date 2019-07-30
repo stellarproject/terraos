@@ -27,7 +27,7 @@ PACKAGES=$(shell go list ./... | grep -v /vendor/)
 REVISION=$(shell git rev-parse HEAD)
 VERSION=v15
 GO_LDFLAGS=-s -w -X github.com/stellarproject/terraos/version.Version=$(VERSION) -X github.com/stellarproject/terraos/version.Revision=$(REVISION)
-KERNEL=5.2.2
+KERNEL=5.2.4
 REPO=$(shell cat REPO || echo "stellarproject")
 WIREGUARD=0.0.20190702
 VAB_ARGS=""
