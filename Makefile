@@ -50,7 +50,6 @@ FORCE:
 # -------------------- local -------------------------
 local: orbit
 	@cd cmd/terra && CGO_ENABLED=0 go build -v -ldflags '${GO_LDFLAGS}' -o ../../build/terra
-	@cd cmd/rdns && CGO_ENABLED=0 go build -v -ldflags '${GO_LDFLAGS}' -o ../../build/rdns
 
 install:
 	@install build/terra* /usr/local/sbin/
@@ -82,8 +81,10 @@ boot: FORCE
 
 # -------------------- stage1 -------------------------
 
-defaults: gvisor wireguard orbit-release FORCE
+containerd:
 	vab build ${VAB_ARGS} -p -c stage1/defaults/containerd -d stage1/defaults/containerd --ref ${REPO}/containerd:${VERSION} ${ARGS}
+
+defaults: containerd gvisor wireguard orbit-release FORCE
 	vab build ${VAB_ARGS} -p -c stage1/defaults/node_exporter -d stage1/defaults/node_exporter --ref ${REPO}/node_exporter:${VERSION} ${ARGS}
 	vab build ${VAB_ARGS} -p -c stage1/defaults/cni -d stage1/defaults/cni --ref ${REPO}/cni:${VERSION} ${ARGS}
 	vab build ${VAB_ARGS} -p -d stage1/defaults/criu -c stage1/defaults/criu --ref ${REPO}/criu:${VERSION} ${ARGS}

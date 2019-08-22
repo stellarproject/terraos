@@ -94,6 +94,7 @@ Terra OS management`
 		installCommand,
 		iscsiCommand,
 		pxeCommand,
+		updateCommand,
 	}
 	if err := app.Run(os.Args); err != nil {
 		fmt.Fprintln(os.Stderr, err)

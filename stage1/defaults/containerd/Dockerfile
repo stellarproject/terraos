@@ -32,14 +32,25 @@ RUN apt update && \
 	g++ \
 	libtool \
 	unzip \
-	btrfs-tools \
 	gcc \
 	git \
-	libseccomp-dev \
-	make \
-	xfsprogs
+	make
 
-ENV COMMIT 5222236c1b57d055362dbc413d042ab56427270a
+ENV SECCOMP_VERSION 2.3.3
+RUN set -x \
+	&& export SECCOMP_PATH="$(mktemp -d)" \
+	&& curl -fsSL "https://github.com/seccomp/libseccomp/releases/download/v${SECCOMP_VERSION}/libseccomp-${SECCOMP_VERSION}.tar.gz" \
+		| tar -xzC "$SECCOMP_PATH" --strip-components=1 \
+	&& ( \
+		cd "$SECCOMP_PATH" \
+		&& ./configure --prefix=/usr/local \
+		&& make \
+		&& make install \
+		&& ldconfig \
+	) \
+	&& rm -rf "$SECCOMP_PATH"
+
+ENV COMMIT 1be6ee53968740f74fa75f75079f6f8cdcef2657
 RUN git clone https://github.com/containerd/containerd /go/src/github.com/containerd/containerd
 WORKDIR /go/src/github.com/containerd/containerd
 RUN git checkout $COMMIT
@@ -49,6 +60,7 @@ RUN git checkout $COMMIT
 RUN rm -rf /go/src/github.com/opencontainers/runc && \
 	git clone https://github.com/opencontainers/runc /go/src/github.com/opencontainers/runc
 
+ADD install-runc ./script/setup/install-runc
 RUN ./script/setup/install-protobuf
 RUN ./script/setup/install-runc
 
