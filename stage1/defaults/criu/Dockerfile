@@ -23,31 +23,28 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH
 # THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-FROM ubuntu:18.04 as build
+FROM alpine:latest as build
 
-RUN apt-get update && apt-get install -y \
-    build-essential \
+RUN apk update && apk add \
+    build-base \
     curl \
     sudo \
     gawk \
 	git \
     iptables \
     jq \
-    pkg-config \
     libaio-dev \
     libcap-dev \
-    libprotobuf-dev \
-    libprotobuf-c0-dev \
-    libnl-3-dev \
+    protobuf-dev \
+    protobuf-c-dev \
+    libnl-dev \
+    libnl \
     libnet-dev \
-    libseccomp2 \
     libseccomp-dev \
-    protobuf-c-compiler \
-    protobuf-compiler \
-    python-minimal \
-    uidmap \
-    kmod \
-    && apt-get clean
+    protobuf-c \
+    protobuf \
+    python \
+    kmod
 
 RUN git clone https://github.com/checkpoint-restore/criu /criu
 RUN cd /criu \

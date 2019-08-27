@@ -23,10 +23,10 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH
 # THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-FROM golang:1.12 as gvisor
+FROM golang:alpine as gvisor
 
-RUN apt update && \
-	apt install -y \
+RUN apk update && \
+	apk add \
 	make \
 	curl \
 	git

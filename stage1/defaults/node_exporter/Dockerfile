@@ -23,7 +23,9 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH
 # THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-FROM golang:1.12 as prom
+FROM golang:alpine as prom
+
+RUN apk update && apk add git
 
 RUN go get -d github.com/prometheus/node_exporter
 WORKDIR /go/src/github.com/prometheus/node_exporter

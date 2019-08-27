@@ -49,6 +49,7 @@ RUN apk update && apk add \
 	openssh-server \
 	curl \
 	openrc \
+	bash \
 	pigz \
 	htop \
 	tmux \
