@@ -23,9 +23,9 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH
 # THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-FROM golang:1.12 as builder
+FROM golang:alpine as builder
 
-RUN apt update && apt install -y btrfs-tools
+RUN apk update && apk add make build-base
 
 ADD . /go/src/github.com/stellarproject/terraos
 WORKDIR /go/src/github.com/stellarproject/terraos

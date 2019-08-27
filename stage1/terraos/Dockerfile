@@ -35,7 +35,7 @@ FROM ${REPO}/containerd:${VERSION} as containerd
 
 FROM ${REPO}/terracmd:${VERSION} as terra
 FROM ${REPO}/node_exporter:${VERSION} as node_exporter
-FROM ${REPO}/criu:${VERSION} as criu
+# FROM ${REPO}/criu:${VERSION} as criu
 FROM ${REPO}/cni:${VERSION} as cni
 FROM ${REPO}/wireguard:${VERSION} as wireguard
 FROM ${REPO}/gvisor:${VERSION} as gvisor
@@ -78,7 +78,7 @@ COPY --from=node_exporter / /
 COPY --from=cni / /
 COPY --from=orbit / /
 COPY --from=containerd / /
-COPY --from=criu / /
+# COPY --from=criu / /
 COPY --from=wireguard / /
 COPY --from=gvisor / /
 
