@@ -1,5 +1,4 @@
 # Copyright (c) 2019 Stellar Project
-
 # Permission is hereby granted, free of charge, to any person
 # obtaining a copy of this software and associated documentation
 # files (the "Software"), to deal in the Software without
@@ -23,32 +22,20 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH
 # THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-FROM golang:1.12 as containerd
+FROM golang:alpine as containerd
 
-RUN apt update && \
-	apt install -y \
+RUN apk update && \
+	apk add \
 	autoconf \
 	automake \
 	g++ \
 	libtool \
+	libseccomp-dev \
+	curl \
 	unzip \
 	gcc \
 	git \
 	make
-
-ENV SECCOMP_VERSION 2.3.3
-RUN set -x \
-	&& export SECCOMP_PATH="$(mktemp -d)" \
-	&& curl -fsSL "https://github.com/seccomp/libseccomp/releases/download/v${SECCOMP_VERSION}/libseccomp-${SECCOMP_VERSION}.tar.gz" \
-		| tar -xzC "$SECCOMP_PATH" --strip-components=1 \
-	&& ( \
-		cd "$SECCOMP_PATH" \
-		&& ./configure --prefix=/usr/local \
-		&& make \
-		&& make install \
-		&& ldconfig \
-	) \
-	&& rm -rf "$SECCOMP_PATH"
 
 ENV COMMIT 1be6ee53968740f74fa75f75079f6f8cdcef2657
 RUN git clone https://github.com/containerd/containerd /go/src/github.com/containerd/containerd

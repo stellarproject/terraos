@@ -23,16 +23,17 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH
 # THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-FROM ubuntu:18.10 as builder
+FROM alpine:latest as builder
 ARG WIREGUARD
 
-RUN apt-get update && apt-get install -y \
-	build-essential \
+RUN apk update && apk add \
+	build-base \
 	curl \
 	ca-certificates \
 	cpio \
-	libelf-dev \
-	libssl-dev \
+	elfutils-dev \
+	linux-headers \
+	openssl-dev \
 	libmnl-dev \
 	make
 
