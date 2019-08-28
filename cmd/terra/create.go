@@ -91,11 +91,10 @@ var createCommand = cli.Command{
 		}
 		ctx := cmd.CancelContext()
 		imageContext := &ImageContext{
-			Base:      node.Image.Base,
-			Userland:  node.Image.Userland,
-			Init:      node.Image.Init,
-			Hostname:  node.Hostname,
-			RemoveApt: !node.Image.AllowApt,
+			Base:     node.Image.Base,
+			Userland: node.Image.Userland,
+			Init:     node.Image.Init,
+			Hostname: node.Hostname,
 		}
 		if userland := clix.String("userland"); userland != "" {
 			data, err := ioutil.ReadFile(userland)
@@ -229,11 +228,7 @@ ADD home/terra/.ssh /home/terra/.ssh
 
 RUN chown -R terra:terra /home/terra
 
-RUN dbus-uuidgen --ensure=/etc/machine-id && dbus-uuidgen --ensure
-
 {{.Userland}}
-
-{{if .RemoveApt}}RUN apt remove --purge --allow-remove-essential -y apt{{end}}
 
 {{if .Init}}CMD ["{{.Init}}"]{{end}}
 `
@@ -272,5 +267,4 @@ type ImageContext struct {
 	Init       string
 	Hostname   string
 	ResolvConf bool
-	RemoveApt  bool
 }
