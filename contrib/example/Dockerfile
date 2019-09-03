@@ -18,6 +18,7 @@ ADD home/terra/.ssh /home/terra/.ssh
 RUN chown -R terra:terra /home/terra
 
 RUN echo 'terra:terra' | chpasswd
+RUN echo 'root:root' | chpasswd
 ADD sshd_config /etc/ssh/
 
 

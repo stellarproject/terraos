@@ -41,14 +41,12 @@ FROM ${REPO}/wireguard:${VERSION} as wireguard
 FROM ${REPO}/gvisor:${VERSION} as gvisor
 
 # main OS image
-FROM alpine:latest
+FROM docker.io/stellarproject/alpine:deboot
 ARG KERNEL_VERSION
 
 RUN apk update && apk add \
 	ca-certificates \
-	openssh-server \
 	curl \
-	openrc \
 	bash \
 	pigz \
 	htop \
