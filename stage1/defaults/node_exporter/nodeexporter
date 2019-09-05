@@ -4,16 +4,16 @@
 command="/usr/local/bin/node_exporter"
 description="Prometheus Node Metrics"
 pidfile="/var/run/node_exporter/node_exporter.pid"
+args='--web.listen-address=":9900"'
 
 depend() {
 	need net
-	after firewall
-	provide ntp-client ntp-server
 	use dns
 }
 
 start() {
 	local daemon_args="--background"
+	ARGS=$args
 	if yesno "$FAST_STARTUP"; then
 		ARGS="${ARGS}"
 	fi

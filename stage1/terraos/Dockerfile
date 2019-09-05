@@ -52,6 +52,7 @@ RUN apk update && apk add \
 	tmux \
 	rsync \
 	criu \
+	apparmor \
 	iptables
 
 COPY --from=pxe /tftp /boot

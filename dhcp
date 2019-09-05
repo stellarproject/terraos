@@ -9,7 +9,6 @@ args="daemon"
 depend() {
 	need net
 	after firewall
-	provide ntp-client ntp-server
 	use dns
 }
 

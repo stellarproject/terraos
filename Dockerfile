@@ -36,6 +36,7 @@ FROM scratch
 
 COPY --from=orbit /go/src/github.com/stellarproject/terraos/build/ob /usr/local/bin/
 COPY --from=orbit /go/src/github.com/stellarproject/terraos/build/orbit-log /usr/local/bin/
+COPY --from=orbit /go/src/github.com/stellarproject/terraos/build/orbit-syslog /usr/local/bin/
 COPY --from=orbit /go/src/github.com/stellarproject/terraos/build/orbit-network /usr/local/bin/
 COPY --from=orbit /go/src/github.com/stellarproject/terraos/build/orbit-server /usr/local/bin/
 COPY --from=orbit /go/src/github.com/stellarproject/terraos/orbit /etc/init.d/

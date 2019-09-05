@@ -48,7 +48,6 @@ iface lo inet loopback
 {{range $i := .Interfaces}}
 auto {{$i.Name}}
 iface {{$i.Name}} inet {{inet $i}}
-	hostname {{.Hostname}}
 	{{if ne $i.Gateway ""}}gateway {{$i.Gateway}}{{end}}
 {{end}}
 `
@@ -62,7 +61,6 @@ const netplanTemplate = `network:
       gateway4: {{$i.Gateway}}{{end}}{{end}}`
 
 type Netplan struct {
-	Hostname   string      `toml:"hostname"`
 	Interfaces []Interface `toml:"interfaces"`
 }
 
@@ -71,7 +69,7 @@ func (n *Netplan) WriteInterfaces(w io.Writer) error {
 		"addresses":   addresses,
 		"nameservers": nameservers,
 		"inet":        netType,
-	}).Parse(netplanTemplate)
+	}).Parse(interfacesTemplate)
 	if err != nil {
 		return errors.Wrap(err, "interfaces template")
 	}

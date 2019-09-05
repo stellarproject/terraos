@@ -1,7 +1,7 @@
 #!/sbin/openrc-run
 #
 #
-command="/usr/local/bin/orbit"
+command="/usr/local/bin/orbit-server"
 description="Orbit Agent"
 pidfile="/var/run/orbit/orbit.pid"
 args="--logger /usr/local/bin/orbit-syslog"
@@ -9,7 +9,6 @@ args="--logger /usr/local/bin/orbit-syslog"
 depend() {
 	need net
 	after containerd
-	provide ntp-client ntp-server
 	use dns
 }
 

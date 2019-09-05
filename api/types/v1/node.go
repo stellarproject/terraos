@@ -111,9 +111,7 @@ func (i *Node) InstallConfig(dest string) error {
 }
 
 func (i *Node) setupNetplan(dest string) error {
-	n := &netplan.Netplan{
-		Hostname: i.Hostname,
-	}
+	n := &netplan.Netplan{}
 	for _, nic := range i.Nics {
 		gw := i.Gateway
 		if len(nic.Addresses) == 0 {
