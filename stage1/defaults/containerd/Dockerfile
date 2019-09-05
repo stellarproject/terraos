@@ -37,13 +37,11 @@ RUN apk update && \
 	git \
 	make
 
-ENV COMMIT 1be6ee53968740f74fa75f75079f6f8cdcef2657
+ENV COMMIT 77abec43c44dbac3943f26a82521ba1fad6b84d9
 RUN git clone https://github.com/containerd/containerd /go/src/github.com/containerd/containerd
 WORKDIR /go/src/github.com/containerd/containerd
 RUN git checkout $COMMIT
 
-# RUN rsync -au /go/src/github.com/containerd/containerd/vendor/ /go/src/ && \
-#	rm -rf /go/src/github.com/containerd/containerd/vendor/*
 RUN rm -rf /go/src/github.com/opencontainers/runc && \
 	git clone https://github.com/opencontainers/runc /go/src/github.com/opencontainers/runc
 
@@ -61,3 +59,4 @@ COPY --from=containerd /etc/containerd/config.toml /etc/containerd/
 COPY --from=containerd /go/src/github.com/containerd/containerd/containerd.service /etc/systemd/system/
 COPY --from=containerd /go/src/github.com/containerd/containerd/bin/* /usr/local/bin/
 COPY --from=containerd /usr/local/sbin/runc /usr/local/sbin/
+ADD containerd /etc/init.d/containerd

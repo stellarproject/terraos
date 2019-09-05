@@ -84,7 +84,7 @@ boot: FORCE
 containerd:
 	vab build ${VAB_ARGS} -p -c stage1/defaults/containerd -d stage1/defaults/containerd --ref ${REPO}/containerd:${VERSION} ${ARGS}
 
-defaults: containerd gvisor wireguard orbit-release nodeexporter cni FORCE
+defaults: containerd wireguard orbit-release nodeexporter cni FORCE
 
 criu:
 	vab build ${VAB_ARGS} -p -d stage1/defaults/criu -c stage1/defaults/criu --ref ${REPO}/criu:${VERSION} ${ARGS}

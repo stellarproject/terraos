@@ -32,13 +32,10 @@ ARG REPO
 FROM $REPO/pxe:$VERSION as pxe
 FROM ${REPO}/orbit:${VERSION} as orbit
 FROM ${REPO}/containerd:${VERSION} as containerd
-
 FROM ${REPO}/terracmd:${VERSION} as terra
 FROM ${REPO}/node_exporter:${VERSION} as node_exporter
-# FROM ${REPO}/criu:${VERSION} as criu
 FROM ${REPO}/cni:${VERSION} as cni
 FROM ${REPO}/wireguard:${VERSION} as wireguard
-FROM ${REPO}/gvisor:${VERSION} as gvisor
 
 # main OS image
 FROM docker.io/stellarproject/alpine:deboot
@@ -54,6 +51,7 @@ RUN apk update && apk add \
 	rsync \
 	libnl \
 	libnet \
+	criu \
 	iptables
 
 COPY --from=pxe /tftp /boot
@@ -70,6 +68,8 @@ ADD hosts /etc/
 ADD hostname /etc/
 ADD resolv.conf /etc/
 ADD sshd_config /etc/ssh/
+
+RUN rc-update add cgroups sysinit
 
 COPY --from=terra / /
 COPY --from=node_exporter / /
