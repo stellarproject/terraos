@@ -23,8 +23,9 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH
 # THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-FROM golang:1.12 as buildkit
+FROM golang:1.12-alpine as buildkit
 
+RUN apk update && apk add git gcc linux-headers build-base
 RUN git clone https://github.com/moby/buildkit /go/src/github.com/moby/buildkit
 
 WORKDIR /go/src/github.com/moby/buildkit/cmd/buildkitd
@@ -33,4 +34,4 @@ RUN go build
 FROM scratch
 
 COPY --from=buildkit /go/src/github.com/moby/buildkit/cmd/buildkitd/buildkitd /usr/local/bin/
-ADD buildkit.service /etc/systemd/system/
+ADD buildkit /etc/init.d/

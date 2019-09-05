@@ -1,0 +1,35 @@
+#!/sbin/openrc-run
+#
+#
+command="/usr/local/bin/buildkitd"
+description="Buildkit Daemon"
+pidfile="/var/run/buildkit/buildkitd.pid"
+args="--containerd-worker=true --oci-worker=false --addr tcp://0.0.0.0:9500"
+
+depend() {
+	need net
+	after containerd
+	use dns
+}
+
+start() {
+	local daemon_args="--background"
+	ARGS=$args
+	if yesno "$FAST_STARTUP"; then
+		ARGS="${ARGS}"
+	fi
+
+	ebegin "Starting buildkitd"
+	start-stop-daemon $daemon_args --start --quiet \
+		--exec "${command}" \
+		--pidfile "${pidfile}" \
+		-- ${ARGS}
+	eend $? "Failed to start buildkitd"
+}
+
+stop() {
+	ebegin "Stopping buildkitd"
+	start-stop-daemon --stop --quiet \
+		--pidfile "${pidfile}"
+	eend $? "Failed to stop buildkitd"
+}
