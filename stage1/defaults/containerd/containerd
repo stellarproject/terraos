@@ -20,6 +20,8 @@ start() {
 	ebegin "Starting containerd"
 	start-stop-daemon $daemon_args --start --quiet \
 		--exec "${command}" \
+		--stdout-logger "logger -t containerd -p daemon.info" \
+		--stderr-logger "logger -t containerd -p daemon.err" \
 		--pidfile "${pidfile}" \
 		-- ${ARGS}
 	eend $? "Failed to start containerd"

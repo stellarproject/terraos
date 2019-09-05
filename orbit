@@ -22,6 +22,8 @@ start() {
 	ebegin "Starting orbit"
 	start-stop-daemon $daemon_args --start --quiet \
 		--exec "${command}" \
+		--stdout-logger "logger -t orbit -p daemon.info" \
+		--stderr-logger "logger -t orbit -p daemon.err" \
 		--pidfile "${pidfile}" \
 		-- ${ARGS}
 	eend $? "Failed to start orbit"

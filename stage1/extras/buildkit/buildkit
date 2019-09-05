@@ -22,6 +22,8 @@ start() {
 	ebegin "Starting buildkitd"
 	start-stop-daemon $daemon_args --start --quiet \
 		--exec "${command}" \
+		--stdout-logger "logger -t buildkit -p daemon.info" \
+		--stderr-logger "logger -t buildkit -p daemon.err" \
 		--pidfile "${pidfile}" \
 		-- ${ARGS}
 	eend $? "Failed to start buildkitd"

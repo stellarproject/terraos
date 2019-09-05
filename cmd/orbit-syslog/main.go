@@ -43,7 +43,7 @@ func main() {
 }
 
 func log(ctx context.Context, config *logging.Config, ready func() error) error {
-	w, err := syslog.New(syslog.LOG_INFO, fmt.Sprintf("%s:%s", config.Namespace, config.ID))
+	w, err := syslog.New(syslog.LOG_DAEMON, fmt.Sprintf("%s:%s", config.Namespace, config.ID))
 	if err != nil {
 		return err
 	}

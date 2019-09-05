@@ -21,6 +21,8 @@ start() {
 	ebegin "Starting node_exporter"
 	start-stop-daemon $daemon_args --start --quiet \
 		--exec "${command}" \
+		--stdout-logger "logger -t nodeexporter -p daemon.info" \
+		--stderr-logger "logger -t nodeexporter -p daemon.err" \
 		--pidfile "${pidfile}" \
 		-- ${ARGS}
 	eend $? "Failed to start node_exporter"

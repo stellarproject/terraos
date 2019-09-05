@@ -23,6 +23,8 @@ start() {
 	ebegin "Starting dhcp"
 	start-stop-daemon $daemon_args --start --quiet \
 		--exec "${command}" \
+		--stdout-logger "logger -t dhcp -p daemon.info" \
+		--stderr-logger "logger -t dhcp -p daemon.err" \
 		--pidfile "${pidfile}" \
 		-- ${ARGS}
 	eend $? "Failed to start dhcp"
