@@ -68,8 +68,8 @@ type SSH struct {
 }
 
 type Component struct {
-	Image   string   `toml:"image"`
-	Systemd []string `toml:"systemd"`
+	Image string   `toml:"image"`
+	Init  []string `toml:"init"`
 }
 
 type NIC struct {
@@ -126,7 +126,7 @@ func (n *Node) ToProto() *v1.Node {
 	for _, c := range n.Image.Components {
 		p.Image.Components = append(p.Image.Components, &v1.Component{
 			Image:   c.Image,
-			Systemd: c.Systemd,
+			Systemd: c.Init,
 		})
 	}
 	for _, g := range n.Volumes {
@@ -206,8 +206,8 @@ func DumpNodeConfig() error {
 			},
 			Components: []*Component{
 				{
-					Image:   "docker.io/stellarproject/diod:v13",
-					Systemd: []string{"diod"},
+					Image: "docker.io/stellarproject/diod:v13",
+					Init:  []string{"diod"},
 				},
 			},
 		},

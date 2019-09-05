@@ -36,10 +36,22 @@ import (
 )
 
 const (
-	DefaultVersion  = 2
-	DefaultRenderer = "networkd"
-	DefaultFilename = "01-netcfg.yaml"
+	DefaultVersion     = 2
+	DefaultRenderer    = "networkd"
+	DefaultFilename    = "01-netcfg.yaml"
+	InterfacesFilename = "interfaces"
 )
+
+const interfacesTemplate = `auto lo
+iface lo inet loopback
+
+{{range $i := .Interfaces}}
+auto {{$i.Name}}
+iface {{$i.Name}} inet {{inet $i}}
+	hostname {{.Hostname}}
+	{{if ne $i.Gateway ""}}gateway {{$i.Gateway}}{{end}}
+{{end}}
+`
 
 const netplanTemplate = `network:
   version: 2
@@ -50,7 +62,20 @@ const netplanTemplate = `network:
       gateway4: {{$i.Gateway}}{{end}}{{end}}`
 
 type Netplan struct {
+	Hostname   string      `toml:"hostname"`
 	Interfaces []Interface `toml:"interfaces"`
+}
+
+func (n *Netplan) WriteInterfaces(w io.Writer) error {
+	t, err := template.New("interfaces").Funcs(template.FuncMap{
+		"addresses":   addresses,
+		"nameservers": nameservers,
+		"inet":        netType,
+	}).Parse(netplanTemplate)
+	if err != nil {
+		return errors.Wrap(err, "interfaces template")
+	}
+	return t.Execute(w, n)
 }
 
 func (n *Netplan) Write(w io.Writer) error {
@@ -76,4 +101,11 @@ func addresses(v []string) string {
 
 func nameservers(v []string) string {
 	return strings.Join(v, ",")
+}
+
+func netType(i Interface) string {
+	if len(i.Addresses) > 0 {
+		return "static"
+	}
+	return "dhcp"
 }

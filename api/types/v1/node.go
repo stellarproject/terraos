@@ -111,7 +111,9 @@ func (i *Node) InstallConfig(dest string) error {
 }
 
 func (i *Node) setupNetplan(dest string) error {
-	n := &netplan.Netplan{}
+	n := &netplan.Netplan{
+		Hostname: i.Hostname,
+	}
 	for _, nic := range i.Nics {
 		gw := i.Gateway
 		if len(nic.Addresses) == 0 {
@@ -131,11 +133,26 @@ func (i *Node) setupNetplan(dest string) error {
 	if err != nil {
 		return errors.Wrap(err, "create netplan file")
 	}
-	defer f.Close()
 
-	if err := n.Write(f); err != nil {
+	err = n.Write(f)
+	f.Close()
+	if err != nil {
 		return errors.Wrap(err, "write netplan contents")
 	}
+
+	p = filepath.Join(dest, "/etc/network", netplan.InterfacesFilename)
+	if err := os.MkdirAll(filepath.Dir(p), 0755); err != nil {
+		return errors.Wrap(err, "create network dir")
+	}
+	if f, err = os.Create(p); err != nil {
+		return errors.Wrap(err, "create interfaces file")
+	}
+	err = n.WriteInterfaces(f)
+	f.Close()
+	if err != nil {
+		return errors.Wrap(err, "write interfaces contents")
+	}
+
 	return nil
 }
 

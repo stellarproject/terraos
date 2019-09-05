@@ -12,6 +12,7 @@ ADD etc/fstab /etc/
 ADD etc/resolv.conf /etc/
 ADD etc/hostname /etc/
 ADD etc/netplan/01-netcfg.yaml /etc/netplan/
+ADD etc/network/interfaces /etc/network/
 
 ADD home/terra/.ssh /home/terra/.ssh
 

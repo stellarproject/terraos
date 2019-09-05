@@ -109,8 +109,8 @@ var createCommand = cli.Command{
 
 		for _, c := range node.Image.Components {
 			imageContext.Imports = append(imageContext.Imports, &cmd.Component{
-				Image:   c.Image,
-				Systemd: c.Systemd,
+				Image: c.Image,
+				Init:  c.Systemd,
 			})
 		}
 		if err := writeDockerfile(dest, imageContext, serverTemplate); err != nil {
@@ -151,6 +151,7 @@ var createCommand = cli.Command{
 				GID:        &uid,
 				MaskedPaths: []string{
 					"/etc/netplan",
+					"/etc/network",
 				},
 				Networks: []*v1.Network{
 					{
@@ -212,8 +213,8 @@ FROM {{.Base}}
 
 {{range $v := .Imports -}}
 COPY --from={{cname $v}} / /
-{{range $s := $v.Systemd}}
-RUN systemctl enable {{$s}}
+{{range $s := $v.Init}}
+RUN systemctl enable {{$s}} || rc-update add {{$s}} default
 {{end}}
 {{end}}
 
@@ -223,6 +224,7 @@ ADD etc/fstab /etc/
 ADD etc/resolv.conf /etc/
 ADD etc/hostname /etc/
 ADD etc/netplan/01-netcfg.yaml /etc/netplan/
+ADD etc/network/interfaces /etc/network/
 
 ADD home/terra/.ssh /home/terra/.ssh
 
