@@ -823,7 +823,7 @@ func (a *Agent) start(ctx context.Context, container containerd.Container) error
 	if err := container.Update(ctx, opts.WithIP(ip), opts.WithoutRestore, withStatus(containerd.Running)); err != nil {
 		return errors.Wrap(err, "update container with ip")
 	}
-	task, err := container.NewTask(ctx, cio.BinaryIO("/usr/local/bin/orbit-log", nil), opts.WithTaskRestore(desc))
+	task, err := container.NewTask(ctx, cio.BinaryIO(a.config.Logger, nil), opts.WithTaskRestore(desc))
 	if err != nil {
 		return errors.Wrap(err, "create new container task")
 	}

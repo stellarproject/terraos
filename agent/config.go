@@ -46,6 +46,7 @@ type Config struct {
 	PlainRemotes []string      `toml:"plain_remotes"`
 	Interval     time.Duration `toml:"interval"`
 	ClusterDir   string        `toml:"cluster_dir"`
+	Logger       string        `toml:"logger"`
 
 	ip    string
 	ipErr error

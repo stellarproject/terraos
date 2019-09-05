@@ -4,6 +4,7 @@
 command="/usr/local/bin/orbit"
 description="Orbit Agent"
 pidfile="/var/run/orbit/orbit.pid"
+args="--logger /usr/local/bin/orbit-syslog"
 
 depend() {
 	need net
@@ -14,6 +15,7 @@ depend() {
 
 start() {
 	local daemon_args="--background"
+	ARGS=$args
 	if yesno "$FAST_STARTUP"; then
 		ARGS="${ARGS}"
 	fi

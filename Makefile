@@ -55,6 +55,7 @@ install:
 	@install build/terra* /usr/local/sbin/
 	@install build/ob /usr/local/bin/
 	@install build/orbit-log /usr/local/bin/
+	@install build/orbit-syslog /usr/local/bin/
 	@install build/orbit-server /usr/local/bin/
 	@install build/orbit-network /usr/local/bin/
 
@@ -121,10 +122,11 @@ protos:
 orbit-release: FORCE
 	vab build ${VAB_ARGS} --push --ref ${REPO}/orbit:${VERSION}
 
-orbit:
+orbit: FORCE
 	go build -o build/orbit-server -v -ldflags '${GO_LDFLAGS}' github.com/stellarproject/terraos/cmd/orbit-server
 	go build -o build/ob -v -ldflags '${GO_LDFLAGS}' github.com/stellarproject/terraos/cmd/ob
 	go build -o build/orbit-log -v -ldflags '${GO_LDFLAGS}' github.com/stellarproject/terraos/cmd/orbit-log
+	go build -o build/orbit-syslog -v -ldflags '${GO_LDFLAGS}' github.com/stellarproject/terraos/cmd/orbit-syslog
 	gcc -static -o build/orbit-network cmd/orbit-network/main.c
 
 example:
