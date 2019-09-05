@@ -41,6 +41,8 @@ FROM ${REPO}/wireguard:${VERSION} as wireguard
 FROM docker.io/stellarproject/alpine:deboot
 ARG KERNEL_VERSION
 
+ADD repositories /etc/apk/
+
 RUN apk update && apk add \
 	ca-certificates \
 	curl \
@@ -49,8 +51,7 @@ RUN apk update && apk add \
 	htop \
 	tmux \
 	rsync \
-	libnl \
-	libnet \
+	criu \
 	iptables
 
 COPY --from=pxe /tftp /boot
