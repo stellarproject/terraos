@@ -35,4 +35,4 @@ RUN go build
 FROM scratch
 
 COPY --from=prom /go/src/github.com/prometheus/node_exporter/node_exporter /usr/local/bin/
-ADD node_exporter.service /etc/systemd/system/
+ADD nodeexporter /etc/init.d/

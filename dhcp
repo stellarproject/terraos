@@ -1,0 +1,37 @@
+#!/sbin/openrc-run
+#
+#
+command="/opt/containerd/bin/dhcp"
+description="CNI Dhcp Daemon"
+pidfile="/var/run/dhcp/dhcp.pid"
+args="daemon"
+
+depend() {
+	need net
+	after firewall
+	provide ntp-client ntp-server
+	use dns
+}
+
+start() {
+	ARGS=$args
+	rm -f /run/cni/dhcp.sock
+	local daemon_args="--background"
+	if yesno "$FAST_STARTUP"; then
+		ARGS="${ARGS}"
+	fi
+
+	ebegin "Starting dhcp"
+	start-stop-daemon $daemon_args --start --quiet \
+		--exec "${command}" \
+		--pidfile "${pidfile}" \
+		-- ${ARGS}
+	eend $? "Failed to start dhcp"
+}
+
+stop() {
+	ebegin "Stopping dhcp"
+	start-stop-daemon --stop --quiet \
+		--pidfile "${pidfile}"
+	eend $? "Failed to stop dhcp"
+}

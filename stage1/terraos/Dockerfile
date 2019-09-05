@@ -51,7 +51,6 @@ RUN apk update && apk add \
 	rsync \
 	libnl \
 	libnet \
-	criu \
 	iptables
 
 COPY --from=pxe /tftp /boot
@@ -68,16 +67,19 @@ ADD hosts /etc/
 ADD hostname /etc/
 ADD resolv.conf /etc/
 ADD sshd_config /etc/ssh/
-
-RUN rc-update add cgroups sysinit
+ADD motd /etc/
 
 COPY --from=terra / /
 COPY --from=node_exporter / /
 COPY --from=cni / /
 COPY --from=orbit / /
 COPY --from=containerd / /
-# COPY --from=criu / /
 COPY --from=wireguard / /
-COPY --from=gvisor / /
+
+RUN rc-update add cgroups sysinit && \
+	rc-update add containerd default && \
+	rc-update add nodeexporter default && \
+	rc-update add dhcp default && \
+	rc-update add orbit default
 
 CMD ["/sbin/init"]

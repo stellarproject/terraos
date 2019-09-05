@@ -22,6 +22,7 @@
 # TORT OR OTHERWISE,
 # ARISING FROM, OUT OF OR IN CONNECTION WITH
 # THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
 FROM golang:alpine as orbit
 
 RUN apk update && apk add make build-base
@@ -37,5 +38,5 @@ COPY --from=orbit /go/src/github.com/stellarproject/terraos/build/ob /usr/local/
 COPY --from=orbit /go/src/github.com/stellarproject/terraos/build/orbit-log /usr/local/bin/
 COPY --from=orbit /go/src/github.com/stellarproject/terraos/build/orbit-network /usr/local/bin/
 COPY --from=orbit /go/src/github.com/stellarproject/terraos/build/orbit-server /usr/local/bin/
-COPY --from=orbit /go/src/github.com/stellarproject/terraos/orbit.service /etc/systemd/system/
-COPY --from=orbit /go/src/github.com/stellarproject/terraos/dhcp.service /etc/systemd/system/
+COPY --from=orbit /go/src/github.com/stellarproject/terraos/orbit /etc/init.d/
+COPY --from=orbit /go/src/github.com/stellarproject/terraos/dhcp /etc/init.d/

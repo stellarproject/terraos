@@ -38,7 +38,7 @@ release: stage0 stage1 iso
 
 stage0: pxe binaries live boot
 
-stage1: defaults terraos extras
+stage1: defaults terraos
 
 all: local
 
