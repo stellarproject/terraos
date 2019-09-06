@@ -157,23 +157,6 @@ func (i *Node) setupNetplan(dest string) error {
 func (i *Node) setupFstab(dest string) error {
 	var entries []*fstab.Entry
 
-	if i.ClusterFs != "" {
-		entries = []*fstab.Entry{
-			&fstab.Entry{
-				Type:   "9p",
-				Device: i.ClusterFs,
-				Path:   "/cluster",
-				Pass:   2,
-				Options: []string{
-					"port=564",
-					"version=9p2000.L",
-					"uname=root",
-					"access=user",
-					"aname=/cluster",
-				},
-			},
-		}
-	}
 	for _, v := range i.Volumes {
 		entries = append(entries, v.Entries()...)
 	}

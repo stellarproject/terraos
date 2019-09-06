@@ -49,7 +49,6 @@ type Node struct {
 	Image       Image    `toml:"image"`
 	Gateway     string   `toml:"gateway"`
 	Nameservers []string `toml:"nameservers"`
-	ClusterFS   string   `toml:"cluster_fs"`
 	AllowApt    bool     `toml:"allow_apt"`
 }
 
@@ -110,7 +109,6 @@ func (n *Node) ToProto() *v1.Node {
 		Labels:      n.Labels,
 		Gateway:     n.Gateway,
 		Nameservers: n.Nameservers,
-		ClusterFs:   n.ClusterFS,
 		Image: &v1.Image{
 			Name:     n.Image.Name,
 			Base:     n.Image.Base,
@@ -192,7 +190,6 @@ func DumpNodeConfig() error {
 		Hostname:    "terra-01",
 		Gateway:     "192.168.1.1",
 		Nameservers: []string{"8.8.8.8", "8.8.4.4"},
-		ClusterFS:   "192.168.1.10",
 		Domain:      "home",
 		Labels:      []string{"controller", "plex"},
 		Memory:      4096,
