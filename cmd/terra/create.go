@@ -79,6 +79,10 @@ var createCommand = cli.Command{
 			Name:  "vhost-mount",
 			Usage: "vhost containerd mount path",
 		},
+		cli.StringFlag{
+			Name:  "interfaces",
+			Usage: "specify the interfaces file to use",
+		},
 	},
 	Action: func(clix *cli.Context) error {
 		node, err := cmd.LoadNode(clix.Args().First())
@@ -115,6 +119,23 @@ var createCommand = cli.Command{
 		}
 		if err := writeDockerfile(dest, imageContext, serverTemplate); err != nil {
 			return errors.Wrap(err, "write dockerfile")
+		}
+		if iface := clix.String("interfaces"); iface != "" {
+			inf, err := os.Open(iface)
+			if err != nil {
+				return errors.Wrap(err, "open interfaces file")
+			}
+			of, err := os.Create(filepath.Join(dest, "/etc/network/interfaces"))
+			if err != nil {
+				inf.Close()
+				return errors.Wrap(err, "open interfaces out file")
+			}
+			_, err = io.Copy(of, inf)
+			inf.Close()
+			of.Close()
+			if err != nil {
+				return errors.Wrap(err, "copy interfaces file")
+			}
 		}
 		if clix.Bool("dry") {
 			fmt.Printf("dumped data to %s\n", dest)
