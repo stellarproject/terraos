@@ -54,6 +54,7 @@ RUN apk update && apk add \
 	criu \
 	apparmor \
 	bonding \
+	vlan \
 	iptables
 
 COPY --from=pxe /tftp /boot
