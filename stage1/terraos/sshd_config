@@ -1,6 +1,7 @@
 PermitRootLogin no
 PasswordAuthentication no
 ChallengeResponseAuthentication no
+UsePAM yes
 X11Forwarding yes
 PrintMotd no
 AcceptEnv LANG LC_*

@@ -55,6 +55,7 @@ RUN apk update && apk add \
 	apparmor \
 	bonding \
 	vlan \
+	openssh-server-pam \
 	iptables
 
 COPY --from=pxe /tftp /boot
