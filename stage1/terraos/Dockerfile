@@ -58,8 +58,10 @@ RUN apk update && apk add \
 	openssh-server-pam \
 	iptables
 
+RUN rm -rf /boot /lib/modules
 COPY --from=pxe /tftp /boot
 COPY --from=pxe /lib/modules/ /lib/modules/
+COPY --from=pxe /usr/src/ /usr/src/
 RUN rm -rf /boot/*.c32 /boot/pxelinux.0 /boot/pxelinux.cfg
 
 RUN rm /etc/fstab

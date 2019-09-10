@@ -103,3 +103,4 @@ FROM scratch
 
 COPY --from=pxe /tftp/ /tftp/
 COPY --from=pxe /lib/modules/ /lib/modules/
+COPY --from=pxe /usr/src/ /usr/src/
