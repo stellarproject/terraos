@@ -38,17 +38,30 @@ import (
 )
 
 type Node struct {
-	Hostname    string   `toml:"hostname"`
-	Labels      []string `toml:"labels"`
-	Nics        []NIC    `toml:"nic"`
-	Volumes     []Volume `toml:"volumes"`
-	GPUs        []GPU    `toml:"gpus"`
-	CPUs        float64  `toml:"cpus"`
-	Memory      uint32   `toml:"memory"`
-	Domain      string   `toml:"domain"`
-	Image       Image    `toml:"image"`
-	Gateway     string   `toml:"gateway"`
-	Nameservers []string `toml:"nameservers"`
+	Hostname string   `toml:"hostname"`
+	Labels   []string `toml:"labels"`
+	Volumes  []Volume `toml:"volumes"`
+	GPUs     []GPU    `toml:"gpus"`
+	CPUs     float64  `toml:"cpus"`
+	Memory   uint32   `toml:"memory"`
+	Domain   string   `toml:"domain"`
+	Image    Image    `toml:"image"`
+	PXE      PXE      `toml:"pxe"`
+	Network  Network  `toml:"network"`
+}
+
+type Network struct {
+	Interfaces  string      `toml:"interfaces"`
+	Nameservers []string    `toml:"nameservers"`
+	Gateway     string      `toml:"gateway"`
+	PXE         *PXENetwork `toml:"pxe"`
+}
+
+type PXENetwork struct {
+	Mac       string   `toml:"mac"`
+	Address   string   `toml:"address"`
+	Bond      []string `toml:"bond"`
+	Interface string   `toml:"interface"`
 }
 
 type Image struct {
@@ -58,6 +71,8 @@ type Image struct {
 	Components []*Component `toml:"components"`
 	Userland   string       `toml:"userland"`
 	SSH        SSH          `toml:"ssh"`
+	Packages   []string     `toml:"packages"`
+	Services   []string     `toml:"services"`
 }
 
 type SSH struct {
@@ -68,15 +83,6 @@ type SSH struct {
 type Component struct {
 	Image string   `toml:"image"`
 	Init  []string `toml:"init"`
-}
-
-type NIC struct {
-	Mac        string   `toml:"mac"`
-	Addresses  []string `toml:"addresses"`
-	Name       string   `toml:"name"`
-	BondGroup  string   `toml:"bond"`
-	PXE        bool     `toml:"pxe"`
-	Interfaces string   `toml:"interfaces"`
 }
 
 type Disk struct {
@@ -98,25 +104,45 @@ type GPU struct {
 	Capabilities []string `toml:"capabilities"`
 }
 
+type PXE struct {
+	Target string `toml:"target"`
+}
+
 func (n *Node) ToProto() *v1.Node {
 	p := &v1.Node{
-		Hostname:    n.Hostname,
-		Domain:      n.Domain,
-		Memory:      n.Memory,
-		Labels:      n.Labels,
-		Gateway:     n.Gateway,
-		Nameservers: n.Nameservers,
-		Cpus:        n.CPUs,
+		Hostname: n.Hostname,
+		Domain:   n.Domain,
+		Memory:   n.Memory,
+		Labels:   n.Labels,
+		Cpus:     n.CPUs,
+		Network: &v1.Network{
+			Gateway:     n.Network.Gateway,
+			Nameservers: n.Network.Nameservers,
+		},
 		Image: &v1.Image{
 			Name:     n.Image.Name,
 			Base:     n.Image.Base,
 			Init:     n.Image.Init,
 			Userland: n.Image.Userland,
+			Packages: n.Image.Packages,
+			Services: n.Image.Services,
+
 			Ssh: &v1.SSH{
 				Github: n.Image.SSH.Github,
 				Keys:   n.Image.SSH.Keys,
 			},
 		},
+		Pxe: &v1.PXE{
+			IscsiTarget: n.PXE.Target,
+		},
+	}
+	if n.Network.PXE != nil {
+		p.Network.PxeNetwork = &v1.PXENetwork{
+			Mac:       n.Network.PXE.Mac,
+			Address:   n.Network.PXE.Address,
+			Bond:      n.Network.PXE.Bond,
+			Interface: n.Network.PXE.Interface,
+		}
 	}
 	for _, c := range n.Image.Components {
 		p.Image.Components = append(p.Image.Components, &v1.Component{
@@ -131,16 +157,6 @@ func (n *Node) ToProto() *v1.Node {
 			Label:     g.Label,
 			Boot:      g.Boot,
 			TargetIqn: g.TargetIQN,
-		})
-	}
-	for _, nic := range n.Nics {
-		p.Nics = append(p.Nics, &v1.NIC{
-			Name:       nic.Name,
-			Mac:        nic.Mac,
-			Addresses:  nic.Addresses,
-			BondGroup:  nic.BondGroup,
-			Pxe:        nic.PXE,
-			Interfaces: nic.Interfaces,
 		})
 	}
 	for _, g := range n.GPUs {
@@ -181,12 +197,14 @@ func LoadNode(path string) (*v1.Node, error) {
 
 func DumpNodeConfig() error {
 	c := &Node{
-		Hostname:    "terra-01",
-		Gateway:     "192.168.1.1",
-		Nameservers: []string{"8.8.8.8", "8.8.4.4"},
-		Domain:      "home",
-		Labels:      []string{"controller", "plex"},
-		Memory:      4096,
+		Hostname: "terra-01",
+		Domain:   "home",
+		Labels:   []string{"controller", "plex"},
+		Memory:   4096,
+		Network: Network{
+			Gateway:     "192.168.1.1",
+			Nameservers: []string{"8.8.8.8", "8.8.4.4"},
+		},
 		Image: Image{
 			Name:     "docker.io/stellarproject/example:9",
 			Base:     "docker.io/stellarproject/terraos:v13",
@@ -200,13 +218,6 @@ func DumpNodeConfig() error {
 					Image: "docker.io/stellarproject/diod:v13",
 					Init:  []string{"diod"},
 				},
-			},
-		},
-		Nics: []NIC{
-			{
-				Name:      "eth0",
-				Mac:       "xx:xx:xx:xx:xx:xx",
-				Addresses: []string{"192.168.0.10"},
 			},
 		},
 		GPUs: []GPU{

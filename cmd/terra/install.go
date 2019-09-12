@@ -77,7 +77,6 @@ var installCommand = cli.Command{
 		if err != nil {
 			return errors.Wrap(err, "new content store")
 		}
-
 		desc, err := image.Fetch(ctx, clix.Bool("http"), store, node.Image.Name)
 		if err != nil {
 			return errors.Wrap(err, "fetch image")
@@ -94,7 +93,12 @@ var installCommand = cli.Command{
 			}
 			dev, ok := devices[v.Label]
 			if !ok {
-				return errors.Errorf("device for label %s does not exist", v.Label)
+				if !v.IsISCSI() {
+					return errors.Errorf("device for label %s does not exist", v.Label)
+				}
+				// mount the iscsi target if we have one
+				logrus.Info("mounting iscsi target")
+
 			}
 			if err := v.Format(dev); err != nil {
 				return errors.Wrap(err, "format volume")

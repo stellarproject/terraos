@@ -4,8 +4,7 @@
 	Permission is hereby granted, free of charge, to any person
 	obtaining a copy of this software and associated documentation
 	files (the "Software"), to deal in the Software without
-	restriction, including without limitation the rights to use, copy,
-	modify, merge, publish, distribute, sublicense, and/or sell copies
+	restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
 	of the Software, and to permit persons to whom the Software is
 	furnished to do so, subject to the following conditions:
 
@@ -99,6 +98,7 @@ var createCommand = cli.Command{
 			Userland: node.Image.Userland,
 			Init:     node.Image.Init,
 			Hostname: node.Hostname,
+			Packages: node.Image.Packages,
 		}
 		if userland := clix.String("userland"); userland != "" {
 			data, err := ioutil.ReadFile(userland)
@@ -107,6 +107,14 @@ var createCommand = cli.Command{
 			}
 			imageContext.Userland = string(data)
 		}
+		if iface := clix.String("interfaces"); iface != "" {
+			data, err := ioutil.ReadFile(iface)
+			if err != nil {
+				return errors.Wrapf(err, "read interfaces file %s", iface)
+			}
+			node.Network.Interfaces = string(data)
+		}
+
 		if err := node.InstallConfig(dest); err != nil {
 			return errors.Wrap(err, "install node configuration to context")
 		}
@@ -119,23 +127,6 @@ var createCommand = cli.Command{
 		}
 		if err := writeDockerfile(dest, imageContext, serverTemplate); err != nil {
 			return errors.Wrap(err, "write dockerfile")
-		}
-		if iface := clix.String("interfaces"); iface != "" {
-			inf, err := os.Open(iface)
-			if err != nil {
-				return errors.Wrap(err, "open interfaces file")
-			}
-			of, err := os.Create(filepath.Join(dest, "/etc/network/interfaces"))
-			if err != nil {
-				inf.Close()
-				return errors.Wrap(err, "open interfaces out file")
-			}
-			_, err = io.Copy(of, inf)
-			inf.Close()
-			of.Close()
-			if err != nil {
-				return errors.Wrap(err, "copy interfaces file")
-			}
 		}
 		if clix.Bool("dry") {
 			fmt.Printf("dumped data to %s\n", dest)
@@ -235,9 +226,11 @@ FROM {{.Base}}
 {{range $v := .Imports -}}
 COPY --from={{cname $v}} / /
 {{range $s := $v.Init}}
-RUN systemctl enable {{$s}} || rc-update add {{$s}} default
+rc-update add {{$s}} default
 {{end}}
 {{end}}
+
+{{if .Packages}}RUN apk add {{packages .Packages}}{{end}}
 
 ADD etc/hostname /etc/
 ADD etc/hosts /etc/
@@ -252,6 +245,10 @@ ADD home/terra/.ssh /home/terra/.ssh
 RUN chown -R terra:terra /home/terra
 
 {{.Userland}}
+
+{{range $s := .Services -}}
+RUN rc-update add {{$s}}
+{{end}}
 
 {{if .Init}}CMD ["{{.Init}}"]{{end}}
 `
@@ -270,11 +267,16 @@ func imageName(c *cmd.Component) string {
 	return c.Image
 }
 
+func packages(p []string) string {
+	return strings.Join(p, " ")
+}
+
 func render(w io.Writer, temp string, ctx *ImageContext) error {
 	t, err := template.New("dockerfile").Funcs(template.FuncMap{
 		"cname":     cname,
 		"imageName": imageName,
 		"cmdargs":   cmdargs,
+		"packages":  packages,
 	}).Parse(temp)
 	if err != nil {
 		return err
@@ -290,4 +292,6 @@ type ImageContext struct {
 	Init       string
 	Hostname   string
 	ResolvConf bool
+	Packages   []string
+	Services   []string
 }
