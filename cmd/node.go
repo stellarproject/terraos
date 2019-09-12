@@ -43,13 +43,12 @@ type Node struct {
 	Nics        []NIC    `toml:"nic"`
 	Volumes     []Volume `toml:"volumes"`
 	GPUs        []GPU    `toml:"gpus"`
-	CPUs        []CPU    `toml:"cpus"`
+	CPUs        float64  `toml:"cpus"`
 	Memory      uint32   `toml:"memory"`
 	Domain      string   `toml:"domain"`
 	Image       Image    `toml:"image"`
 	Gateway     string   `toml:"gateway"`
 	Nameservers []string `toml:"nameservers"`
-	AllowApt    bool     `toml:"allow_apt"`
 }
 
 type Image struct {
@@ -72,10 +71,12 @@ type Component struct {
 }
 
 type NIC struct {
-	Mac       string   `toml:"mac"`
-	Addresses []string `toml:"addresses"`
-	Speed     uint32   `toml:"speed"`
-	Name      string   `toml:"name"`
+	Mac        string   `toml:"mac"`
+	Addresses  []string `toml:"addresses"`
+	Name       string   `toml:"name"`
+	BondGroup  string   `toml:"bond"`
+	PXE        bool     `toml:"pxe"`
+	Interfaces string   `toml:"interfaces"`
 }
 
 type Disk struct {
@@ -88,10 +89,6 @@ type Volume struct {
 	Path      string `toml:"path"`
 	Boot      bool   `toml:"boot"`
 	TargetIQN string `toml:"target_iqn"`
-}
-
-type CPU struct {
-	Ghz float64 `toml:"ghz"`
 }
 
 type GPU struct {
@@ -109,6 +106,7 @@ func (n *Node) ToProto() *v1.Node {
 		Labels:      n.Labels,
 		Gateway:     n.Gateway,
 		Nameservers: n.Nameservers,
+		Cpus:        n.CPUs,
 		Image: &v1.Image{
 			Name:     n.Image.Name,
 			Base:     n.Image.Base,
@@ -118,7 +116,6 @@ func (n *Node) ToProto() *v1.Node {
 				Github: n.Image.SSH.Github,
 				Keys:   n.Image.SSH.Keys,
 			},
-			AllowApt: n.AllowApt,
 		},
 	}
 	for _, c := range n.Image.Components {
@@ -138,10 +135,12 @@ func (n *Node) ToProto() *v1.Node {
 	}
 	for _, nic := range n.Nics {
 		p.Nics = append(p.Nics, &v1.NIC{
-			Name:      nic.Name,
-			Mac:       nic.Mac,
-			Addresses: nic.Addresses,
-			Speed:     nic.Speed,
+			Name:       nic.Name,
+			Mac:        nic.Mac,
+			Addresses:  nic.Addresses,
+			BondGroup:  nic.BondGroup,
+			Pxe:        nic.PXE,
+			Interfaces: nic.Interfaces,
 		})
 	}
 	for _, g := range n.GPUs {
@@ -150,11 +149,6 @@ func (n *Node) ToProto() *v1.Node {
 			Cores:        g.Cores,
 			Memory:       g.Memory,
 			Capabilities: g.Capabilities,
-		})
-	}
-	for _, c := range n.CPUs {
-		p.Cpus = append(p.Cpus, &v1.CPU{
-			Ghz: c.Ghz,
 		})
 	}
 	return p
@@ -213,7 +207,6 @@ func DumpNodeConfig() error {
 				Name:      "eth0",
 				Mac:       "xx:xx:xx:xx:xx:xx",
 				Addresses: []string{"192.168.0.10"},
-				Speed:     1000,
 			},
 		},
 		GPUs: []GPU{
@@ -224,20 +217,7 @@ func DumpNodeConfig() error {
 				Capabilities: []string{"compute", "video"},
 			},
 		},
-		CPUs: []CPU{
-			{
-				Ghz: 3.4,
-			},
-			{
-				Ghz: 3.4,
-			},
-			{
-				Ghz: 3.4,
-			},
-			{
-				Ghz: 3.4,
-			},
-		},
+		CPUs: 4,
 		Volumes: []Volume{
 			{
 				Path:  "/",
