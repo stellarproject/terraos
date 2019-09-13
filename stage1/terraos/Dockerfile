@@ -56,6 +56,7 @@ RUN apk update && apk add --no-cache \
 	bonding \
 	vlan \
 	openssh-server-pam \
+	open-iscsi \
 	iptables
 
 RUN rm -rf /boot /lib/modules
