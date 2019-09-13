@@ -189,7 +189,9 @@ func (i *Node) setupFstab(dest string) error {
 	var entries []*fstab.Entry
 
 	for _, v := range i.Volumes {
-		entries = append(entries, v.Entries()...)
+		if v.Label != "os" {
+			entries = append(entries, v.Entries()...)
+		}
 	}
 	path := filepath.Join(dest, fstab.Path)
 	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {

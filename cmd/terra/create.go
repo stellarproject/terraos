@@ -82,6 +82,11 @@ var createCommand = cli.Command{
 			Name:  "interfaces",
 			Usage: "specify the interfaces file to use",
 		},
+		cli.StringSliceFlag{
+			Name:  "ssh",
+			Usage: "ssh key files",
+			Value: &cli.StringSlice{},
+		},
 	},
 	Action: func(clix *cli.Context) error {
 		node, err := cmd.LoadNode(clix.Args().First())
@@ -91,6 +96,13 @@ var createCommand = cli.Command{
 		dest, err := filepath.Abs(".")
 		if err != nil {
 			return errors.Wrap(err, "get context abs")
+		}
+		for _, file := range clix.StringSlice("ssh") {
+			data, err := ioutil.ReadFile(file)
+			if err != nil {
+				return errors.Wrapf(err, "read key file %s", file)
+			}
+			node.Image.Ssh.Keys = append(node.Image.Ssh.Keys, string(data))
 		}
 		ctx := cmd.CancelContext()
 		imageContext := &ImageContext{
@@ -114,11 +126,9 @@ var createCommand = cli.Command{
 			}
 			node.Network.Interfaces = string(data)
 		}
-
 		if err := node.InstallConfig(dest); err != nil {
 			return errors.Wrap(err, "install node configuration to context")
 		}
-
 		for _, c := range node.Image.Components {
 			imageContext.Imports = append(imageContext.Imports, &cmd.Component{
 				Image: c.Image,
@@ -237,7 +247,6 @@ ADD etc/hosts /etc/
 ADD etc/fstab /etc/
 ADD etc/resolv.conf /etc/
 ADD etc/hostname /etc/
-ADD etc/netplan/01-netcfg.yaml /etc/netplan/
 ADD etc/network/interfaces /etc/network/
 
 ADD home/terra/.ssh /home/terra/.ssh

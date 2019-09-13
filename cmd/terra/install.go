@@ -98,7 +98,10 @@ var installCommand = cli.Command{
 				}
 				// mount the iscsi target if we have one
 				logrus.Info("mounting iscsi target")
-
+				if dev, err = v.Login(ctx, node.Pxe.IscsiTarget); err != nil {
+					return errors.Wrap(err, "login iscsi")
+				}
+				defer v.Logout(ctx, node.Pxe.IscsiTarget)
 			}
 			if err := v.Format(dev); err != nil {
 				return errors.Wrap(err, "format volume")
