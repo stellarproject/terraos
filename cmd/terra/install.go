@@ -110,7 +110,7 @@ var installCommand = cli.Command{
 					return errors.Wrap(err, "login iscsi")
 				}
 				defer v.Logout(ctx, node.Pxe.IscsiTarget)
-				if err := checkYes(fmt.Sprintf("installing terra to %s", dev), scanner); err != nil {
+				if err := checkYes(fmt.Sprintf("install terra to %s?", dev), scanner); err != nil {
 					return err
 				}
 			}
