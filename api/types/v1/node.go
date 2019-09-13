@@ -37,6 +37,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/stellarproject/terraos/pkg/fstab"
@@ -91,21 +92,30 @@ func (v *Volume) Login(ctx context.Context, portal string) (string, error) {
 	if !v.IsISCSI() {
 		return "", ErrNotISCSIVolume
 	}
-	out, err := exec.CommandContext(ctx, "iscsiadm",
+	if err := iscsiadm(ctx,
+		"--mode", "discovery",
+		"-t", "sendtargets",
+		"--portal", portal); err != nil {
+		return "", errors.Wrap(err, "discover targets")
+	}
+	if err := iscsiadm(ctx,
 		"--mode", "node",
 		"--targetname", v.TargetIqn,
 		"--portal", portal,
-		"--login").CombinedOutput()
-	if err != nil {
-		return "", errors.Wrapf(err, "%s", out)
+		"--login"); err != nil {
+		return "", errors.Wrap(err, "login")
 	}
 	path := filepath.Join("/dev/disk/by-path", iscsiDeviceByPath(portal, v.TargetIqn))
-	dev, err := os.Readlink(path)
-	if err != nil {
-		v.Logout(ctx, portal)
-		return "", errors.Wrap(err, "get iscsi disk by path")
+
+	for i := 0; i < 5; i++ {
+		dev, err := os.Readlink(path)
+		if err == nil {
+			return filepath.Join("/dev", filepath.Base(dev)), nil
+		}
+		time.Sleep(100 * time.Millisecond)
 	}
-	return dev, nil
+	v.Logout(ctx, portal)
+	return "", errors.Errorf("unable to get get iscsi disk by path %s", path)
 }
 
 func iscsiDeviceByPath(portal, iqn string) string {
@@ -117,13 +127,12 @@ func (v *Volume) Logout(ctx context.Context, portal string) error {
 	if !v.IsISCSI() {
 		return ErrNotISCSIVolume
 	}
-	out, err := exec.CommandContext(ctx, "iscsiadm",
+	if err := iscsiadm(ctx,
 		"--mode", "node",
 		"--targetname", v.TargetIqn,
 		"--portal", portal,
-		"--logout").CombinedOutput()
-	if err != nil {
-		return errors.Wrapf(err, "%s", out)
+		"--logout"); err != nil {
+		return errors.Wrap(err, "logout")
 	}
 	return nil
 }
@@ -294,7 +303,10 @@ func PXEFilename(i *Node) string {
 }
 
 // PXEConfig writes the pxe config to the writer for the node
-func (i *Node) PXEConfig(w io.Writer) error {
+func (i *Node) PXEConfig(w io.Writer, version string) error {
+	if i.Pxe.Version != "" {
+		version = i.Pxe.Version
+	}
 	pn := i.Network.PxeNetwork
 	ip := pn.Address
 	if ip == "" {
@@ -304,8 +316,8 @@ func (i *Node) PXEConfig(w io.Writer) error {
 		}
 	}
 	c := &pxeConfig{
-		Kernel: fmt.Sprintf(kvFmt, kernel, i.Pxe.Version),
-		Initrd: fmt.Sprintf(kvFmt, initrd, i.Pxe.Version),
+		Kernel: fmt.Sprintf(kvFmt, kernel, version),
+		Initrd: fmt.Sprintf(kvFmt, initrd, version),
 	}
 	args := []string{
 		"ip=" + ip,
@@ -373,6 +385,14 @@ func (i *Node) setupSSH(dest string) error {
 		if _, err := fmt.Fprintf(f, "%s\n", key); err != nil {
 			return errors.Wrap(err, "write ssh key")
 		}
+	}
+	return nil
+}
+
+func iscsiadm(ctx context.Context, args ...string) error {
+	out, err := exec.CommandContext(ctx, "iscsiadm", args...).CombinedOutput()
+	if err != nil {
+		return errors.Wrapf(err, "%s", out)
 	}
 	return nil
 }

@@ -41,6 +41,7 @@ import (
 	v1 "github.com/stellarproject/terraos/api/types/v1"
 	"github.com/stellarproject/terraos/cmd"
 	"github.com/stellarproject/terraos/pkg/image"
+	"github.com/stellarproject/terraos/version"
 	"github.com/urfave/cli"
 )
 
@@ -173,10 +174,6 @@ var pxeSaveCommand = cli.Command{
 	Description: "save a node's pxe configuration",
 	Flags: []cli.Flag{
 		cli.StringFlag{
-			Name:  "iscsi-target,target",
-			Usage: "iscsi target IP",
-		},
-		cli.StringFlag{
 			Name:  "tftp,t",
 			Usage: "tftp location",
 			Value: "/tftp",
@@ -184,6 +181,7 @@ var pxeSaveCommand = cli.Command{
 		cli.StringFlag{
 			Name:  "kv",
 			Usage: "kernel version to pin for the config",
+			Value: version.Version,
 		},
 	},
 	Action: func(clix *cli.Context) error {
@@ -198,7 +196,7 @@ var pxeSaveCommand = cli.Command{
 		}
 		defer f.Close()
 
-		if err := node.PXEConfig(f); err != nil {
+		if err := node.PXEConfig(f, clix.String("kv")); err != nil {
 			return errors.Wrap(err, "write pxe configuration")
 		}
 		return nil

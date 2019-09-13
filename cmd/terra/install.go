@@ -28,6 +28,8 @@
 package main
 
 import (
+	"bufio"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -65,7 +67,10 @@ var installCommand = cli.Command{
 			return errors.Wrap(err, "get devices")
 		}
 
-		ctx := cmd.CancelContext()
+		var (
+			ctx     = cmd.CancelContext()
+			scanner = bufio.NewScanner(os.Stdin)
+		)
 
 		// handle running on a provisioning machine vs in the iso
 		storePath := filepath.Join("/tmp", "contentstore")
@@ -97,11 +102,17 @@ var installCommand = cli.Command{
 					return errors.Errorf("device for label %s does not exist", v.Label)
 				}
 				// mount the iscsi target if we have one
+				if err := checkYes("login to iscsi device?", scanner); err != nil {
+					return err
+				}
 				logrus.Info("mounting iscsi target")
 				if dev, err = v.Login(ctx, node.Pxe.IscsiTarget); err != nil {
 					return errors.Wrap(err, "login iscsi")
 				}
 				defer v.Logout(ctx, node.Pxe.IscsiTarget)
+				if err := checkYes(fmt.Sprintf("installing terra to %s", dev), scanner); err != nil {
+					return err
+				}
 			}
 			if err := v.Format(dev); err != nil {
 				return errors.Wrap(err, "format volume")
@@ -164,4 +175,16 @@ func getDevices(clix *cli.Context) (map[string]string, error) {
 		out[parts[0]] = parts[1]
 	}
 	return out, nil
+}
+
+func checkYes(msg string, scanner *bufio.Scanner) error {
+	fmt.Fprint(os.Stderr, msg)
+	fmt.Fprintln(os.Stderr, " [y/n]")
+	if !scanner.Scan() {
+		return errors.New("no input")
+	}
+	if strings.ToLower(scanner.Text()) == "y" {
+		return nil
+	}
+	return errors.New("user aborted")
 }
