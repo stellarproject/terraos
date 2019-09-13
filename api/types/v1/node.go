@@ -34,13 +34,13 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/pkg/errors"
 	"github.com/stellarproject/terraos/pkg/fstab"
+	"github.com/stellarproject/terraos/pkg/iscsi"
 	"github.com/stellarproject/terraos/pkg/mkfs"
 	"github.com/stellarproject/terraos/pkg/resolvconf"
 	"golang.org/x/sys/unix"
@@ -92,49 +92,26 @@ func (v *Volume) Login(ctx context.Context, portal string) (string, error) {
 	if !v.IsISCSI() {
 		return "", ErrNotISCSIVolume
 	}
-	if err := iscsiadm(ctx,
-		"--mode", "discovery",
-		"-t", "sendtargets",
-		"--portal", portal); err != nil {
-		return "", errors.Wrap(err, "discover targets")
+	if err := iscsi.Discover(ctx, portal); err != nil {
+		return "", err
 	}
-	if err := iscsiadm(ctx,
-		"--mode", "node",
-		"--targetname", v.TargetIqn,
-		"--portal", portal,
-		"--login"); err != nil {
-		return "", errors.Wrap(err, "login")
+	target, err := iscsi.Login(ctx, portal, v.TargetIqn)
+	if err != nil {
+		return "", err
 	}
-	path := filepath.Join("/dev/disk/by-path", iscsiDeviceByPath(portal, v.TargetIqn))
-
-	for i := 0; i < 5; i++ {
-		dev, err := os.Readlink(path)
-		if err == nil {
-			return filepath.Join("/dev", filepath.Base(dev)), nil
-		}
-		time.Sleep(100 * time.Millisecond)
+	path := target.Partition(0, 1)
+	if err := target.Ready(1 * time.Second); err != nil {
+		target.Logout(ctx)
+		return "", err
 	}
-	v.Logout(ctx, portal)
-	return "", errors.Errorf("unable to get get iscsi disk by path %s", path)
-}
-
-func iscsiDeviceByPath(portal, iqn string) string {
-	// example: ip-10.0.10.10:3260-iscsi-iqn.2019.com.crosbymichael.core:reactor-lun-0-part1
-	return fmt.Sprintf("ip-%s:3260-iscsi-%s-lun-0-part1", portal, iqn)
+	return path, nil
 }
 
 func (v *Volume) Logout(ctx context.Context, portal string) error {
 	if !v.IsISCSI() {
 		return ErrNotISCSIVolume
 	}
-	if err := iscsiadm(ctx,
-		"--mode", "node",
-		"--targetname", v.TargetIqn,
-		"--portal", portal,
-		"--logout"); err != nil {
-		return errors.Wrap(err, "logout")
-	}
-	return nil
+	return iscsi.Logout(ctx, portal, v.TargetIqn)
 }
 
 func (v *Volume) Entries() []*fstab.Entry {
@@ -385,14 +362,6 @@ func (i *Node) setupSSH(dest string) error {
 		if _, err := fmt.Fprintf(f, "%s\n", key); err != nil {
 			return errors.Wrap(err, "write ssh key")
 		}
-	}
-	return nil
-}
-
-func iscsiadm(ctx context.Context, args ...string) error {
-	out, err := exec.CommandContext(ctx, "iscsiadm", args...).CombinedOutput()
-	if err != nil {
-		return errors.Wrapf(err, "%s", out)
 	}
 	return nil
 }
