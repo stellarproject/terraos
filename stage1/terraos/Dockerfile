@@ -43,7 +43,7 @@ ARG KERNEL_VERSION
 
 ADD repositories /etc/apk/
 
-RUN apk update && apk add \
+RUN apk update && apk add --no-cache \
 	ca-certificates \
 	curl \
 	bash \

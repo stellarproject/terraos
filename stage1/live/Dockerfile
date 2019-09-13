@@ -36,7 +36,7 @@ FROM alpine:latest
 RUN mkdir -p /boot /sd
 
 RUN apk update && \
-	apk add \
+	apk add --no-cache \
 	e2fsprogs \
 	xfsprogs \
 	btrfs-progs \

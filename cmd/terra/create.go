@@ -240,7 +240,7 @@ rc-update add {{$s}} default
 {{end}}
 {{end}}
 
-{{if .Packages}}RUN apk add {{packages .Packages}}{{end}}
+{{if .Packages}}RUN apk add --no-cache {{packages .Packages}}{{end}}
 
 ADD etc/hostname /etc/
 ADD etc/hosts /etc/

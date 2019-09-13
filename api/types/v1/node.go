@@ -164,7 +164,7 @@ iface lo inet loopback
 `
 
 func (i *Node) setupNetworking(dest string) error {
-	path := filepath.Join(dest, "etc/networking/interfaces")
+	path := filepath.Join(dest, "etc/network/interfaces")
 	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
 		return errors.Wrap(err, "create base path")
 	}
