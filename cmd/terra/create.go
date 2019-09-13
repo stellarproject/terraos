@@ -111,6 +111,7 @@ var createCommand = cli.Command{
 			Init:     node.Image.Init,
 			Hostname: node.Hostname,
 			Packages: node.Image.Packages,
+			Services: node.Image.Services,
 		}
 		if userland := clix.String("userland"); userland != "" {
 			data, err := ioutil.ReadFile(userland)
@@ -254,11 +255,9 @@ ADD home/terra/.ssh /home/terra/.ssh
 RUN chown -R terra:terra /home/terra
 
 {{.Userland}}
-
 {{range $s := .Services -}}
 RUN rc-update add {{$s}}
 {{end}}
-
 {{if .Init}}CMD ["{{.Init}}"]{{end}}
 `
 

@@ -126,7 +126,6 @@ func (n *Node) ToProto() *v1.Node {
 			Userland: n.Image.Userland,
 			Packages: n.Image.Packages,
 			Services: n.Image.Services,
-
 			Ssh: &v1.SSH{
 				Github: n.Image.SSH.Github,
 				Keys:   n.Image.SSH.Keys,
