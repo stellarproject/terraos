@@ -184,7 +184,7 @@ func (a *Agent) Delete(ctx context.Context, req *v1.DeleteRequest) (*types.Empty
 	if err := network.Remove(ctx, container); err != nil {
 		return nil, err
 	}
-	if err := container.Delete(ctx, flux.WithRevisionCleanup); err != nil {
+	if err := container.Delete(ctx, flux.WithRevisionCleanup, opts.WithISCSILogout); err != nil {
 		return nil, err
 	}
 	return empty, nil
@@ -1024,6 +1024,9 @@ func withPlainRemote(ref string) containerd.RemoteOpt {
 
 func getBindSizes(c *v1.Container) (size int64, _ error) {
 	for _, m := range c.Mounts {
+		if m.Type != "bind" {
+			continue
+		}
 		f, err := os.Open(m.Source)
 		if err != nil {
 			logrus.WithError(err).Warnf("unable to open bind for size %s", m.Source)

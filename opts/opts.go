@@ -17,9 +17,7 @@
 	INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
 	IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
-	HOLDERS BE LIABLE FOR ANY CLAIM,
-	DAMAGES OR OTHER LIABILITY,
-	WHETHER IN AN ACTION OF CONTRACT,
+	HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
 	TORT OR OTHERWISE,
 	ARISING FROM, OUT OF OR IN CONNECTION WITH
 	THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
@@ -260,12 +258,10 @@ func withMounts(mounts []*v1.Mount) oci.SpecOpts {
 			case "iscsi":
 				tpe = "ext4"
 				// discover
-				parts := strings.SplitN(source, "|", 1)
-				if len(parts) != 2 {
-					return errors.Errorf("invalid iscsi source format %s", source)
+				portal, iqn, err := parseISCSI(source)
+				if err != nil {
+					return err
 				}
-				portal := parts[0]
-				iqn := parts[1]
 				if err := iscsi.Discover(ctx, portal); err != nil {
 					return errors.Wrapf(err, "discover targets %s", portal)
 				}
@@ -287,6 +283,14 @@ func withMounts(mounts []*v1.Mount) oci.SpecOpts {
 		}
 		return nil
 	}
+}
+
+func parseISCSI(s string) (string, string, error) {
+	parts := strings.SplitN(s, "|", 2)
+	if len(parts) != 2 {
+		return "", "", errors.Errorf("invalid iscsi source format %s", s)
+	}
+	return parts[0], parts[1], nil
 }
 
 func createHostDir(path string, uid, gid int) error {
@@ -459,6 +463,26 @@ func WithTaskRestore(desc *api.Descriptor) containerd.NewTaskOpts {
 		ti.Checkpoint = desc
 		return nil
 	}
+}
+
+func WithISCSILogout(ctx context.Context, client *containerd.Client, c containers.Container) error {
+	config, err := GetConfigFromInfo(ctx, c)
+	if err != nil {
+		return err
+	}
+	for _, m := range config.Mounts {
+		if m.Type == "iscsi" {
+			portal, iqn, err := parseISCSI(m.Source)
+			if err != nil {
+				return err
+			}
+			target := iscsi.LoadTarget(portal, iqn)
+			if err := target.Logout(ctx); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 func GetRestoreDesc(ctx context.Context, c containerd.Container) (*api.Descriptor, error) {

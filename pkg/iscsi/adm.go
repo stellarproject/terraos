@@ -33,6 +33,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -63,6 +64,14 @@ type Target struct {
 	path string
 }
 
+func LoadTarget(portal, iqn string) *Target {
+	return &Target{
+		portal: portal,
+		iqn:    iqn,
+		path:   path(portal, iqn),
+	}
+}
+
 func (t *Target) Path() string {
 	return t.path
 }
@@ -83,7 +92,7 @@ func (t *Target) Ready(d time.Duration) error {
 	ctx, cancel := context.WithTimeout(context.Background(), d)
 	defer cancel()
 
-	path := t.Path()
+	path := t.Lun(0)
 	for {
 		select {
 		case <-ctx.Done():
@@ -102,7 +111,7 @@ func Login(ctx context.Context, portal, iqn string) (*Target, error) {
 		"--mode", "node",
 		"--targetname", iqn,
 		"--portal", portal,
-		"--login"); err != nil {
+		"--login"); err != nil && !isPresentErr(err) {
 		return nil, errors.Wrap(err, "login")
 	}
 	return &Target{
@@ -117,7 +126,7 @@ func Logout(ctx context.Context, portal, iqn string) error {
 		"--mode", "node",
 		"--targetname", iqn,
 		"--portal", portal,
-		"--logout"); err != nil {
+		"--logout"); err != nil && !isNotSessionErr(err) {
 		return errors.Wrap(err, "logout")
 	}
 	return nil
@@ -125,4 +134,12 @@ func Logout(ctx context.Context, portal, iqn string) error {
 
 func path(portal, iqn string) string {
 	return filepath.Join("/dev/disk/by-path", fmt.Sprintf("ip-%s:3260-iscsi-%s", portal, iqn))
+}
+
+func isPresentErr(err error) bool {
+	return strings.Contains(err.Error(), "already present")
+}
+
+func isNotSessionErr(err error) bool {
+	return strings.Contains(err.Error(), "No matching sessions found")
 }
