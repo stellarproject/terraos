@@ -270,7 +270,7 @@ func withMounts(mounts []*v1.Mount) oci.SpecOpts {
 					return errors.Wrapf(err, "unable to login %s -> %s", portal, iqn)
 				}
 				source = target.Lun(0)
-				if err := target.Ready(1 * time.Second); err != nil {
+				if err := target.Ready(5 * time.Second); err != nil {
 					return errors.Wrap(err, "target not ready")
 				}
 			}

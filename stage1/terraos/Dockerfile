@@ -57,6 +57,7 @@ RUN apk update && apk add --no-cache \
 	vlan \
 	openssh-server-pam \
 	open-iscsi \
+	eudev \
 	iptables
 
 RUN rm -rf /boot /lib/modules
@@ -88,6 +89,7 @@ RUN rc-update add cgroups sysinit && \
 	rc-update add containerd default && \
 	rc-update add nodeexporter default && \
 	rc-update add dhcp default && \
+	rc-update add udev default && \
 	rc-update add orbit default
 
 CMD ["/sbin/init"]
