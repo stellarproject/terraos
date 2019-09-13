@@ -1,36 +1,13 @@
 #!/sbin/openrc-run
 #
-#
+supervisor=supervise-daemon
+
 command="/usr/local/bin/node_exporter"
+command_args="--web.listen-address=0.0.0.0:9900"
 description="Prometheus Node Metrics"
-pidfile="/var/run/node_exporter/node_exporter.pid"
-args='--web.listen-address=":9900"'
+pidfile="/var/run/node_exporter.pid"
 
 depend() {
 	need net
 	use dns
-}
-
-start() {
-	local daemon_args="--background"
-	ARGS=$args
-	if yesno "$FAST_STARTUP"; then
-		ARGS="${ARGS}"
-	fi
-
-	ebegin "Starting node_exporter"
-	start-stop-daemon $daemon_args --start --quiet \
-		--exec "${command}" \
-		--stdout-logger "logger -t nodeexporter -p daemon.info" \
-		--stderr-logger "logger -t nodeexporter -p daemon.err" \
-		--pidfile "${pidfile}" \
-		-- ${ARGS}
-	eend $? "Failed to start node_exporter"
-}
-
-stop() {
-	ebegin "Stopping node_exporter"
-	start-stop-daemon --stop --quiet \
-		--pidfile "${pidfile}"
-	eend $? "Failed to stop node_exporter"
 }

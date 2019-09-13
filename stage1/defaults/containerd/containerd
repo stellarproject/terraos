@@ -1,35 +1,14 @@
 #!/sbin/openrc-run
 #
-#
+supervisor=supervise-daemon
+
 command="/usr/local/bin/containerd"
+command_args=""
 description="Container Runtime Daemon"
-pidfile="/var/run/containerd/containerd.pid"
+pidfile="/var/run/containerd.pid"
 
 depend() {
 	need net
 	after firewall
 	use dns
-}
-
-start() {
-	local daemon_args="--background"
-	if yesno "$FAST_STARTUP"; then
-		ARGS="${ARGS}"
-	fi
-
-	ebegin "Starting containerd"
-	start-stop-daemon $daemon_args --start --quiet \
-		--exec "${command}" \
-		--stdout-logger "logger -t containerd -p daemon.info" \
-		--stderr-logger "logger -t containerd -p daemon.err" \
-		--pidfile "${pidfile}" \
-		-- ${ARGS}
-	eend $? "Failed to start containerd"
-}
-
-stop() {
-	ebegin "Stopping containerd"
-	start-stop-daemon --stop --quiet \
-		--pidfile "${pidfile}"
-	eend $? "Failed to stop containerd"
 }
