@@ -8,17 +8,41 @@ option go_package = "github.com/stellarproject/terraos/api/types/v1;v1";
 
 message Node {
 	string hostname = 1;
-	string gateway = 2;
-	repeated NIC nics = 3;
-	repeated Volume volumes = 4;
-	repeated CPU cpus = 5;
-	uint32 memory = 6;
-	repeated GPU gpus = 7;
-	repeated string labels = 8;
-	string domain = 9;
-	Image image = 10;
-	repeated string nameservers = 11;
-	string cluster_fs = 12;
+	repeated Volume volumes = 2;
+	double cpus = 3;
+	uint32 memory = 4;
+	repeated GPU gpus = 5;
+	repeated string labels = 6;
+	string domain = 7;
+	Image image = 8;
+	PXE pxe = 9;
+	Network network = 10;
+}
+
+message PXE {
+	// target IP for the ISCSI server
+	string iscsi_target = 1;
+	string version = 2;
+}
+
+message Network {
+	// static nameservers for resolv.conf
+	repeated string nameservers = 1;
+	// /etc/network/interfaces file's contents
+	string interfaces = 2;
+	// gateway address
+	string gateway = 3;
+	PXENetwork pxe_network = 4;
+}
+
+message PXENetwork {
+	// mac address of the PXE interface
+	string mac = 1;
+	// address CIDR including the subnet
+	string address = 2;
+	repeated string bond = 3;
+	// interface name of a single interface if not bonding multiple
+	string interface = 4;
 }
 
 message Image {
@@ -28,7 +52,8 @@ message Image {
 	repeated Component components = 4;
 	string userland = 5;
 	SSH ssh = 6;
-	bool allow_apt = 7;
+	repeated string packages = 7;
+	repeated string services = 8;
 }
 
 message SSH {
@@ -46,18 +71,6 @@ message GPU {
 	uint32 cores = 2;
 	uint32 memory = 3;
 	repeated string capabilities = 4;
-}
-
-message CPU {
-	double ghz = 1;
-}
-
-message NIC {
-	string mac = 1;
-	// addresses should contain subnet
-	repeated string addresses = 2;
-	uint32 speed = 3;
-	string name = 4;
 }
 
 message Volume {

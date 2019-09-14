@@ -1,0 +1,14 @@
+#!/sbin/openrc-run
+#
+supervisor=supervise-daemon
+
+command="/usr/local/bin/orbit-server"
+command_args="--logger /usr/local/bin/orbit-syslog"
+description="Orbit Agent"
+pidfile="/var/run/orbit.pid"
+
+depend() {
+	need net
+	after containerd
+	use dns
+}

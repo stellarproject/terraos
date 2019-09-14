@@ -38,9 +38,10 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	v1 "github.com/stellarproject/terraos/api/types/v1"
 	"github.com/stellarproject/terraos/cmd"
 	"github.com/stellarproject/terraos/pkg/image"
-	"github.com/stellarproject/terraos/pkg/pxe"
+	"github.com/stellarproject/terraos/version"
 	"github.com/urfave/cli"
 )
 
@@ -173,10 +174,6 @@ var pxeSaveCommand = cli.Command{
 	Description: "save a node's pxe configuration",
 	Flags: []cli.Flag{
 		cli.StringFlag{
-			Name:  "iscsi-target,target",
-			Usage: "iscsi target IP",
-		},
-		cli.StringFlag{
 			Name:  "tftp,t",
 			Usage: "tftp location",
 			Value: "/tftp",
@@ -184,6 +181,7 @@ var pxeSaveCommand = cli.Command{
 		cli.StringFlag{
 			Name:  "kv",
 			Usage: "kernel version to pin for the config",
+			Value: version.Version,
 		},
 	},
 	Action: func(clix *cli.Context) error {
@@ -191,54 +189,14 @@ var pxeSaveCommand = cli.Command{
 		if err != nil {
 			return errors.Wrap(err, "load node")
 		}
-		if len(node.Nics) == 0 {
-			return errors.New("node must have atlest 1 NIC for PXE")
-		}
-		var (
-			ip  = "dhcp"
-			nic = node.Nics[0]
-		)
-		if len(nic.Addresses) > 0 {
-			// FIXME: this will have to be fixed to get gateway, subnet, etc
-			ip = nic.Addresses[0]
-		}
-		var (
-			k, i = kernel, initrd
-		)
-		if kv := clix.String("kv"); kv != "" {
-			k = fmt.Sprintf(kvFmt, k, kv)
-			i = fmt.Sprintf(kvFmt, i, kv)
-		}
-		p := &pxe.PXE{
-			Default: "pxe",
-			MAC:     nic.Mac,
-			IP:      ip,
-			Entries: []pxe.Entry{
-				{
-					Root:   "LABEL=os",
-					Boot:   "pxe",
-					Label:  "pxe",
-					Kernel: k,
-					Initrd: i,
-					// TODO: support options
-				},
-			},
-		}
-		for _, v := range node.Volumes {
-			if v.IsISCSI() {
-				p.TargetIP = clix.String("iscsi-target")
-				p.TargetIQN = v.TargetIqn
-				p.InitiatorIQN = node.IQN()
-				break
-			}
-		}
-		path := filepath.Join(clix.String("tftp"), configDir, p.Filename())
+		path := filepath.Join(clix.String("tftp"), configDir, v1.PXEFilename(node))
 		f, err := os.Create(path)
 		if err != nil {
 			return errors.Wrapf(err, "create pxe config file %s", path)
 		}
 		defer f.Close()
-		if err := p.Write(f); err != nil {
+
+		if err := node.PXEConfig(f, clix.String("kv")); err != nil {
 			return errors.Wrap(err, "write pxe configuration")
 		}
 		return nil

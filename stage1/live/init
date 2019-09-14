@@ -34,4 +34,8 @@ rm /dev/console
 ln -s /dev/ttyS0 /dev/console
 
 export PATH=$PATH:/usr/local/bin:/usr/local/sbin
+
+cp /etc/resolv.conf /tmp/
+mount --bind /tmp/resolv.conf /etc/resolv.conf
+
 exec /bin/sh

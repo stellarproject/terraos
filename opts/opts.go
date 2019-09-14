@@ -17,9 +17,7 @@
 	INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
 	IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
-	HOLDERS BE LIABLE FOR ANY CLAIM,
-	DAMAGES OR OTHER LIABILITY,
-	WHETHER IN AN ACTION OF CONTRACT,
+	HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
 	TORT OR OTHERWISE,
 	ARISING FROM, OUT OF OR IN CONNECTION WITH
 	THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
@@ -29,11 +27,11 @@ package opts
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/containerd/containerd"
 	api "github.com/containerd/containerd/api/types"
@@ -47,7 +45,9 @@ import (
 	"github.com/gogo/protobuf/types"
 	is "github.com/opencontainers/image-spec/specs-go/v1"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/pkg/errors"
 	v1 "github.com/stellarproject/terraos/api/v1/orbit"
+	"github.com/stellarproject/terraos/pkg/iscsi"
 )
 
 const (
@@ -245,21 +245,52 @@ func withResources(r *v1.Resources) oci.SpecOpts {
 func withMounts(mounts []*v1.Mount) oci.SpecOpts {
 	return func(ctx context.Context, _ oci.Client, c *containers.Container, s *oci.Spec) error {
 		for _, cm := range mounts {
-			if cm.Type == "bind" {
+			var (
+				tpe    = cm.Type
+				source = cm.Source
+			)
+			switch cm.Type {
+			case "bind":
 				// create source if it does not exist
 				if err := createHostDir(cm.Source, int(s.Process.User.UID), int(s.Process.User.GID)); err != nil {
 					return err
 				}
+			case "iscsi":
+				tpe = "ext4"
+				// discover
+				portal, iqn, err := ParseISCSI(source)
+				if err != nil {
+					return err
+				}
+				if err := iscsi.Discover(ctx, portal); err != nil {
+					return errors.Wrapf(err, "discover targets %s", portal)
+				}
+				target, err := iscsi.Login(ctx, portal, iqn)
+				if err != nil {
+					return errors.Wrapf(err, "unable to login %s -> %s", portal, iqn)
+				}
+				source = target.Lun(0)
+				if err := target.Ready(5 * time.Second); err != nil {
+					return errors.Wrap(err, "target not ready")
+				}
 			}
 			s.Mounts = append(s.Mounts, specs.Mount{
-				Type:        cm.Type,
-				Source:      cm.Source,
+				Type:        tpe,
+				Source:      source,
 				Destination: cm.Destination,
 				Options:     cm.Options,
 			})
 		}
 		return nil
 	}
+}
+
+func ParseISCSI(s string) (string, string, error) {
+	parts := strings.SplitN(s, "|", 2)
+	if len(parts) != 2 {
+		return "", "", errors.Errorf("invalid iscsi source format %s", s)
+	}
+	return parts[0], parts[1], nil
 }
 
 func createHostDir(path string, uid, gid int) error {
@@ -432,6 +463,26 @@ func WithTaskRestore(desc *api.Descriptor) containerd.NewTaskOpts {
 		ti.Checkpoint = desc
 		return nil
 	}
+}
+
+func WithISCSILogout(ctx context.Context, client *containerd.Client, c containers.Container) error {
+	config, err := GetConfigFromInfo(ctx, c)
+	if err != nil {
+		return err
+	}
+	for _, m := range config.Mounts {
+		if m.Type == "iscsi" {
+			portal, iqn, err := ParseISCSI(m.Source)
+			if err != nil {
+				return err
+			}
+			target := iscsi.LoadTarget(portal, iqn)
+			if err := target.Logout(ctx); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 func GetRestoreDesc(ctx context.Context, c containerd.Container) (*api.Descriptor, error) {

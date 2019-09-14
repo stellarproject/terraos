@@ -1,0 +1,32 @@
+#!/bin/sh -e
+PREREQS=""
+case $1 in
+        prereqs) echo "${PREREQS}"; exit 0;;
+esac
+
+echo "Network interfaces loaded: "
+echo `ls /sys/class/net`
+
+for x in $cmdline; do
+    case $x in
+    bondslaves=*)
+            bondslaves="${x#bondslaves=}"
+            ;;
+    esac
+done
+
+if [ -z "$bondslaves" ]; then
+	echo "Removing bond"
+	ip link del bond0
+else
+	echo "Setting up bond0: '$bondslaves'"
+	ip link del bond0
+	ip link add bond0 type bond mode 802.3ad
+	IFS=","
+	for x in $bondslaves; do
+		echo "Adding bond slave $x"
+		echo "+$x" > /sys/class/net/bond0/bonding/slaves
+	done
+	modprobe af_packet
+	ipconfig -c dhcp -d bond0
+fi

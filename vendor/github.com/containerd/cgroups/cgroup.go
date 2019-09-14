@@ -105,6 +105,10 @@ func Load(hierarchy Hierarchy, path Path, opts ...InitOpts) (Cgroup, error) {
 		}
 		activeSubsystems = append(activeSubsystems, s)
 	}
+	// if we do not have any active systems then the cgroup is deleted
+	if len(activeSubsystems) == 0 {
+		return nil, ErrCgroupDeleted
+	}
 	return &cgroup{
 		path:       path,
 		subsystems: activeSubsystems,
@@ -493,6 +497,9 @@ func (c *cgroup) MoveTo(destination Cgroup) error {
 		}
 		for _, p := range processes {
 			if err := destination.Add(p); err != nil {
+				if strings.Contains(err.Error(), "no such process") {
+					continue
+				}
 				return err
 			}
 		}

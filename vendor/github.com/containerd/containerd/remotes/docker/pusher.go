@@ -37,7 +37,7 @@ import (
 
 type dockerPusher struct {
 	*dockerBase
-	tag string
+	object string
 
 	// TODO: namespace tracker
 	tracker StatusTracker
@@ -74,11 +74,7 @@ func (p dockerPusher) Push(ctx context.Context, desc ocispec.Descriptor) (conten
 	case images.MediaTypeDockerSchema2Manifest, images.MediaTypeDockerSchema2ManifestList,
 		ocispec.MediaTypeImageManifest, ocispec.MediaTypeImageIndex:
 		isManifest = true
-		if p.tag == "" {
-			existCheck = []string{"manifests", desc.Digest.String()}
-		} else {
-			existCheck = []string{"manifests", p.tag}
-		}
+		existCheck = getManifestPath(p.object, desc.Digest)
 	default:
 		existCheck = []string{"blobs", desc.Digest.String()}
 	}
@@ -97,7 +93,7 @@ func (p dockerPusher) Push(ctx context.Context, desc ocispec.Descriptor) (conten
 	} else {
 		if resp.StatusCode == http.StatusOK {
 			var exists bool
-			if isManifest && p.tag != "" {
+			if isManifest && existCheck[1] != desc.Digest.String() {
 				dgstHeader := digest.Digest(resp.Header.Get("Docker-Content-Digest"))
 				if dgstHeader == desc.Digest {
 					exists = true
@@ -122,13 +118,7 @@ func (p dockerPusher) Push(ctx context.Context, desc ocispec.Descriptor) (conten
 	}
 
 	if isManifest {
-		var putPath []string
-		if p.tag != "" {
-			putPath = []string{"manifests", p.tag}
-		} else {
-			putPath = []string{"manifests", desc.Digest.String()}
-		}
-
+		putPath := getManifestPath(p.object, desc.Digest)
 		req = p.request(host, http.MethodPut, putPath...)
 		req.header.Add("Content-Type", desc.MediaType)
 	} else {
@@ -147,7 +137,6 @@ func (p dockerPusher) Push(ctx context.Context, desc ocispec.Descriptor) (conten
 			// for the private repo, we should remove mount-from
 			// query and send the request again.
 			resp, err = preq.do(pctx)
-			//resp, err = p.doRequest(pctx, req)
 			if err != nil {
 				return nil, err
 			}
@@ -271,6 +260,25 @@ func (p dockerPusher) Push(ctx context.Context, desc ocispec.Descriptor) (conten
 	}, nil
 }
 
+func getManifestPath(object string, dgst digest.Digest) []string {
+	if i := strings.IndexByte(object, '@'); i >= 0 {
+		if object[i+1:] != dgst.String() {
+			// use digest, not tag
+			object = ""
+		} else {
+			// strip @<digest> for registry path to make tag
+			object = object[:i]
+		}
+
+	}
+
+	if object == "" {
+		return []string{"manifests", dgst.String()}
+	}
+
+	return []string{"manifests", object}
+}
+
 type pushWriter struct {
 	base *dockerBase
 	ref  string
@@ -344,7 +352,7 @@ func (pw *pushWriter) Commit(ctx context.Context, size int64, expected digest.Di
 	}
 
 	if size > 0 && size != status.Offset {
-		return errors.Errorf("unxpected size %d, expected %d", status.Offset, size)
+		return errors.Errorf("unexpected size %d, expected %d", status.Offset, size)
 	}
 
 	if expected == "" {

@@ -1,0 +1,12 @@
+#!/sbin/openrc-run
+#
+supervisor=supervise-daemon
+
+command="/usr/local/bin/buildkitd"
+command_args="--containerd-worker=true --oci-worker=false --addr tcp://0.0.0.0:9500"
+description="Buildkit Daemon"
+pidfile="/var/run/buildkitd.pid"
+
+depend() {
+	after containerd
+}

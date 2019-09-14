@@ -29,90 +29,68 @@ ARG VERSION
 ARG KERNEL_VERSION
 ARG REPO
 
-FROM ${REPO}/kernel:${KERNEL_VERSION} as kernel
+FROM $REPO/pxe:$VERSION as pxe
 FROM ${REPO}/orbit:${VERSION} as orbit
 FROM ${REPO}/containerd:${VERSION} as containerd
-
 FROM ${REPO}/terracmd:${VERSION} as terra
 FROM ${REPO}/node_exporter:${VERSION} as node_exporter
-FROM ${REPO}/criu:${VERSION} as criu
 FROM ${REPO}/cni:${VERSION} as cni
 FROM ${REPO}/wireguard:${VERSION} as wireguard
-FROM ${REPO}/gvisor:${VERSION} as gvisor
-
-FROM ubuntu:19.04 as debootstrap
-
-RUN apt update && \
-	apt install -y \
-	debootstrap
-
-RUN debootstrap --arch amd64 disco /terra/ http://archive.ubuntu.com/ubuntu
 
 # main OS image
-FROM scratch
+FROM docker.io/stellarproject/alpine:deboot
 ARG KERNEL_VERSION
 
-COPY --from=debootstrap /terra/ /
+ADD repositories /etc/apk/
 
-# add full apt sources
-ADD sources.list /etc/apt/
-
-RUN apt update && apt upgrade -y && \
-	DEBIAN_FRONTEND=noninteractive apt install -y \
+RUN apk update && apk add --no-cache \
 	ca-certificates \
-	openssh-server \
 	curl \
+	bash \
 	pigz \
-	tftp \
 	htop \
 	tmux \
 	rsync \
-	vim \
+	criu \
 	apparmor \
-	libnl-3-dev \
-	libnet-dev \
-	libprotobuf-dev \
-	iptables \
-	haveged && \
-	rm -rf /var/lib/apt/lists/*
+	apparmor-profiles \
+	bonding \
+	vlan \
+	openssh-server-pam \
+	open-iscsi \
+	eudev \
+	iptables
 
-RUN --mount=type=bind,from=kernel,target=/tmp dpkg -i \
-        /tmp/linux-headers-${KERNEL_VERSION}-terra_${KERNEL_VERSION}-terra-1_amd64.deb \
-        /tmp/linux-image-${KERNEL_VERSION}-terra_${KERNEL_VERSION}-terra-1_amd64.deb \
-        /tmp/linux-libc-dev_${KERNEL_VERSION}-terra-1_amd64.deb
+RUN rm -rf /boot /lib/modules
+COPY --from=pxe /tftp /boot
+COPY --from=pxe /lib/modules/ /lib/modules/
+COPY --from=pxe /usr/src/ /usr/src/
+RUN rm -rf /boot/*.c32 /boot/pxelinux.0 /boot/pxelinux.cfg
 
 RUN rm /etc/fstab
 
 # add the default terra user
-RUN addgroup --system terra && \
-	useradd -s /bin/bash -g terra --groups adm --groups cdrom --groups sudo --groups dip --groups plugdev -m -k /dev/null terra && \
+RUN adduser -s /bin/bash -D -g terra -k /dev/null terra && \
 	chown -R terra:terra /home/terra
 
-ADD sudoers /etc/
 ADD hosts /etc/
 ADD hostname /etc/
 ADD resolv.conf /etc/
-
-RUN chmod 0440 /etc/sudoers
-
 ADD sshd_config /etc/ssh/
-RUN systemctl disable systemd-resolved
-
-RUN rm -f /etc/machine-id && \
-	rm -f /var/lib/dbus/machine-id
-
-RUN rm /etc/update-motd.d/*
-ADD motd/* /etc/update-motd.d/
+ADD motd /etc/
 
 COPY --from=terra / /
 COPY --from=node_exporter / /
 COPY --from=cni / /
 COPY --from=orbit / /
 COPY --from=containerd / /
-COPY --from=criu / /
 COPY --from=wireguard / /
-COPY --from=gvisor / /
 
-RUN systemctl enable containerd node_exporter ssh orbit dhcp
+RUN rc-update add cgroups sysinit && \
+	rc-update add containerd default && \
+	rc-update add nodeexporter default && \
+	rc-update add dhcp default && \
+	rc-update add udev default && \
+	rc-update add orbit default
 
 CMD ["/sbin/init"]

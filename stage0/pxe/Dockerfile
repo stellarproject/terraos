@@ -89,6 +89,8 @@ ADD pxe /etc/initramfs-tools/scripts/pxe
 ADD modules /etc/initramfs-tools/modules
 RUN touch /etc/iscsi/iscsi.initramfs
 ADD default /tftp/pxelinux.cfg/default
+ADD 00_bonding_init /etc/initramfs-tools/scripts/local-top/
+RUN chmod 0755 /etc/initramfs-tools/scripts/local-top/00_bonding_init
 
 RUN update-initramfs -u
 
@@ -101,3 +103,4 @@ FROM scratch
 
 COPY --from=pxe /tftp/ /tftp/
 COPY --from=pxe /lib/modules/ /lib/modules/
+COPY --from=pxe /usr/src/ /usr/src/

@@ -23,7 +23,9 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH
 # THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-FROM golang:1.12 as cni
+FROM golang:alpine as cni
+
+RUN apk update && apk add git bash
 
 ENV COMMIT 957e9197c2bc7e031bd6df16e5712a182923042a
 RUN git clone https://github.com/crosbymichael/plugins /go/src/github.com/containernetworking/plugins

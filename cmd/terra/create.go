@@ -4,8 +4,7 @@
 	Permission is hereby granted, free of charge, to any person
 	obtaining a copy of this software and associated documentation
 	files (the "Software"), to deal in the Software without
-	restriction, including without limitation the rights to use, copy,
-	modify, merge, publish, distribute, sublicense, and/or sell copies
+	restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
 	of the Software, and to permit persons to whom the Software is
 	furnished to do so, subject to the following conditions:
 
@@ -79,6 +78,15 @@ var createCommand = cli.Command{
 			Name:  "vhost-mount",
 			Usage: "vhost containerd mount path",
 		},
+		cli.StringFlag{
+			Name:  "interfaces",
+			Usage: "specify the interfaces file to use",
+		},
+		cli.StringSliceFlag{
+			Name:  "ssh",
+			Usage: "ssh key files",
+			Value: &cli.StringSlice{},
+		},
 	},
 	Action: func(clix *cli.Context) error {
 		node, err := cmd.LoadNode(clix.Args().First())
@@ -89,13 +97,21 @@ var createCommand = cli.Command{
 		if err != nil {
 			return errors.Wrap(err, "get context abs")
 		}
+		for _, file := range clix.StringSlice("ssh") {
+			data, err := ioutil.ReadFile(file)
+			if err != nil {
+				return errors.Wrapf(err, "read key file %s", file)
+			}
+			node.Image.Ssh.Keys = append(node.Image.Ssh.Keys, string(data))
+		}
 		ctx := cmd.CancelContext()
 		imageContext := &ImageContext{
-			Base:      node.Image.Base,
-			Userland:  node.Image.Userland,
-			Init:      node.Image.Init,
-			Hostname:  node.Hostname,
-			RemoveApt: !node.Image.AllowApt,
+			Base:     node.Image.Base,
+			Userland: node.Image.Userland,
+			Init:     node.Image.Init,
+			Hostname: node.Hostname,
+			Packages: node.Image.Packages,
+			Services: node.Image.Services,
 		}
 		if userland := clix.String("userland"); userland != "" {
 			data, err := ioutil.ReadFile(userland)
@@ -104,14 +120,20 @@ var createCommand = cli.Command{
 			}
 			imageContext.Userland = string(data)
 		}
+		if iface := clix.String("interfaces"); iface != "" {
+			data, err := ioutil.ReadFile(iface)
+			if err != nil {
+				return errors.Wrapf(err, "read interfaces file %s", iface)
+			}
+			node.Network.Interfaces = string(data)
+		}
 		if err := node.InstallConfig(dest); err != nil {
 			return errors.Wrap(err, "install node configuration to context")
 		}
-
 		for _, c := range node.Image.Components {
 			imageContext.Imports = append(imageContext.Imports, &cmd.Component{
-				Image:   c.Image,
-				Systemd: c.Systemd,
+				Image: c.Image,
+				Init:  c.Systemd,
 			})
 		}
 		if err := writeDockerfile(dest, imageContext, serverTemplate); err != nil {
@@ -152,6 +174,7 @@ var createCommand = cli.Command{
 				GID:        &uid,
 				MaskedPaths: []string{
 					"/etc/netplan",
+					"/etc/network",
 				},
 				Networks: []*v1.Network{
 					{
@@ -213,28 +236,28 @@ FROM {{.Base}}
 
 {{range $v := .Imports -}}
 COPY --from={{cname $v}} / /
-{{range $s := $v.Systemd}}
-RUN systemctl enable {{$s}}
+{{range $s := $v.Init}}
+rc-update add {{$s}} default
 {{end}}
 {{end}}
+
+{{if .Packages}}RUN apk add --no-cache {{packages .Packages}}{{end}}
 
 ADD etc/hostname /etc/
 ADD etc/hosts /etc/
 ADD etc/fstab /etc/
 ADD etc/resolv.conf /etc/
 ADD etc/hostname /etc/
-ADD etc/netplan/01-netcfg.yaml /etc/netplan/
+ADD etc/network/interfaces /etc/network/
 
 ADD home/terra/.ssh /home/terra/.ssh
 
 RUN chown -R terra:terra /home/terra
 
-RUN dbus-uuidgen --ensure=/etc/machine-id && dbus-uuidgen --ensure
-
 {{.Userland}}
-
-{{if .RemoveApt}}RUN apt remove --purge --allow-remove-essential -y apt{{end}}
-
+{{range $s := .Services -}}
+RUN rc-update add {{$s}}
+{{end}}
 {{if .Init}}CMD ["{{.Init}}"]{{end}}
 `
 
@@ -252,11 +275,16 @@ func imageName(c *cmd.Component) string {
 	return c.Image
 }
 
+func packages(p []string) string {
+	return strings.Join(p, " ")
+}
+
 func render(w io.Writer, temp string, ctx *ImageContext) error {
 	t, err := template.New("dockerfile").Funcs(template.FuncMap{
 		"cname":     cname,
 		"imageName": imageName,
 		"cmdargs":   cmdargs,
+		"packages":  packages,
 	}).Parse(temp)
 	if err != nil {
 		return err
@@ -272,5 +300,6 @@ type ImageContext struct {
 	Init       string
 	Hostname   string
 	ResolvConf bool
-	RemoveApt  bool
+	Packages   []string
+	Services   []string
 }

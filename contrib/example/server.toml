@@ -31,10 +31,11 @@ cluster_fs = ""
   ghz = 3.4
 
 [image]
-  name = "docker.io/stellarproject/example:10"
-  base = "registry.compute:5000/terraos:v14"
+  name = "registry.compute:5000/example:11"
+  base = "registry.compute:5000/terraos:v16-dev"
   init = "/sbin/init"
   userland = """
 RUN echo 'terra:terra' | chpasswd
+RUN echo 'root:root' | chpasswd
 ADD sshd_config /etc/ssh/
 """

@@ -28,18 +28,26 @@
 package v1
 
 import (
+	"context"
 	"fmt"
+	"html/template"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/stellarproject/terraos/pkg/fstab"
+	"github.com/stellarproject/terraos/pkg/iscsi"
 	"github.com/stellarproject/terraos/pkg/mkfs"
-	"github.com/stellarproject/terraos/pkg/netplan"
 	"github.com/stellarproject/terraos/pkg/resolvconf"
 	"golang.org/x/sys/unix"
+)
+
+var (
+	ErrNotISCSIVolume = errors.New("not an iscsi volume")
 )
 
 const (
@@ -80,6 +88,32 @@ func (v *Volume) Mount(device, dest string) (func() error, error) {
 	}, nil
 }
 
+func (v *Volume) Login(ctx context.Context, portal string) (string, error) {
+	if !v.IsISCSI() {
+		return "", ErrNotISCSIVolume
+	}
+	if err := iscsi.Discover(ctx, portal); err != nil {
+		return "", err
+	}
+	target, err := iscsi.Login(ctx, portal, v.TargetIqn)
+	if err != nil {
+		return "", err
+	}
+	path := target.Partition(0, 1)
+	if err := target.Ready(1 * time.Second); err != nil {
+		target.Logout(ctx)
+		return "", err
+	}
+	return path, nil
+}
+
+func (v *Volume) Logout(ctx context.Context, portal string) error {
+	if !v.IsISCSI() {
+		return ErrNotISCSIVolume
+	}
+	return iscsi.Logout(ctx, portal, v.TargetIqn)
+}
+
 func (v *Volume) Entries() []*fstab.Entry {
 	return []*fstab.Entry{
 		&fstab.Entry{
@@ -93,48 +127,46 @@ func (v *Volume) Entries() []*fstab.Entry {
 
 func (i *Node) InstallConfig(dest string) error {
 	if err := i.setupFstab(dest); err != nil {
-		return err
+		return errors.Wrap(err, "setup fstab")
 	}
 	if err := i.setupHostname(dest); err != nil {
-		return err
+		return errors.Wrap(err, "setup hostname")
 	}
-	if err := i.setupNetplan(dest); err != nil {
-		return err
+	if err := i.setupNetworking(dest); err != nil {
+		return errors.Wrap(err, "setup networking")
 	}
 	if err := i.setupResolvConf(dest); err != nil {
-		return err
+		return errors.Wrap(err, "setup resolv.conf")
 	}
 	if err := i.setupSSH(dest); err != nil {
-		return err
+		return errors.Wrap(err, "setup ssh")
 	}
 	return nil
 }
 
-func (i *Node) setupNetplan(dest string) error {
-	n := &netplan.Netplan{}
-	for _, nic := range i.Nics {
-		gw := i.Gateway
-		if len(nic.Addresses) == 0 {
-			gw = ""
-		}
-		n.Interfaces = append(n.Interfaces, netplan.Interface{
-			Name:      nic.Name,
-			Addresses: nic.Addresses,
-			Gateway:   gw,
-		})
+const loInterfaces = `auto lo
+iface lo inet loopback
+
+`
+
+func (i *Node) setupNetworking(dest string) error {
+	path := filepath.Join(dest, "etc/network/interfaces")
+	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+		return errors.Wrap(err, "create base path")
 	}
-	p := filepath.Join(dest, "/etc/netplan", netplan.DefaultFilename)
-	if err := os.MkdirAll(filepath.Dir(p), 0755); err != nil {
-		return errors.Wrap(err, "create netplan dir")
-	}
-	f, err := os.Create(p)
+	f, err := os.Create(path)
 	if err != nil {
-		return errors.Wrap(err, "create netplan file")
+		return errors.Wrap(err, "create interfaces file")
 	}
 	defer f.Close()
 
-	if err := n.Write(f); err != nil {
-		return errors.Wrap(err, "write netplan contents")
+	if _, err := f.WriteString(loInterfaces); err != nil {
+		return err
+	}
+	if i.Network.Interfaces != "" {
+		if _, err := f.WriteString(i.Network.Interfaces); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -142,25 +174,10 @@ func (i *Node) setupNetplan(dest string) error {
 func (i *Node) setupFstab(dest string) error {
 	var entries []*fstab.Entry
 
-	if i.ClusterFs != "" {
-		entries = []*fstab.Entry{
-			&fstab.Entry{
-				Type:   "9p",
-				Device: i.ClusterFs,
-				Path:   "/cluster",
-				Pass:   2,
-				Options: []string{
-					"port=564",
-					"version=9p2000.L",
-					"uname=root",
-					"access=user",
-					"aname=/cluster",
-				},
-			},
-		}
-	}
 	for _, v := range i.Volumes {
-		entries = append(entries, v.Entries()...)
+		if v.Label != "os" {
+			entries = append(entries, v.Entries()...)
+		}
 	}
 	path := filepath.Join(dest, fstab.Path)
 	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
@@ -181,11 +198,11 @@ func (i *Node) setupFstab(dest string) error {
 
 func (i *Node) setupResolvConf(dest string) error {
 	resolv := &resolvconf.Conf{
-		Nameservers: i.Nameservers,
+		Nameservers: i.Network.Nameservers,
 	}
 	if len(resolv.Nameservers) == 0 {
 		resolv.Nameservers = []string{
-			i.Gateway,
+			i.Network.Gateway,
 		}
 	}
 	path := filepath.Join(dest, resolvconf.DefaultPath)
@@ -193,11 +210,18 @@ func (i *Node) setupResolvConf(dest string) error {
 		return errors.Wrap(err, "create base path")
 	}
 
+	// remove the existing resolv.conf incase it is a symlink
+	os.Remove(path)
+
 	f, err := os.Create(path)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
+
+	if len(resolv.Nameservers) == 0 {
+		return nil
+	}
 
 	if err := resolv.Write(f); err != nil {
 		return errors.Wrap(err, "write resolv.conf")
@@ -229,6 +253,80 @@ func (i *Node) setupHostname(dest string) error {
 		return errors.Wrap(err, "write hosts contents")
 	}
 	return nil
+}
+
+const (
+	kvFmt  = "%s-%s"
+	kernel = "vmlinuz"
+	initrd = "initrd.img"
+
+	pxeTemplate = `DEFAULT pxe
+
+LABEL pxe
+  KERNEL {{.Kernel}}
+  INITRD {{.Initrd}}
+  APPEND {{.Append}}
+`
+)
+
+type pxeConfig struct {
+	Kernel string
+	Initrd string
+	Append string
+}
+
+func PXEFilename(i *Node) string {
+	return fmt.Sprintf("01-%s", strings.Replace(i.Network.PxeNetwork.Mac, ":", "-", -1))
+}
+
+// PXEConfig writes the pxe config to the writer for the node
+func (i *Node) PXEConfig(w io.Writer, version string) error {
+	if i.Pxe.Version != "" {
+		version = i.Pxe.Version
+	}
+	pn := i.Network.PxeNetwork
+	ip := pn.Address
+	if ip == "" {
+		ip = "dhcp"
+		if len(pn.Bond) > 0 {
+			ip = "none"
+		}
+	}
+	c := &pxeConfig{
+		Kernel: fmt.Sprintf(kvFmt, kernel, version),
+		Initrd: fmt.Sprintf(kvFmt, initrd, version),
+	}
+	args := []string{
+		"ip=" + ip,
+		"boot=pxe",
+		"root=LABEL=os",
+	}
+	if len(pn.Bond) > 0 {
+		args = append(args, fmt.Sprintf("bondslaves=%s", strings.Join(pn.Bond, ",")))
+	}
+	var target string
+	for _, v := range i.Volumes {
+		if v.Label == "os" {
+			target = v.TargetIqn
+			break
+		}
+	}
+	if target == "" {
+		return errors.New("no target iqn specified")
+	}
+
+	args = append(args,
+		fmt.Sprintf("ISCSI_INITIATOR=%s", i.IQN()),
+		fmt.Sprintf("ISCSI_TARGET_NAME=%s", target),
+		fmt.Sprintf("ISCSI_TARGET_IP=%s", i.Pxe.IscsiTarget),
+	)
+	c.Append = strings.Join(args, " ")
+
+	t, err := template.New("pxe").Parse(pxeTemplate)
+	if err != nil {
+		return errors.Wrap(err, "create pxe template")
+	}
+	return t.Execute(w, c)
 }
 
 func (i *Node) setupSSH(dest string) error {

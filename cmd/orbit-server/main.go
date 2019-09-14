@@ -109,6 +109,11 @@ func main() {
 			Usage: "http registries",
 			Value: &cli.StringSlice{},
 		},
+		cli.StringFlag{
+			Name:  "logger",
+			Usage: "specify the logger",
+			Value: "/usr/local/bin/orbit-log",
+		},
 	}
 	app.Before = func(clix *cli.Context) error {
 		if clix.GlobalBool("debug") {
@@ -128,6 +133,7 @@ func main() {
 			ClusterDir:   "/cluster",
 			Interval:     clix.GlobalDuration("interval"),
 			PlainRemotes: clix.GlobalStringSlice("plain-remote"),
+			Logger:       clix.GlobalString("logger"),
 		}
 		if c.Iface == "" {
 			i, err := util.GetDefaultIface()

@@ -1,0 +1,18 @@
+#!/sbin/openrc-run
+#
+supervisor=supervise-daemon
+
+command="/opt/containerd/bin/dhcp"
+command_args="daemon"
+description="CNI Dhcp Daemon"
+pidfile="/var/run/cni-dhcp.pid"
+
+depend() {
+	need net
+	after firewall
+	use dns
+}
+
+start_pre() {
+	rm -f /run/cni/dhcp.sock
+}

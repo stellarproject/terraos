@@ -68,6 +68,7 @@ import (
 	"github.com/stellarproject/terraos/config"
 	"github.com/stellarproject/terraos/opts"
 	"github.com/stellarproject/terraos/pkg/flux"
+	"github.com/stellarproject/terraos/pkg/iscsi"
 	"github.com/stellarproject/terraos/util"
 	"golang.org/x/sys/unix"
 )
@@ -184,7 +185,7 @@ func (a *Agent) Delete(ctx context.Context, req *v1.DeleteRequest) (*types.Empty
 	if err := network.Remove(ctx, container); err != nil {
 		return nil, err
 	}
-	if err := container.Delete(ctx, flux.WithRevisionCleanup); err != nil {
+	if err := container.Delete(ctx, flux.WithRevisionCleanup, opts.WithISCSILogout); err != nil {
 		return nil, err
 	}
 	return empty, nil
@@ -809,6 +810,9 @@ func (a *Agent) start(ctx context.Context, container containerd.Container) error
 	if err != nil {
 		return errors.Wrap(err, "get restore descriptor")
 	}
+	if err := a.loginISCSI(ctx, config); err != nil {
+		return errors.Wrap(err, "login iscsi")
+	}
 	network, err := a.getNetwork(config.Networks)
 	if err != nil {
 		return errors.Wrap(err, "get network")
@@ -823,7 +827,7 @@ func (a *Agent) start(ctx context.Context, container containerd.Container) error
 	if err := container.Update(ctx, opts.WithIP(ip), opts.WithoutRestore, withStatus(containerd.Running)); err != nil {
 		return errors.Wrap(err, "update container with ip")
 	}
-	task, err := container.NewTask(ctx, cio.BinaryIO("/usr/local/bin/orbit-log", nil), opts.WithTaskRestore(desc))
+	task, err := container.NewTask(ctx, cio.BinaryIO(a.config.Logger, nil), opts.WithTaskRestore(desc))
 	if err != nil {
 		return errors.Wrap(err, "create new container task")
 	}
@@ -833,6 +837,28 @@ func (a *Agent) start(ctx context.Context, container containerd.Container) error
 			logrus.WithError(err).Error("delete container task")
 		}
 		return errors.Wrap(err, "start container process")
+	}
+	return nil
+}
+
+func (a *Agent) loginISCSI(ctx context.Context, config *v1.Container) error {
+	for _, m := range config.Mounts {
+		if m.Type == "iscsi" {
+			portal, iqn, err := opts.ParseISCSI(m.Source)
+			if err != nil {
+				return err
+			}
+			if err := iscsi.Discover(ctx, portal); err != nil {
+				return errors.Wrapf(err, "discover targets %s", portal)
+			}
+			target, err := iscsi.Login(ctx, portal, iqn)
+			if err != nil {
+				return errors.Wrapf(err, "unable to login %s -> %s", portal, iqn)
+			}
+			if err := target.Ready(5 * time.Second); err != nil {
+				return errors.Wrap(err, "target not ready")
+			}
+		}
 	}
 	return nil
 }
@@ -1024,6 +1050,9 @@ func withPlainRemote(ref string) containerd.RemoteOpt {
 
 func getBindSizes(c *v1.Container) (size int64, _ error) {
 	for _, m := range c.Mounts {
+		if m.Type != "bind" {
+			continue
+		}
 		f, err := os.Open(m.Source)
 		if err != nil {
 			logrus.WithError(err).Warnf("unable to open bind for size %s", m.Source)

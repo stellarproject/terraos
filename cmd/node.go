@@ -38,19 +38,30 @@ import (
 )
 
 type Node struct {
-	Hostname    string   `toml:"hostname"`
-	Labels      []string `toml:"labels"`
-	Nics        []NIC    `toml:"nic"`
-	Volumes     []Volume `toml:"volumes"`
-	GPUs        []GPU    `toml:"gpus"`
-	CPUs        []CPU    `toml:"cpus"`
-	Memory      uint32   `toml:"memory"`
-	Domain      string   `toml:"domain"`
-	Image       Image    `toml:"image"`
-	Gateway     string   `toml:"gateway"`
-	Nameservers []string `toml:"nameservers"`
-	ClusterFS   string   `toml:"cluster_fs"`
-	AllowApt    bool     `toml:"allow_apt"`
+	Hostname string   `toml:"hostname"`
+	Labels   []string `toml:"labels"`
+	Volumes  []Volume `toml:"volumes"`
+	GPUs     []GPU    `toml:"gpus"`
+	CPUs     float64  `toml:"cpus"`
+	Memory   uint32   `toml:"memory"`
+	Domain   string   `toml:"domain"`
+	Image    Image    `toml:"image"`
+	PXE      PXE      `toml:"pxe"`
+	Network  Network  `toml:"network"`
+}
+
+type Network struct {
+	Interfaces  string      `toml:"interfaces"`
+	Nameservers []string    `toml:"nameservers"`
+	Gateway     string      `toml:"gateway"`
+	PXE         *PXENetwork `toml:"pxe"`
+}
+
+type PXENetwork struct {
+	Mac       string   `toml:"mac"`
+	Address   string   `toml:"address"`
+	Bond      []string `toml:"bond"`
+	Interface string   `toml:"interface"`
 }
 
 type Image struct {
@@ -60,6 +71,8 @@ type Image struct {
 	Components []*Component `toml:"components"`
 	Userland   string       `toml:"userland"`
 	SSH        SSH          `toml:"ssh"`
+	Packages   []string     `toml:"packages"`
+	Services   []string     `toml:"services"`
 }
 
 type SSH struct {
@@ -68,15 +81,8 @@ type SSH struct {
 }
 
 type Component struct {
-	Image   string   `toml:"image"`
-	Systemd []string `toml:"systemd"`
-}
-
-type NIC struct {
-	Mac       string   `toml:"mac"`
-	Addresses []string `toml:"addresses"`
-	Speed     uint32   `toml:"speed"`
-	Name      string   `toml:"name"`
+	Image string   `toml:"image"`
+	Init  []string `toml:"init"`
 }
 
 type Disk struct {
@@ -91,10 +97,6 @@ type Volume struct {
 	TargetIQN string `toml:"target_iqn"`
 }
 
-type CPU struct {
-	Ghz float64 `toml:"ghz"`
-}
-
 type GPU struct {
 	Model        string   `toml:"model"`
 	Cores        uint32   `toml:"cores"`
@@ -102,31 +104,49 @@ type GPU struct {
 	Capabilities []string `toml:"capabilities"`
 }
 
+type PXE struct {
+	Target string `toml:"target"`
+}
+
 func (n *Node) ToProto() *v1.Node {
 	p := &v1.Node{
-		Hostname:    n.Hostname,
-		Domain:      n.Domain,
-		Memory:      n.Memory,
-		Labels:      n.Labels,
-		Gateway:     n.Gateway,
-		Nameservers: n.Nameservers,
-		ClusterFs:   n.ClusterFS,
+		Hostname: n.Hostname,
+		Domain:   n.Domain,
+		Memory:   n.Memory,
+		Labels:   n.Labels,
+		Cpus:     n.CPUs,
+		Network: &v1.Network{
+			Gateway:     n.Network.Gateway,
+			Nameservers: n.Network.Nameservers,
+		},
 		Image: &v1.Image{
 			Name:     n.Image.Name,
 			Base:     n.Image.Base,
 			Init:     n.Image.Init,
 			Userland: n.Image.Userland,
+			Packages: n.Image.Packages,
+			Services: n.Image.Services,
 			Ssh: &v1.SSH{
 				Github: n.Image.SSH.Github,
 				Keys:   n.Image.SSH.Keys,
 			},
-			AllowApt: n.AllowApt,
 		},
+		Pxe: &v1.PXE{
+			IscsiTarget: n.PXE.Target,
+		},
+	}
+	if n.Network.PXE != nil {
+		p.Network.PxeNetwork = &v1.PXENetwork{
+			Mac:       n.Network.PXE.Mac,
+			Address:   n.Network.PXE.Address,
+			Bond:      n.Network.PXE.Bond,
+			Interface: n.Network.PXE.Interface,
+		}
 	}
 	for _, c := range n.Image.Components {
 		p.Image.Components = append(p.Image.Components, &v1.Component{
 			Image:   c.Image,
-			Systemd: c.Systemd,
+			Systemd: c.Init,
 		})
 	}
 	for _, g := range n.Volumes {
@@ -138,25 +158,12 @@ func (n *Node) ToProto() *v1.Node {
 			TargetIqn: g.TargetIQN,
 		})
 	}
-	for _, nic := range n.Nics {
-		p.Nics = append(p.Nics, &v1.NIC{
-			Name:      nic.Name,
-			Mac:       nic.Mac,
-			Addresses: nic.Addresses,
-			Speed:     nic.Speed,
-		})
-	}
 	for _, g := range n.GPUs {
 		p.Gpus = append(p.Gpus, &v1.GPU{
 			Model:        g.Model,
 			Cores:        g.Cores,
 			Memory:       g.Memory,
 			Capabilities: g.Capabilities,
-		})
-	}
-	for _, c := range n.CPUs {
-		p.Cpus = append(p.Cpus, &v1.CPU{
-			Ghz: c.Ghz,
 		})
 	}
 	return p
@@ -189,13 +196,14 @@ func LoadNode(path string) (*v1.Node, error) {
 
 func DumpNodeConfig() error {
 	c := &Node{
-		Hostname:    "terra-01",
-		Gateway:     "192.168.1.1",
-		Nameservers: []string{"8.8.8.8", "8.8.4.4"},
-		ClusterFS:   "192.168.1.10",
-		Domain:      "home",
-		Labels:      []string{"controller", "plex"},
-		Memory:      4096,
+		Hostname: "terra-01",
+		Domain:   "home",
+		Labels:   []string{"controller", "plex"},
+		Memory:   4096,
+		Network: Network{
+			Gateway:     "192.168.1.1",
+			Nameservers: []string{"8.8.8.8", "8.8.4.4"},
+		},
 		Image: Image{
 			Name:     "docker.io/stellarproject/example:9",
 			Base:     "docker.io/stellarproject/terraos:v13",
@@ -206,17 +214,9 @@ func DumpNodeConfig() error {
 			},
 			Components: []*Component{
 				{
-					Image:   "docker.io/stellarproject/diod:v13",
-					Systemd: []string{"diod"},
+					Image: "docker.io/stellarproject/diod:v13",
+					Init:  []string{"diod"},
 				},
-			},
-		},
-		Nics: []NIC{
-			{
-				Name:      "eth0",
-				Mac:       "xx:xx:xx:xx:xx:xx",
-				Addresses: []string{"192.168.0.10"},
-				Speed:     1000,
 			},
 		},
 		GPUs: []GPU{
@@ -227,20 +227,7 @@ func DumpNodeConfig() error {
 				Capabilities: []string{"compute", "video"},
 			},
 		},
-		CPUs: []CPU{
-			{
-				Ghz: 3.4,
-			},
-			{
-				Ghz: 3.4,
-			},
-			{
-				Ghz: 3.4,
-			},
-			{
-				Ghz: 3.4,
-			},
-		},
+		CPUs: 4,
 		Volumes: []Volume{
 			{
 				Path:  "/",

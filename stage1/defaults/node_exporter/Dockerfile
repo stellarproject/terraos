@@ -23,7 +23,9 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH
 # THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-FROM golang:1.12 as prom
+FROM golang:alpine as prom
+
+RUN apk update && apk add git
 
 RUN go get -d github.com/prometheus/node_exporter
 WORKDIR /go/src/github.com/prometheus/node_exporter
@@ -33,4 +35,4 @@ RUN go build
 FROM scratch
 
 COPY --from=prom /go/src/github.com/prometheus/node_exporter/node_exporter /usr/local/bin/
-ADD node_exporter.service /etc/systemd/system/
+ADD nodeexporter /etc/init.d/

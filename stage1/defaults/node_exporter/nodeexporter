@@ -1,0 +1,13 @@
+#!/sbin/openrc-run
+#
+supervisor=supervise-daemon
+
+command="/usr/local/bin/node_exporter"
+command_args="--web.listen-address=0.0.0.0:9900"
+description="Prometheus Node Metrics"
+pidfile="/var/run/node_exporter.pid"
+
+depend() {
+	need net
+	use dns
+}

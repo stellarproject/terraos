@@ -4,3 +4,5 @@ iscsi
 i915
 nvme
 9p
+igb
+bonding

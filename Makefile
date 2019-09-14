@@ -27,9 +27,9 @@ PACKAGES=$(shell go list ./... | grep -v /vendor/)
 REVISION=$(shell git rev-parse HEAD)
 VERSION=v16-dev
 GO_LDFLAGS=-s -w -X github.com/stellarproject/terraos/version.Version=$(VERSION) -X github.com/stellarproject/terraos/version.Revision=$(REVISION)
-KERNEL=5.2.10
+KERNEL=5.2.14
 REPO=$(shell cat REPO || echo "stellarproject")
-WIREGUARD=0.0.20190702
+WIREGUARD=0.0.20190905
 VAB_ARGS=""
 
 ARGS=--arg KERNEL_VERSION=${KERNEL} --arg VERSION=${VERSION} --arg REPO=${REPO} --arg WIREGUARD=${WIREGUARD}
@@ -38,7 +38,7 @@ release: stage0 stage1 iso
 
 stage0: pxe binaries live boot
 
-stage1: defaults terraos extras
+stage1: defaults terraos
 
 all: local
 
@@ -55,6 +55,7 @@ install:
 	@install build/terra* /usr/local/sbin/
 	@install build/ob /usr/local/bin/
 	@install build/orbit-log /usr/local/bin/
+	@install build/orbit-syslog /usr/local/bin/
 	@install build/orbit-server /usr/local/bin/
 	@install build/orbit-network /usr/local/bin/
 
@@ -84,10 +85,16 @@ boot: FORCE
 containerd:
 	vab build ${VAB_ARGS} -p -c stage1/defaults/containerd -d stage1/defaults/containerd --ref ${REPO}/containerd:${VERSION} ${ARGS}
 
-defaults: containerd gvisor wireguard orbit-release FORCE
-	vab build ${VAB_ARGS} -p -c stage1/defaults/node_exporter -d stage1/defaults/node_exporter --ref ${REPO}/node_exporter:${VERSION} ${ARGS}
-	vab build ${VAB_ARGS} -p -c stage1/defaults/cni -d stage1/defaults/cni --ref ${REPO}/cni:${VERSION} ${ARGS}
+defaults: containerd wireguard orbit-release nodeexporter cni FORCE
+
+criu:
 	vab build ${VAB_ARGS} -p -d stage1/defaults/criu -c stage1/defaults/criu --ref ${REPO}/criu:${VERSION} ${ARGS}
+
+cni: FORCE
+	vab build ${VAB_ARGS} -p -c stage1/defaults/cni -d stage1/defaults/cni --ref ${REPO}/cni:${VERSION} ${ARGS}
+
+nodeexporter:
+	vab build ${VAB_ARGS} -p -c stage1/defaults/node_exporter -d stage1/defaults/node_exporter --ref ${REPO}/node_exporter:${VERSION} ${ARGS}
 
 gvisor:
 	vab build ${VAB_ARGS} -p -d stage1/defaults/gvisor -c stage1/defaults/gvisor --ref ${REPO}/gvisor:${VERSION} ${ARGS}
@@ -98,9 +105,11 @@ diod:
 wireguard:
 	vab build ${VAB_ARGS} -p -d stage1/defaults/wireguard -c stage1/defaults/wireguard --ref ${REPO}/wireguard:${VERSION} ${ARGS}
 
-extras: diod FORCE
-	vab build ${VAB_ARGS} -p -c stage1/extras/buildkit -d stage1/extras/buildkit --ref ${REPO}/buildkit:${VERSION} ${ARGS}
+extras: buildkit diod FORCE
 	vab build ${VAB_ARGS} -p -d stage1/extras/docker -c stage1/extras/docker --ref ${REPO}/docker:${VERSION} ${ARGS}
+
+buildkit: FORCE
+	vab build ${VAB_ARGS} -p -c stage1/extras/buildkit -d stage1/extras/buildkit --ref ${REPO}/buildkit:${VERSION} ${ARGS}
 
 terraos: FORCE
 	vab build ${VAB_ARGS} -c stage1/terraos -d stage1/terraos --push --ref ${REPO}/terraos:${VERSION} ${ARGS}
@@ -115,10 +124,11 @@ protos:
 orbit-release: FORCE
 	vab build ${VAB_ARGS} --push --ref ${REPO}/orbit:${VERSION}
 
-orbit:
+orbit: FORCE
 	go build -o build/orbit-server -v -ldflags '${GO_LDFLAGS}' github.com/stellarproject/terraos/cmd/orbit-server
 	go build -o build/ob -v -ldflags '${GO_LDFLAGS}' github.com/stellarproject/terraos/cmd/ob
 	go build -o build/orbit-log -v -ldflags '${GO_LDFLAGS}' github.com/stellarproject/terraos/cmd/orbit-log
+	go build -o build/orbit-syslog -v -ldflags '${GO_LDFLAGS}' github.com/stellarproject/terraos/cmd/orbit-syslog
 	gcc -static -o build/orbit-network cmd/orbit-network/main.c
 
 example:

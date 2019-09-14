@@ -26,17 +26,15 @@ const _ = proto.GoGoProtoPackageIsVersion2 // please upgrade the proto package
 
 type Node struct {
 	Hostname             string    `protobuf:"bytes,1,opt,name=hostname,proto3" json:"hostname,omitempty"`
-	Gateway              string    `protobuf:"bytes,2,opt,name=gateway,proto3" json:"gateway,omitempty"`
-	Nics                 []*NIC    `protobuf:"bytes,3,rep,name=nics,proto3" json:"nics,omitempty"`
-	Volumes              []*Volume `protobuf:"bytes,4,rep,name=volumes,proto3" json:"volumes,omitempty"`
-	Cpus                 []*CPU    `protobuf:"bytes,5,rep,name=cpus,proto3" json:"cpus,omitempty"`
-	Memory               uint32    `protobuf:"varint,6,opt,name=memory,proto3" json:"memory,omitempty"`
-	Gpus                 []*GPU    `protobuf:"bytes,7,rep,name=gpus,proto3" json:"gpus,omitempty"`
-	Labels               []string  `protobuf:"bytes,8,rep,name=labels,proto3" json:"labels,omitempty"`
-	Domain               string    `protobuf:"bytes,9,opt,name=domain,proto3" json:"domain,omitempty"`
-	Image                *Image    `protobuf:"bytes,10,opt,name=image,proto3" json:"image,omitempty"`
-	Nameservers          []string  `protobuf:"bytes,11,rep,name=nameservers,proto3" json:"nameservers,omitempty"`
-	ClusterFs            string    `protobuf:"bytes,12,opt,name=cluster_fs,json=clusterFs,proto3" json:"cluster_fs,omitempty"`
+	Volumes              []*Volume `protobuf:"bytes,2,rep,name=volumes,proto3" json:"volumes,omitempty"`
+	Cpus                 float64   `protobuf:"fixed64,3,opt,name=cpus,proto3" json:"cpus,omitempty"`
+	Memory               uint32    `protobuf:"varint,4,opt,name=memory,proto3" json:"memory,omitempty"`
+	Gpus                 []*GPU    `protobuf:"bytes,5,rep,name=gpus,proto3" json:"gpus,omitempty"`
+	Labels               []string  `protobuf:"bytes,6,rep,name=labels,proto3" json:"labels,omitempty"`
+	Domain               string    `protobuf:"bytes,7,opt,name=domain,proto3" json:"domain,omitempty"`
+	Image                *Image    `protobuf:"bytes,8,opt,name=image,proto3" json:"image,omitempty"`
+	Pxe                  *PXE      `protobuf:"bytes,9,opt,name=pxe,proto3" json:"pxe,omitempty"`
+	Network              *Network  `protobuf:"bytes,10,opt,name=network,proto3" json:"network,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}  `json:"-"`
 	XXX_unrecognized     []byte    `json:"-"`
 	XXX_sizecache        int32     `json:"-"`
@@ -74,6 +72,137 @@ func (m *Node) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_Node proto.InternalMessageInfo
 
+type PXE struct {
+	// target IP for the ISCSI server
+	IscsiTarget          string   `protobuf:"bytes,1,opt,name=iscsi_target,json=iscsiTarget,proto3" json:"iscsi_target,omitempty"`
+	Version              string   `protobuf:"bytes,2,opt,name=version,proto3" json:"version,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *PXE) Reset()      { *m = PXE{} }
+func (*PXE) ProtoMessage() {}
+func (*PXE) Descriptor() ([]byte, []int) {
+	return fileDescriptor_5e459b6c434e3e98, []int{1}
+}
+func (m *PXE) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *PXE) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_PXE.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalTo(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *PXE) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_PXE.Merge(m, src)
+}
+func (m *PXE) XXX_Size() int {
+	return m.Size()
+}
+func (m *PXE) XXX_DiscardUnknown() {
+	xxx_messageInfo_PXE.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_PXE proto.InternalMessageInfo
+
+type Network struct {
+	// static nameservers for resolv.conf
+	Nameservers []string `protobuf:"bytes,1,rep,name=nameservers,proto3" json:"nameservers,omitempty"`
+	// /etc/network/interfaces file's contents
+	Interfaces string `protobuf:"bytes,2,opt,name=interfaces,proto3" json:"interfaces,omitempty"`
+	// gateway address
+	Gateway              string      `protobuf:"bytes,3,opt,name=gateway,proto3" json:"gateway,omitempty"`
+	PxeNetwork           *PXENetwork `protobuf:"bytes,4,opt,name=pxe_network,json=pxeNetwork,proto3" json:"pxe_network,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}    `json:"-"`
+	XXX_unrecognized     []byte      `json:"-"`
+	XXX_sizecache        int32       `json:"-"`
+}
+
+func (m *Network) Reset()      { *m = Network{} }
+func (*Network) ProtoMessage() {}
+func (*Network) Descriptor() ([]byte, []int) {
+	return fileDescriptor_5e459b6c434e3e98, []int{2}
+}
+func (m *Network) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *Network) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_Network.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalTo(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *Network) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Network.Merge(m, src)
+}
+func (m *Network) XXX_Size() int {
+	return m.Size()
+}
+func (m *Network) XXX_DiscardUnknown() {
+	xxx_messageInfo_Network.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_Network proto.InternalMessageInfo
+
+type PXENetwork struct {
+	// mac address of the PXE interface
+	Mac string `protobuf:"bytes,1,opt,name=mac,proto3" json:"mac,omitempty"`
+	// address CIDR including the subnet
+	Address string   `protobuf:"bytes,2,opt,name=address,proto3" json:"address,omitempty"`
+	Bond    []string `protobuf:"bytes,3,rep,name=bond,proto3" json:"bond,omitempty"`
+	// interface name of a single interface if not bonding multiple
+	Interface            string   `protobuf:"bytes,4,opt,name=interface,proto3" json:"interface,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *PXENetwork) Reset()      { *m = PXENetwork{} }
+func (*PXENetwork) ProtoMessage() {}
+func (*PXENetwork) Descriptor() ([]byte, []int) {
+	return fileDescriptor_5e459b6c434e3e98, []int{3}
+}
+func (m *PXENetwork) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *PXENetwork) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_PXENetwork.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalTo(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *PXENetwork) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_PXENetwork.Merge(m, src)
+}
+func (m *PXENetwork) XXX_Size() int {
+	return m.Size()
+}
+func (m *PXENetwork) XXX_DiscardUnknown() {
+	xxx_messageInfo_PXENetwork.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_PXENetwork proto.InternalMessageInfo
+
 type Image struct {
 	Name                 string       `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	Base                 string       `protobuf:"bytes,2,opt,name=base,proto3" json:"base,omitempty"`
@@ -81,7 +210,8 @@ type Image struct {
 	Components           []*Component `protobuf:"bytes,4,rep,name=components,proto3" json:"components,omitempty"`
 	Userland             string       `protobuf:"bytes,5,opt,name=userland,proto3" json:"userland,omitempty"`
 	Ssh                  *SSH         `protobuf:"bytes,6,opt,name=ssh,proto3" json:"ssh,omitempty"`
-	AllowApt             bool         `protobuf:"varint,7,opt,name=allow_apt,json=allowApt,proto3" json:"allow_apt,omitempty"`
+	Packages             []string     `protobuf:"bytes,7,rep,name=packages,proto3" json:"packages,omitempty"`
+	Services             []string     `protobuf:"bytes,8,rep,name=services,proto3" json:"services,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}     `json:"-"`
 	XXX_unrecognized     []byte       `json:"-"`
 	XXX_sizecache        int32        `json:"-"`
@@ -90,7 +220,7 @@ type Image struct {
 func (m *Image) Reset()      { *m = Image{} }
 func (*Image) ProtoMessage() {}
 func (*Image) Descriptor() ([]byte, []int) {
-	return fileDescriptor_5e459b6c434e3e98, []int{1}
+	return fileDescriptor_5e459b6c434e3e98, []int{4}
 }
 func (m *Image) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -130,7 +260,7 @@ type SSH struct {
 func (m *SSH) Reset()      { *m = SSH{} }
 func (*SSH) ProtoMessage() {}
 func (*SSH) Descriptor() ([]byte, []int) {
-	return fileDescriptor_5e459b6c434e3e98, []int{2}
+	return fileDescriptor_5e459b6c434e3e98, []int{5}
 }
 func (m *SSH) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -170,7 +300,7 @@ type Component struct {
 func (m *Component) Reset()      { *m = Component{} }
 func (*Component) ProtoMessage() {}
 func (*Component) Descriptor() ([]byte, []int) {
-	return fileDescriptor_5e459b6c434e3e98, []int{3}
+	return fileDescriptor_5e459b6c434e3e98, []int{6}
 }
 func (m *Component) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -212,7 +342,7 @@ type GPU struct {
 func (m *GPU) Reset()      { *m = GPU{} }
 func (*GPU) ProtoMessage() {}
 func (*GPU) Descriptor() ([]byte, []int) {
-	return fileDescriptor_5e459b6c434e3e98, []int{4}
+	return fileDescriptor_5e459b6c434e3e98, []int{7}
 }
 func (m *GPU) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -241,88 +371,6 @@ func (m *GPU) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_GPU proto.InternalMessageInfo
 
-type CPU struct {
-	Ghz                  float64  `protobuf:"fixed64,1,opt,name=ghz,proto3" json:"ghz,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
-}
-
-func (m *CPU) Reset()      { *m = CPU{} }
-func (*CPU) ProtoMessage() {}
-func (*CPU) Descriptor() ([]byte, []int) {
-	return fileDescriptor_5e459b6c434e3e98, []int{5}
-}
-func (m *CPU) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *CPU) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	if deterministic {
-		return xxx_messageInfo_CPU.Marshal(b, m, deterministic)
-	} else {
-		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
-		if err != nil {
-			return nil, err
-		}
-		return b[:n], nil
-	}
-}
-func (m *CPU) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CPU.Merge(m, src)
-}
-func (m *CPU) XXX_Size() int {
-	return m.Size()
-}
-func (m *CPU) XXX_DiscardUnknown() {
-	xxx_messageInfo_CPU.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_CPU proto.InternalMessageInfo
-
-type NIC struct {
-	Mac string `protobuf:"bytes,1,opt,name=mac,proto3" json:"mac,omitempty"`
-	// addresses should contain subnet
-	Addresses            []string `protobuf:"bytes,2,rep,name=addresses,proto3" json:"addresses,omitempty"`
-	Speed                uint32   `protobuf:"varint,3,opt,name=speed,proto3" json:"speed,omitempty"`
-	Name                 string   `protobuf:"bytes,4,opt,name=name,proto3" json:"name,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
-}
-
-func (m *NIC) Reset()      { *m = NIC{} }
-func (*NIC) ProtoMessage() {}
-func (*NIC) Descriptor() ([]byte, []int) {
-	return fileDescriptor_5e459b6c434e3e98, []int{6}
-}
-func (m *NIC) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *NIC) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	if deterministic {
-		return xxx_messageInfo_NIC.Marshal(b, m, deterministic)
-	} else {
-		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
-		if err != nil {
-			return nil, err
-		}
-		return b[:n], nil
-	}
-}
-func (m *NIC) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_NIC.Merge(m, src)
-}
-func (m *NIC) XXX_Size() int {
-	return m.Size()
-}
-func (m *NIC) XXX_DiscardUnknown() {
-	xxx_messageInfo_NIC.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_NIC proto.InternalMessageInfo
-
 type Volume struct {
 	Label string `protobuf:"bytes,1,opt,name=label,proto3" json:"label,omitempty"`
 	// type is filesystem type, btrfs, zfs, ext4
@@ -338,7 +386,7 @@ type Volume struct {
 func (m *Volume) Reset()      { *m = Volume{} }
 func (*Volume) ProtoMessage() {}
 func (*Volume) Descriptor() ([]byte, []int) {
-	return fileDescriptor_5e459b6c434e3e98, []int{7}
+	return fileDescriptor_5e459b6c434e3e98, []int{8}
 }
 func (m *Volume) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -379,7 +427,7 @@ type Subvolume struct {
 func (m *Subvolume) Reset()      { *m = Subvolume{} }
 func (*Subvolume) ProtoMessage() {}
 func (*Subvolume) Descriptor() ([]byte, []int) {
-	return fileDescriptor_5e459b6c434e3e98, []int{8}
+	return fileDescriptor_5e459b6c434e3e98, []int{9}
 }
 func (m *Subvolume) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -410,12 +458,13 @@ var xxx_messageInfo_Subvolume proto.InternalMessageInfo
 
 func init() {
 	proto.RegisterType((*Node)(nil), "io.stellarproject.types.v1.Node")
+	proto.RegisterType((*PXE)(nil), "io.stellarproject.types.v1.PXE")
+	proto.RegisterType((*Network)(nil), "io.stellarproject.types.v1.Network")
+	proto.RegisterType((*PXENetwork)(nil), "io.stellarproject.types.v1.PXENetwork")
 	proto.RegisterType((*Image)(nil), "io.stellarproject.types.v1.Image")
 	proto.RegisterType((*SSH)(nil), "io.stellarproject.types.v1.SSH")
 	proto.RegisterType((*Component)(nil), "io.stellarproject.types.v1.Component")
 	proto.RegisterType((*GPU)(nil), "io.stellarproject.types.v1.GPU")
-	proto.RegisterType((*CPU)(nil), "io.stellarproject.types.v1.CPU")
-	proto.RegisterType((*NIC)(nil), "io.stellarproject.types.v1.NIC")
 	proto.RegisterType((*Volume)(nil), "io.stellarproject.types.v1.Volume")
 	proto.RegisterType((*Subvolume)(nil), "io.stellarproject.types.v1.Subvolume")
 }
@@ -425,52 +474,57 @@ func init() {
 }
 
 var fileDescriptor_5e459b6c434e3e98 = []byte{
-	// 709 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x54, 0xcf, 0x6b, 0xdb, 0x4a,
-	0x10, 0x8e, 0x22, 0xff, 0xd2, 0x38, 0x81, 0xb0, 0x84, 0xf7, 0x96, 0xbc, 0x57, 0xd7, 0x15, 0x14,
-	0x7c, 0xb2, 0x70, 0x72, 0x28, 0x25, 0xbd, 0xb4, 0x26, 0x4d, 0x4c, 0x21, 0x04, 0x99, 0x94, 0xd2,
-	0x8b, 0x59, 0x4b, 0x5b, 0x59, 0xad, 0xa4, 0x55, 0xb4, 0x6b, 0x07, 0xf7, 0xd4, 0x3f, 0x2f, 0xc7,
-	0x1e, 0x0b, 0xbd, 0x34, 0xfe, 0x23, 0x7a, 0x2e, 0xb3, 0x5a, 0x25, 0xce, 0x21, 0x09, 0xbd, 0xcd,
-	0xf7, 0x69, 0xbe, 0x99, 0xdd, 0x99, 0x4f, 0x0b, 0x2f, 0xa3, 0x58, 0xcd, 0xe6, 0xd3, 0x7e, 0x20,
-	0x52, 0x4f, 0x2a, 0x9e, 0x24, 0xac, 0xc8, 0x0b, 0xf1, 0x99, 0x07, 0xca, 0x53, 0xbc, 0x28, 0x98,
-	0x90, 0x1e, 0xcb, 0x63, 0x4f, 0x2d, 0x73, 0x2e, 0xbd, 0xc5, 0xc0, 0xcb, 0x44, 0xc8, 0xfb, 0x79,
-	0x21, 0x94, 0x20, 0x7b, 0xb1, 0xe8, 0xdf, 0x95, 0xf4, 0x75, 0x5a, 0x7f, 0x31, 0xd8, 0xdb, 0x8d,
-	0x44, 0x24, 0x74, 0x9a, 0x87, 0x51, 0xa9, 0x70, 0x7f, 0xda, 0x50, 0x3b, 0x15, 0x21, 0x27, 0x7b,
-	0xd0, 0x9a, 0x09, 0xa9, 0x32, 0x96, 0x72, 0x6a, 0x75, 0xad, 0x9e, 0xe3, 0xdf, 0x60, 0x42, 0xa1,
-	0x19, 0x31, 0xc5, 0x2f, 0xd9, 0x92, 0x6e, 0xea, 0x4f, 0x15, 0x24, 0x07, 0x50, 0xcb, 0xe2, 0x40,
-	0x52, 0xbb, 0x6b, 0xf7, 0xda, 0xfb, 0x4f, 0xfb, 0xf7, 0xf7, 0xef, 0x9f, 0x8e, 0x86, 0xbe, 0x4e,
-	0x26, 0xaf, 0xa0, 0xb9, 0x10, 0xc9, 0x3c, 0xe5, 0x92, 0xd6, 0xb4, 0xce, 0x7d, 0x48, 0xf7, 0x5e,
-	0xa7, 0xfa, 0x95, 0x04, 0x5b, 0x06, 0xf9, 0x5c, 0xd2, 0xfa, 0xe3, 0x2d, 0x87, 0x67, 0xe7, 0xbe,
-	0x4e, 0x26, 0xff, 0x40, 0x23, 0xe5, 0xa9, 0x28, 0x96, 0xb4, 0xd1, 0xb5, 0x7a, 0xdb, 0xbe, 0x41,
-	0x58, 0x2c, 0xc2, 0x62, 0xcd, 0xc7, 0x8b, 0x1d, 0x63, 0xb1, 0xc8, 0x14, 0x4b, 0xd8, 0x94, 0x27,
-	0x92, 0xb6, 0xba, 0x76, 0xcf, 0xf1, 0x0d, 0x42, 0x3e, 0x14, 0x29, 0x8b, 0x33, 0xea, 0xe8, 0x29,
-	0x19, 0x44, 0x5e, 0x40, 0x3d, 0x4e, 0x59, 0xc4, 0x29, 0x74, 0xad, 0x5e, 0x7b, 0xff, 0xd9, 0x43,
-	0x5d, 0x46, 0x98, 0xe8, 0x97, 0xf9, 0xa4, 0x0b, 0x6d, 0x9c, 0xbf, 0xe4, 0xc5, 0x82, 0x17, 0x92,
-	0xb6, 0x75, 0xb7, 0x75, 0x8a, 0x3c, 0x01, 0x08, 0x92, 0xb9, 0x54, 0xbc, 0x98, 0x7c, 0x92, 0x74,
-	0x4b, 0xb7, 0x75, 0x0c, 0xf3, 0x56, 0xba, 0xbf, 0x2d, 0xa8, 0xeb, 0x8a, 0x84, 0x40, 0x6d, 0x6d,
-	0xb5, 0x3a, 0x46, 0x6e, 0xca, 0x24, 0x37, 0x3b, 0xd5, 0x31, 0x72, 0x71, 0x16, 0x2b, 0x6a, 0x97,
-	0x1c, 0xc6, 0xe4, 0x08, 0x20, 0x10, 0x69, 0x2e, 0x32, 0x9e, 0xa9, 0x6a, 0x65, 0xcf, 0x1f, 0x9c,
-	0x7b, 0x95, 0xed, 0xaf, 0x09, 0xd1, 0x61, 0x73, 0xc9, 0x8b, 0x84, 0x65, 0x21, 0xad, 0x97, 0x0e,
-	0xab, 0x30, 0x19, 0x80, 0x2d, 0xe5, 0x4c, 0x2f, 0xe7, 0x91, 0x35, 0x8c, 0xc7, 0x27, 0x3e, 0xe6,
-	0x92, 0xff, 0xc0, 0x61, 0x49, 0x22, 0x2e, 0x27, 0x2c, 0x57, 0xb4, 0xd9, 0xb5, 0x7a, 0x2d, 0xbf,
-	0xa5, 0x89, 0xd7, 0xb9, 0x72, 0x07, 0x60, 0x8f, 0xc7, 0x27, 0xb8, 0x91, 0xf2, 0x67, 0x32, 0xf7,
-	0x36, 0x08, 0x6f, 0xf9, 0x85, 0x2f, 0x25, 0xdd, 0xd4, 0x13, 0xd5, 0xb1, 0x7b, 0x08, 0xce, 0xcd,
-	0xb9, 0xc9, 0x6e, 0xb5, 0xb2, 0x52, 0x67, 0xf6, 0x41, 0xa1, 0x29, 0x97, 0x52, 0xf1, 0x34, 0x34,
-	0xca, 0x0a, 0xba, 0x29, 0xd8, 0xc7, 0x67, 0xe7, 0x28, 0x4b, 0x45, 0xc8, 0x93, 0x4a, 0xa6, 0x01,
-	0xb2, 0x81, 0x28, 0xb8, 0xd4, 0x83, 0xde, 0xf6, 0x4b, 0xb0, 0x66, 0x49, 0xfb, 0x8e, 0x25, 0x5d,
-	0xd8, 0x0a, 0x58, 0xce, 0xa6, 0x71, 0x12, 0xab, 0xd8, 0xfc, 0x22, 0x8e, 0x7f, 0x87, 0x73, 0xff,
-	0x05, 0x7b, 0x78, 0x76, 0x4e, 0x76, 0xc0, 0x8e, 0x66, 0x5f, 0x75, 0x33, 0xcb, 0xc7, 0xd0, 0x9d,
-	0x80, 0x7d, 0x3a, 0x1a, 0xe2, 0x87, 0x94, 0x05, 0xe6, 0x14, 0x18, 0x92, 0xff, 0xc1, 0x61, 0x61,
-	0x58, 0x70, 0x29, 0x79, 0x75, 0xed, 0x5b, 0x02, 0x4f, 0x28, 0x73, 0xce, 0x43, 0x73, 0x94, 0x12,
-	0xdc, 0x78, 0xa6, 0x76, 0xeb, 0x19, 0x77, 0x09, 0x8d, 0xf2, 0x87, 0x44, 0x8d, 0xf6, 0x7d, 0x75,
-	0x57, 0x0d, 0x50, 0x83, 0xab, 0xaa, 0x3c, 0x85, 0xb1, 0xf6, 0x99, 0x10, 0xa5, 0xa7, 0x5a, 0xbe,
-	0x8e, 0x91, 0xcb, 0x99, 0x9a, 0x55, 0xb5, 0x31, 0x46, 0x33, 0x2b, 0x56, 0x44, 0x5c, 0x4d, 0xe2,
-	0x8b, 0xcc, 0x58, 0xc4, 0x29, 0x99, 0xd1, 0x45, 0xe6, 0x1e, 0x81, 0x33, 0x9e, 0x4f, 0xcb, 0x67,
-	0xe0, 0x3e, 0x3f, 0xeb, 0x9a, 0x9b, 0x6b, 0x35, 0x77, 0xc0, 0x0e, 0xc4, 0xa5, 0x69, 0x8d, 0xe1,
-	0x9b, 0x77, 0x57, 0xd7, 0x9d, 0x8d, 0x1f, 0xd7, 0x9d, 0x8d, 0x6f, 0xab, 0x8e, 0x75, 0xb5, 0xea,
-	0x58, 0xdf, 0x57, 0x1d, 0xeb, 0xd7, 0xaa, 0x63, 0x7d, 0x1c, 0xfc, 0xdd, 0xc3, 0x7b, 0xb8, 0x18,
-	0x7c, 0xd8, 0x98, 0x36, 0xf4, 0x3b, 0x7a, 0xf0, 0x27, 0x00, 0x00, 0xff, 0xff, 0x11, 0x41, 0xf1,
-	0x18, 0xb6, 0x05, 0x00, 0x00,
+	// 785 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x55, 0xc1, 0x6e, 0x1b, 0x37,
+	0x10, 0xf5, 0x7a, 0x65, 0xc9, 0x3b, 0x4a, 0x80, 0x80, 0x08, 0x0a, 0xc2, 0x68, 0x55, 0x65, 0x8b,
+	0x16, 0x3a, 0x49, 0x50, 0x72, 0x28, 0x8a, 0xb4, 0x97, 0x14, 0x86, 0x13, 0x14, 0x08, 0x0c, 0xaa,
+	0x29, 0x8c, 0x5e, 0x0c, 0x6a, 0x97, 0x95, 0x19, 0x6b, 0x97, 0x9b, 0x25, 0x25, 0x5b, 0xb7, 0xfe,
+	0x42, 0xef, 0xfd, 0x86, 0x7e, 0x47, 0x8e, 0x3d, 0xf6, 0xd8, 0xf8, 0x4b, 0x8a, 0x19, 0x92, 0x8e,
+	0x7c, 0x88, 0x8c, 0xde, 0xde, 0x9b, 0x9d, 0x37, 0xc3, 0xe1, 0x0c, 0x67, 0xe1, 0xbb, 0x85, 0x76,
+	0x17, 0xab, 0xf9, 0xb8, 0x30, 0xd5, 0xc4, 0x3a, 0xb5, 0x5c, 0xca, 0xb6, 0x69, 0xcd, 0x5b, 0x55,
+	0xb8, 0x89, 0x53, 0x6d, 0x2b, 0x8d, 0x9d, 0xc8, 0x46, 0x4f, 0xdc, 0xa6, 0x51, 0x76, 0xb2, 0x9e,
+	0x4e, 0x6a, 0x53, 0xaa, 0x71, 0xd3, 0x1a, 0x67, 0xd8, 0x91, 0x36, 0xe3, 0xbb, 0x92, 0x31, 0xb9,
+	0x8d, 0xd7, 0xd3, 0xa3, 0xc7, 0x0b, 0xb3, 0x30, 0xe4, 0x36, 0x41, 0xe4, 0x15, 0xf9, 0x9f, 0x29,
+	0x74, 0x5e, 0x9b, 0x52, 0xb1, 0x23, 0x38, 0xbc, 0x30, 0xd6, 0xd5, 0xb2, 0x52, 0x3c, 0x19, 0x26,
+	0xa3, 0x4c, 0xdc, 0x72, 0xf6, 0x3d, 0xf4, 0xd6, 0x66, 0xb9, 0xaa, 0x94, 0xe5, 0xfb, 0xc3, 0x74,
+	0xd4, 0x7f, 0x9a, 0x8f, 0x3f, 0x9d, 0x68, 0xfc, 0x0b, 0xb9, 0x8a, 0x28, 0x61, 0x0c, 0x3a, 0x45,
+	0xb3, 0xb2, 0x3c, 0x1d, 0x26, 0xa3, 0x44, 0x10, 0x66, 0x9f, 0x41, 0xb7, 0x52, 0x95, 0x69, 0x37,
+	0xbc, 0x33, 0x4c, 0x46, 0x0f, 0x45, 0x60, 0xec, 0x19, 0x74, 0x16, 0xe8, 0x7b, 0x40, 0x69, 0xbe,
+	0xdc, 0x95, 0xe6, 0xe4, 0xf4, 0x8d, 0x20, 0x67, 0x0c, 0xb6, 0x94, 0x73, 0xb5, 0xb4, 0xbc, 0x3b,
+	0x4c, 0x47, 0x99, 0x08, 0x0c, 0xed, 0xa5, 0xa9, 0xa4, 0xae, 0x79, 0x8f, 0x0a, 0x0a, 0x8c, 0x7d,
+	0x0b, 0x07, 0xba, 0x92, 0x0b, 0xc5, 0x0f, 0x87, 0xc9, 0xa8, 0xff, 0xf4, 0xc9, 0xae, 0x2c, 0xaf,
+	0xd0, 0x51, 0x78, 0x7f, 0x36, 0x85, 0xb4, 0xb9, 0x56, 0x3c, 0x23, 0xd9, 0xce, 0xc3, 0x9d, 0x9e,
+	0x1d, 0x0b, 0xf4, 0x65, 0x3f, 0x40, 0xaf, 0x56, 0xee, 0xca, 0xb4, 0x97, 0x1c, 0x48, 0xf6, 0xd5,
+	0x2e, 0xd9, 0x6b, 0xef, 0x2a, 0xa2, 0x26, 0x7f, 0x01, 0xe9, 0xe9, 0xd9, 0x31, 0x7b, 0x02, 0x0f,
+	0xb4, 0x2d, 0xac, 0x3e, 0x77, 0xb2, 0x5d, 0x28, 0x17, 0x1a, 0xd4, 0x27, 0xdb, 0xcf, 0x64, 0x62,
+	0x1c, 0x7a, 0x6b, 0xd5, 0x5a, 0x6d, 0x6a, 0xbe, 0x4f, 0x5f, 0x23, 0xcd, 0xff, 0x4a, 0xa0, 0x17,
+	0x02, 0xb3, 0x21, 0xf4, 0xb1, 0xa3, 0x56, 0xb5, 0xf8, 0x95, 0x27, 0x74, 0x5f, 0xdb, 0x26, 0x36,
+	0x00, 0xd0, 0xb5, 0x53, 0xed, 0x6f, 0xb2, 0xa0, 0x76, 0x63, 0xa8, 0x2d, 0x0b, 0xe6, 0x59, 0x48,
+	0xa7, 0xae, 0xe4, 0x86, 0x1a, 0x9a, 0x89, 0x48, 0xd9, 0x09, 0xf4, 0x9b, 0x6b, 0x75, 0x1e, 0xcb,
+	0xed, 0x50, 0xb9, 0xdf, 0xdc, 0x73, 0x4b, 0xb1, 0x62, 0x68, 0xae, 0x55, 0xc0, 0xf9, 0x5b, 0x80,
+	0x8f, 0x5f, 0xd8, 0x23, 0x48, 0x2b, 0x59, 0x84, 0x92, 0x11, 0xe2, 0x11, 0x64, 0x59, 0xb6, 0xca,
+	0xc6, 0xf3, 0x45, 0x8a, 0xa3, 0x36, 0x37, 0x75, 0xc9, 0x53, 0xaa, 0x8b, 0x30, 0xfb, 0x1c, 0xb2,
+	0xdb, 0xe3, 0xd3, 0xa1, 0x32, 0xf1, 0xd1, 0x90, 0xff, 0xb1, 0x0f, 0x07, 0xd4, 0x63, 0xd4, 0x6e,
+	0x0d, 0x3f, 0x61, 0x8a, 0x27, 0xad, 0x0a, 0x69, 0x08, 0xa3, 0x4d, 0xd7, 0xda, 0x85, 0xea, 0x09,
+	0xb3, 0x63, 0x80, 0xc2, 0x54, 0x8d, 0xa9, 0x55, 0xed, 0x2c, 0xef, 0xd0, 0xf0, 0x7e, 0xbd, 0xab,
+	0xf2, 0x1f, 0xa3, 0xb7, 0xd8, 0x12, 0xe2, 0x1b, 0x5c, 0x59, 0xd5, 0x2e, 0x65, 0x5d, 0xf2, 0x03,
+	0xff, 0x06, 0x23, 0xc7, 0xd9, 0xb3, 0xf6, 0x82, 0x77, 0xef, 0x9f, 0xbd, 0xd9, 0xec, 0xa5, 0x40,
+	0x5f, 0x0c, 0xd7, 0xc8, 0xe2, 0x52, 0x2e, 0x94, 0xe5, 0x3d, 0xba, 0x91, 0x5b, 0x8e, 0xdf, 0xb0,
+	0xe3, 0x1a, 0x9b, 0x7c, 0xe8, 0xbf, 0x45, 0x9e, 0x4f, 0x21, 0x9d, 0xcd, 0x5e, 0xe2, 0xf3, 0xf1,
+	0x9b, 0x28, 0x5c, 0x49, 0x60, 0x78, 0x01, 0x97, 0x6a, 0xe3, 0x57, 0x41, 0x26, 0x08, 0xe7, 0xcf,
+	0x21, 0xbb, 0x2d, 0x89, 0x3d, 0x8e, 0xef, 0xcb, 0xeb, 0xc2, 0xe3, 0xe1, 0xd0, 0xb3, 0x1b, 0xeb,
+	0x54, 0x55, 0x06, 0x65, 0xa4, 0x79, 0x05, 0xe9, 0xc9, 0xe9, 0x1b, 0x94, 0x55, 0xa6, 0x54, 0xcb,
+	0x28, 0x23, 0x82, 0xd6, 0xc2, 0xb4, 0x61, 0x14, 0x1f, 0x0a, 0x4f, 0xb6, 0xf6, 0x47, 0x7a, 0x67,
+	0x7f, 0xe4, 0xf0, 0xa0, 0x90, 0x8d, 0x9c, 0xeb, 0xa5, 0x76, 0x5a, 0xf9, 0x56, 0x64, 0xe2, 0x8e,
+	0x2d, 0xdf, 0x40, 0xd7, 0xaf, 0x28, 0x8c, 0x4d, 0xab, 0x22, 0x66, 0x24, 0x82, 0xf5, 0xe1, 0x5d,
+	0xc6, 0xa6, 0x23, 0xf6, 0x83, 0x65, 0x7c, 0xd3, 0x0f, 0x05, 0x61, 0xb4, 0x35, 0xd2, 0x5d, 0x84,
+	0x99, 0x22, 0xcc, 0xbe, 0x00, 0xf0, 0x4f, 0xf4, 0x5c, 0xbf, 0xab, 0x43, 0x0f, 0x33, 0x6f, 0x79,
+	0xf5, 0xae, 0xce, 0x8f, 0x21, 0x9b, 0xad, 0xe6, 0x7e, 0x31, 0x7e, 0x6a, 0xe0, 0x28, 0xe6, 0xfe,
+	0x56, 0xcc, 0x47, 0x90, 0x16, 0xe6, 0x2a, 0xa4, 0x46, 0xf8, 0xe2, 0xa7, 0xf7, 0x1f, 0x06, 0x7b,
+	0xff, 0x7c, 0x18, 0xec, 0xfd, 0x7e, 0x33, 0x48, 0xde, 0xdf, 0x0c, 0x92, 0xbf, 0x6f, 0x06, 0xc9,
+	0xbf, 0x37, 0x83, 0xe4, 0xd7, 0xe9, 0xff, 0xfb, 0x77, 0x3c, 0x5f, 0x4f, 0xcf, 0xf6, 0xe6, 0x5d,
+	0xfa, 0x15, 0x3c, 0xfb, 0x2f, 0x00, 0x00, 0xff, 0xff, 0x73, 0xd2, 0x7f, 0x6b, 0x79, 0x06, 0x00,
+	0x00,
 }
 
 func (m *Node) Marshal() (dAtA []byte, err error) {
@@ -494,27 +548,9 @@ func (m *Node) MarshalTo(dAtA []byte) (int, error) {
 		i = encodeVarintNode(dAtA, i, uint64(len(m.Hostname)))
 		i += copy(dAtA[i:], m.Hostname)
 	}
-	if len(m.Gateway) > 0 {
-		dAtA[i] = 0x12
-		i++
-		i = encodeVarintNode(dAtA, i, uint64(len(m.Gateway)))
-		i += copy(dAtA[i:], m.Gateway)
-	}
-	if len(m.Nics) > 0 {
-		for _, msg := range m.Nics {
-			dAtA[i] = 0x1a
-			i++
-			i = encodeVarintNode(dAtA, i, uint64(msg.Size()))
-			n, err := msg.MarshalTo(dAtA[i:])
-			if err != nil {
-				return 0, err
-			}
-			i += n
-		}
-	}
 	if len(m.Volumes) > 0 {
 		for _, msg := range m.Volumes {
-			dAtA[i] = 0x22
+			dAtA[i] = 0x12
 			i++
 			i = encodeVarintNode(dAtA, i, uint64(msg.Size()))
 			n, err := msg.MarshalTo(dAtA[i:])
@@ -524,26 +560,20 @@ func (m *Node) MarshalTo(dAtA []byte) (int, error) {
 			i += n
 		}
 	}
-	if len(m.Cpus) > 0 {
-		for _, msg := range m.Cpus {
-			dAtA[i] = 0x2a
-			i++
-			i = encodeVarintNode(dAtA, i, uint64(msg.Size()))
-			n, err := msg.MarshalTo(dAtA[i:])
-			if err != nil {
-				return 0, err
-			}
-			i += n
-		}
+	if m.Cpus != 0 {
+		dAtA[i] = 0x19
+		i++
+		encoding_binary.LittleEndian.PutUint64(dAtA[i:], uint64(math.Float64bits(float64(m.Cpus))))
+		i += 8
 	}
 	if m.Memory != 0 {
-		dAtA[i] = 0x30
+		dAtA[i] = 0x20
 		i++
 		i = encodeVarintNode(dAtA, i, uint64(m.Memory))
 	}
 	if len(m.Gpus) > 0 {
 		for _, msg := range m.Gpus {
-			dAtA[i] = 0x3a
+			dAtA[i] = 0x2a
 			i++
 			i = encodeVarintNode(dAtA, i, uint64(msg.Size()))
 			n, err := msg.MarshalTo(dAtA[i:])
@@ -555,7 +585,7 @@ func (m *Node) MarshalTo(dAtA []byte) (int, error) {
 	}
 	if len(m.Labels) > 0 {
 		for _, s := range m.Labels {
-			dAtA[i] = 0x42
+			dAtA[i] = 0x32
 			i++
 			l = len(s)
 			for l >= 1<<7 {
@@ -569,13 +599,13 @@ func (m *Node) MarshalTo(dAtA []byte) (int, error) {
 		}
 	}
 	if len(m.Domain) > 0 {
-		dAtA[i] = 0x4a
+		dAtA[i] = 0x3a
 		i++
 		i = encodeVarintNode(dAtA, i, uint64(len(m.Domain)))
 		i += copy(dAtA[i:], m.Domain)
 	}
 	if m.Image != nil {
-		dAtA[i] = 0x52
+		dAtA[i] = 0x42
 		i++
 		i = encodeVarintNode(dAtA, i, uint64(m.Image.Size()))
 		n1, err := m.Image.MarshalTo(dAtA[i:])
@@ -584,9 +614,83 @@ func (m *Node) MarshalTo(dAtA []byte) (int, error) {
 		}
 		i += n1
 	}
+	if m.Pxe != nil {
+		dAtA[i] = 0x4a
+		i++
+		i = encodeVarintNode(dAtA, i, uint64(m.Pxe.Size()))
+		n2, err := m.Pxe.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n2
+	}
+	if m.Network != nil {
+		dAtA[i] = 0x52
+		i++
+		i = encodeVarintNode(dAtA, i, uint64(m.Network.Size()))
+		n3, err := m.Network.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n3
+	}
+	if m.XXX_unrecognized != nil {
+		i += copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	return i, nil
+}
+
+func (m *PXE) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *PXE) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if len(m.IscsiTarget) > 0 {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintNode(dAtA, i, uint64(len(m.IscsiTarget)))
+		i += copy(dAtA[i:], m.IscsiTarget)
+	}
+	if len(m.Version) > 0 {
+		dAtA[i] = 0x12
+		i++
+		i = encodeVarintNode(dAtA, i, uint64(len(m.Version)))
+		i += copy(dAtA[i:], m.Version)
+	}
+	if m.XXX_unrecognized != nil {
+		i += copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	return i, nil
+}
+
+func (m *Network) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *Network) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
 	if len(m.Nameservers) > 0 {
 		for _, s := range m.Nameservers {
-			dAtA[i] = 0x5a
+			dAtA[i] = 0xa
 			i++
 			l = len(s)
 			for l >= 1<<7 {
@@ -599,11 +703,81 @@ func (m *Node) MarshalTo(dAtA []byte) (int, error) {
 			i += copy(dAtA[i:], s)
 		}
 	}
-	if len(m.ClusterFs) > 0 {
-		dAtA[i] = 0x62
+	if len(m.Interfaces) > 0 {
+		dAtA[i] = 0x12
 		i++
-		i = encodeVarintNode(dAtA, i, uint64(len(m.ClusterFs)))
-		i += copy(dAtA[i:], m.ClusterFs)
+		i = encodeVarintNode(dAtA, i, uint64(len(m.Interfaces)))
+		i += copy(dAtA[i:], m.Interfaces)
+	}
+	if len(m.Gateway) > 0 {
+		dAtA[i] = 0x1a
+		i++
+		i = encodeVarintNode(dAtA, i, uint64(len(m.Gateway)))
+		i += copy(dAtA[i:], m.Gateway)
+	}
+	if m.PxeNetwork != nil {
+		dAtA[i] = 0x22
+		i++
+		i = encodeVarintNode(dAtA, i, uint64(m.PxeNetwork.Size()))
+		n4, err := m.PxeNetwork.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n4
+	}
+	if m.XXX_unrecognized != nil {
+		i += copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	return i, nil
+}
+
+func (m *PXENetwork) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *PXENetwork) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if len(m.Mac) > 0 {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintNode(dAtA, i, uint64(len(m.Mac)))
+		i += copy(dAtA[i:], m.Mac)
+	}
+	if len(m.Address) > 0 {
+		dAtA[i] = 0x12
+		i++
+		i = encodeVarintNode(dAtA, i, uint64(len(m.Address)))
+		i += copy(dAtA[i:], m.Address)
+	}
+	if len(m.Bond) > 0 {
+		for _, s := range m.Bond {
+			dAtA[i] = 0x1a
+			i++
+			l = len(s)
+			for l >= 1<<7 {
+				dAtA[i] = uint8(uint64(l)&0x7f | 0x80)
+				l >>= 7
+				i++
+			}
+			dAtA[i] = uint8(l)
+			i++
+			i += copy(dAtA[i:], s)
+		}
+	}
+	if len(m.Interface) > 0 {
+		dAtA[i] = 0x22
+		i++
+		i = encodeVarintNode(dAtA, i, uint64(len(m.Interface)))
+		i += copy(dAtA[i:], m.Interface)
 	}
 	if m.XXX_unrecognized != nil {
 		i += copy(dAtA[i:], m.XXX_unrecognized)
@@ -666,21 +840,41 @@ func (m *Image) MarshalTo(dAtA []byte) (int, error) {
 		dAtA[i] = 0x32
 		i++
 		i = encodeVarintNode(dAtA, i, uint64(m.Ssh.Size()))
-		n2, err := m.Ssh.MarshalTo(dAtA[i:])
+		n5, err := m.Ssh.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n2
+		i += n5
 	}
-	if m.AllowApt {
-		dAtA[i] = 0x38
-		i++
-		if m.AllowApt {
-			dAtA[i] = 1
-		} else {
-			dAtA[i] = 0
+	if len(m.Packages) > 0 {
+		for _, s := range m.Packages {
+			dAtA[i] = 0x3a
+			i++
+			l = len(s)
+			for l >= 1<<7 {
+				dAtA[i] = uint8(uint64(l)&0x7f | 0x80)
+				l >>= 7
+				i++
+			}
+			dAtA[i] = uint8(l)
+			i++
+			i += copy(dAtA[i:], s)
 		}
-		i++
+	}
+	if len(m.Services) > 0 {
+		for _, s := range m.Services {
+			dAtA[i] = 0x42
+			i++
+			l = len(s)
+			for l >= 1<<7 {
+				dAtA[i] = uint8(uint64(l)&0x7f | 0x80)
+				l >>= 7
+				i++
+			}
+			dAtA[i] = uint8(l)
+			i++
+			i += copy(dAtA[i:], s)
+		}
 	}
 	if m.XXX_unrecognized != nil {
 		i += copy(dAtA[i:], m.XXX_unrecognized)
@@ -824,86 +1018,6 @@ func (m *GPU) MarshalTo(dAtA []byte) (int, error) {
 	return i, nil
 }
 
-func (m *CPU) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *CPU) MarshalTo(dAtA []byte) (int, error) {
-	var i int
-	_ = i
-	var l int
-	_ = l
-	if m.Ghz != 0 {
-		dAtA[i] = 0x9
-		i++
-		encoding_binary.LittleEndian.PutUint64(dAtA[i:], uint64(math.Float64bits(float64(m.Ghz))))
-		i += 8
-	}
-	if m.XXX_unrecognized != nil {
-		i += copy(dAtA[i:], m.XXX_unrecognized)
-	}
-	return i, nil
-}
-
-func (m *NIC) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *NIC) MarshalTo(dAtA []byte) (int, error) {
-	var i int
-	_ = i
-	var l int
-	_ = l
-	if len(m.Mac) > 0 {
-		dAtA[i] = 0xa
-		i++
-		i = encodeVarintNode(dAtA, i, uint64(len(m.Mac)))
-		i += copy(dAtA[i:], m.Mac)
-	}
-	if len(m.Addresses) > 0 {
-		for _, s := range m.Addresses {
-			dAtA[i] = 0x12
-			i++
-			l = len(s)
-			for l >= 1<<7 {
-				dAtA[i] = uint8(uint64(l)&0x7f | 0x80)
-				l >>= 7
-				i++
-			}
-			dAtA[i] = uint8(l)
-			i++
-			i += copy(dAtA[i:], s)
-		}
-	}
-	if m.Speed != 0 {
-		dAtA[i] = 0x18
-		i++
-		i = encodeVarintNode(dAtA, i, uint64(m.Speed))
-	}
-	if len(m.Name) > 0 {
-		dAtA[i] = 0x22
-		i++
-		i = encodeVarintNode(dAtA, i, uint64(len(m.Name)))
-		i += copy(dAtA[i:], m.Name)
-	}
-	if m.XXX_unrecognized != nil {
-		i += copy(dAtA[i:], m.XXX_unrecognized)
-	}
-	return i, nil
-}
-
 func (m *Volume) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
@@ -1021,27 +1135,14 @@ func (m *Node) Size() (n int) {
 	if l > 0 {
 		n += 1 + l + sovNode(uint64(l))
 	}
-	l = len(m.Gateway)
-	if l > 0 {
-		n += 1 + l + sovNode(uint64(l))
-	}
-	if len(m.Nics) > 0 {
-		for _, e := range m.Nics {
-			l = e.Size()
-			n += 1 + l + sovNode(uint64(l))
-		}
-	}
 	if len(m.Volumes) > 0 {
 		for _, e := range m.Volumes {
 			l = e.Size()
 			n += 1 + l + sovNode(uint64(l))
 		}
 	}
-	if len(m.Cpus) > 0 {
-		for _, e := range m.Cpus {
-			l = e.Size()
-			n += 1 + l + sovNode(uint64(l))
-		}
+	if m.Cpus != 0 {
+		n += 9
 	}
 	if m.Memory != 0 {
 		n += 1 + sovNode(uint64(m.Memory))
@@ -1066,13 +1167,91 @@ func (m *Node) Size() (n int) {
 		l = m.Image.Size()
 		n += 1 + l + sovNode(uint64(l))
 	}
+	if m.Pxe != nil {
+		l = m.Pxe.Size()
+		n += 1 + l + sovNode(uint64(l))
+	}
+	if m.Network != nil {
+		l = m.Network.Size()
+		n += 1 + l + sovNode(uint64(l))
+	}
+	if m.XXX_unrecognized != nil {
+		n += len(m.XXX_unrecognized)
+	}
+	return n
+}
+
+func (m *PXE) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.IscsiTarget)
+	if l > 0 {
+		n += 1 + l + sovNode(uint64(l))
+	}
+	l = len(m.Version)
+	if l > 0 {
+		n += 1 + l + sovNode(uint64(l))
+	}
+	if m.XXX_unrecognized != nil {
+		n += len(m.XXX_unrecognized)
+	}
+	return n
+}
+
+func (m *Network) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
 	if len(m.Nameservers) > 0 {
 		for _, s := range m.Nameservers {
 			l = len(s)
 			n += 1 + l + sovNode(uint64(l))
 		}
 	}
-	l = len(m.ClusterFs)
+	l = len(m.Interfaces)
+	if l > 0 {
+		n += 1 + l + sovNode(uint64(l))
+	}
+	l = len(m.Gateway)
+	if l > 0 {
+		n += 1 + l + sovNode(uint64(l))
+	}
+	if m.PxeNetwork != nil {
+		l = m.PxeNetwork.Size()
+		n += 1 + l + sovNode(uint64(l))
+	}
+	if m.XXX_unrecognized != nil {
+		n += len(m.XXX_unrecognized)
+	}
+	return n
+}
+
+func (m *PXENetwork) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Mac)
+	if l > 0 {
+		n += 1 + l + sovNode(uint64(l))
+	}
+	l = len(m.Address)
+	if l > 0 {
+		n += 1 + l + sovNode(uint64(l))
+	}
+	if len(m.Bond) > 0 {
+		for _, s := range m.Bond {
+			l = len(s)
+			n += 1 + l + sovNode(uint64(l))
+		}
+	}
+	l = len(m.Interface)
 	if l > 0 {
 		n += 1 + l + sovNode(uint64(l))
 	}
@@ -1114,8 +1293,17 @@ func (m *Image) Size() (n int) {
 		l = m.Ssh.Size()
 		n += 1 + l + sovNode(uint64(l))
 	}
-	if m.AllowApt {
-		n += 2
+	if len(m.Packages) > 0 {
+		for _, s := range m.Packages {
+			l = len(s)
+			n += 1 + l + sovNode(uint64(l))
+		}
+	}
+	if len(m.Services) > 0 {
+		for _, s := range m.Services {
+			l = len(s)
+			n += 1 + l + sovNode(uint64(l))
+		}
 	}
 	if m.XXX_unrecognized != nil {
 		n += len(m.XXX_unrecognized)
@@ -1188,50 +1376,6 @@ func (m *GPU) Size() (n int) {
 			l = len(s)
 			n += 1 + l + sovNode(uint64(l))
 		}
-	}
-	if m.XXX_unrecognized != nil {
-		n += len(m.XXX_unrecognized)
-	}
-	return n
-}
-
-func (m *CPU) Size() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	if m.Ghz != 0 {
-		n += 9
-	}
-	if m.XXX_unrecognized != nil {
-		n += len(m.XXX_unrecognized)
-	}
-	return n
-}
-
-func (m *NIC) Size() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	l = len(m.Mac)
-	if l > 0 {
-		n += 1 + l + sovNode(uint64(l))
-	}
-	if len(m.Addresses) > 0 {
-		for _, s := range m.Addresses {
-			l = len(s)
-			n += 1 + l + sovNode(uint64(l))
-		}
-	}
-	if m.Speed != 0 {
-		n += 1 + sovNode(uint64(m.Speed))
-	}
-	l = len(m.Name)
-	if l > 0 {
-		n += 1 + l + sovNode(uint64(l))
 	}
 	if m.XXX_unrecognized != nil {
 		n += len(m.XXX_unrecognized)
@@ -1312,17 +1456,55 @@ func (this *Node) String() string {
 	}
 	s := strings.Join([]string{`&Node{`,
 		`Hostname:` + fmt.Sprintf("%v", this.Hostname) + `,`,
-		`Gateway:` + fmt.Sprintf("%v", this.Gateway) + `,`,
-		`Nics:` + strings.Replace(fmt.Sprintf("%v", this.Nics), "NIC", "NIC", 1) + `,`,
 		`Volumes:` + strings.Replace(fmt.Sprintf("%v", this.Volumes), "Volume", "Volume", 1) + `,`,
-		`Cpus:` + strings.Replace(fmt.Sprintf("%v", this.Cpus), "CPU", "CPU", 1) + `,`,
+		`Cpus:` + fmt.Sprintf("%v", this.Cpus) + `,`,
 		`Memory:` + fmt.Sprintf("%v", this.Memory) + `,`,
 		`Gpus:` + strings.Replace(fmt.Sprintf("%v", this.Gpus), "GPU", "GPU", 1) + `,`,
 		`Labels:` + fmt.Sprintf("%v", this.Labels) + `,`,
 		`Domain:` + fmt.Sprintf("%v", this.Domain) + `,`,
 		`Image:` + strings.Replace(fmt.Sprintf("%v", this.Image), "Image", "Image", 1) + `,`,
+		`Pxe:` + strings.Replace(fmt.Sprintf("%v", this.Pxe), "PXE", "PXE", 1) + `,`,
+		`Network:` + strings.Replace(fmt.Sprintf("%v", this.Network), "Network", "Network", 1) + `,`,
+		`XXX_unrecognized:` + fmt.Sprintf("%v", this.XXX_unrecognized) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *PXE) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&PXE{`,
+		`IscsiTarget:` + fmt.Sprintf("%v", this.IscsiTarget) + `,`,
+		`Version:` + fmt.Sprintf("%v", this.Version) + `,`,
+		`XXX_unrecognized:` + fmt.Sprintf("%v", this.XXX_unrecognized) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *Network) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&Network{`,
 		`Nameservers:` + fmt.Sprintf("%v", this.Nameservers) + `,`,
-		`ClusterFs:` + fmt.Sprintf("%v", this.ClusterFs) + `,`,
+		`Interfaces:` + fmt.Sprintf("%v", this.Interfaces) + `,`,
+		`Gateway:` + fmt.Sprintf("%v", this.Gateway) + `,`,
+		`PxeNetwork:` + strings.Replace(fmt.Sprintf("%v", this.PxeNetwork), "PXENetwork", "PXENetwork", 1) + `,`,
+		`XXX_unrecognized:` + fmt.Sprintf("%v", this.XXX_unrecognized) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *PXENetwork) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&PXENetwork{`,
+		`Mac:` + fmt.Sprintf("%v", this.Mac) + `,`,
+		`Address:` + fmt.Sprintf("%v", this.Address) + `,`,
+		`Bond:` + fmt.Sprintf("%v", this.Bond) + `,`,
+		`Interface:` + fmt.Sprintf("%v", this.Interface) + `,`,
 		`XXX_unrecognized:` + fmt.Sprintf("%v", this.XXX_unrecognized) + `,`,
 		`}`,
 	}, "")
@@ -1339,7 +1521,8 @@ func (this *Image) String() string {
 		`Components:` + strings.Replace(fmt.Sprintf("%v", this.Components), "Component", "Component", 1) + `,`,
 		`Userland:` + fmt.Sprintf("%v", this.Userland) + `,`,
 		`Ssh:` + strings.Replace(fmt.Sprintf("%v", this.Ssh), "SSH", "SSH", 1) + `,`,
-		`AllowApt:` + fmt.Sprintf("%v", this.AllowApt) + `,`,
+		`Packages:` + fmt.Sprintf("%v", this.Packages) + `,`,
+		`Services:` + fmt.Sprintf("%v", this.Services) + `,`,
 		`XXX_unrecognized:` + fmt.Sprintf("%v", this.XXX_unrecognized) + `,`,
 		`}`,
 	}, "")
@@ -1378,31 +1561,6 @@ func (this *GPU) String() string {
 		`Cores:` + fmt.Sprintf("%v", this.Cores) + `,`,
 		`Memory:` + fmt.Sprintf("%v", this.Memory) + `,`,
 		`Capabilities:` + fmt.Sprintf("%v", this.Capabilities) + `,`,
-		`XXX_unrecognized:` + fmt.Sprintf("%v", this.XXX_unrecognized) + `,`,
-		`}`,
-	}, "")
-	return s
-}
-func (this *CPU) String() string {
-	if this == nil {
-		return "nil"
-	}
-	s := strings.Join([]string{`&CPU{`,
-		`Ghz:` + fmt.Sprintf("%v", this.Ghz) + `,`,
-		`XXX_unrecognized:` + fmt.Sprintf("%v", this.XXX_unrecognized) + `,`,
-		`}`,
-	}, "")
-	return s
-}
-func (this *NIC) String() string {
-	if this == nil {
-		return "nil"
-	}
-	s := strings.Join([]string{`&NIC{`,
-		`Mac:` + fmt.Sprintf("%v", this.Mac) + `,`,
-		`Addresses:` + fmt.Sprintf("%v", this.Addresses) + `,`,
-		`Speed:` + fmt.Sprintf("%v", this.Speed) + `,`,
-		`Name:` + fmt.Sprintf("%v", this.Name) + `,`,
 		`XXX_unrecognized:` + fmt.Sprintf("%v", this.XXX_unrecognized) + `,`,
 		`}`,
 	}, "")
@@ -1507,72 +1665,6 @@ func (m *Node) Unmarshal(dAtA []byte) error {
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Gateway", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowNode
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthNode
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return ErrInvalidLengthNode
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Gateway = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 3:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Nics", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowNode
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthNode
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthNode
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Nics = append(m.Nics, &NIC{})
-			if err := m.Nics[len(m.Nics)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 4:
-			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Volumes", wireType)
 			}
 			var msglen int
@@ -1605,41 +1697,18 @@ func (m *Node) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
-		case 5:
-			if wireType != 2 {
+		case 3:
+			if wireType != 1 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Cpus", wireType)
 			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowNode
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthNode
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthNode
-			}
-			if postIndex > l {
+			var v uint64
+			if (iNdEx + 8) > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Cpus = append(m.Cpus, &CPU{})
-			if err := m.Cpus[len(m.Cpus)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 6:
+			v = uint64(encoding_binary.LittleEndian.Uint64(dAtA[iNdEx:]))
+			iNdEx += 8
+			m.Cpus = float64(math.Float64frombits(v))
+		case 4:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Memory", wireType)
 			}
@@ -1658,7 +1727,7 @@ func (m *Node) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
-		case 7:
+		case 5:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Gpus", wireType)
 			}
@@ -1692,7 +1761,7 @@ func (m *Node) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
-		case 8:
+		case 6:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Labels", wireType)
 			}
@@ -1724,7 +1793,7 @@ func (m *Node) Unmarshal(dAtA []byte) error {
 			}
 			m.Labels = append(m.Labels, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
-		case 9:
+		case 7:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Domain", wireType)
 			}
@@ -1756,7 +1825,7 @@ func (m *Node) Unmarshal(dAtA []byte) error {
 			}
 			m.Domain = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
-		case 10:
+		case 8:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Image", wireType)
 			}
@@ -1792,7 +1861,251 @@ func (m *Node) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
-		case 11:
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Pxe", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowNode
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthNode
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthNode
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Pxe == nil {
+				m.Pxe = &PXE{}
+			}
+			if err := m.Pxe.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 10:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Network", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowNode
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthNode
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthNode
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Network == nil {
+				m.Network = &Network{}
+			}
+			if err := m.Network.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipNode(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthNode
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthNode
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.XXX_unrecognized = append(m.XXX_unrecognized, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *PXE) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowNode
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: PXE: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: PXE: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field IscsiTarget", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowNode
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthNode
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthNode
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.IscsiTarget = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Version", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowNode
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthNode
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthNode
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Version = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipNode(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthNode
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthNode
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.XXX_unrecognized = append(m.XXX_unrecognized, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *Network) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowNode
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: Network: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: Network: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Nameservers", wireType)
 			}
@@ -1824,9 +2137,9 @@ func (m *Node) Unmarshal(dAtA []byte) error {
 			}
 			m.Nameservers = append(m.Nameservers, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
-		case 12:
+		case 2:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ClusterFs", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Interfaces", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
@@ -1854,7 +2167,257 @@ func (m *Node) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.ClusterFs = string(dAtA[iNdEx:postIndex])
+			m.Interfaces = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Gateway", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowNode
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthNode
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthNode
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Gateway = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PxeNetwork", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowNode
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthNode
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthNode
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.PxeNetwork == nil {
+				m.PxeNetwork = &PXENetwork{}
+			}
+			if err := m.PxeNetwork.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipNode(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthNode
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthNode
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.XXX_unrecognized = append(m.XXX_unrecognized, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *PXENetwork) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowNode
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: PXENetwork: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: PXENetwork: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Mac", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowNode
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthNode
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthNode
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Mac = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Address", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowNode
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthNode
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthNode
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Address = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Bond", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowNode
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthNode
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthNode
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Bond = append(m.Bond, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Interface", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowNode
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthNode
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthNode
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Interface = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -2109,10 +2672,10 @@ func (m *Image) Unmarshal(dAtA []byte) error {
 			}
 			iNdEx = postIndex
 		case 7:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field AllowApt", wireType)
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Packages", wireType)
 			}
-			var v int
+			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowNode
@@ -2122,12 +2685,56 @@ func (m *Image) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				v |= int(b&0x7F) << shift
+				stringLen |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			m.AllowApt = bool(v != 0)
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthNode
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthNode
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Packages = append(m.Packages, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Services", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowNode
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthNode
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthNode
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Services = append(m.Services, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipNode(dAtA[iNdEx:])
@@ -2519,240 +3126,6 @@ func (m *GPU) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.Capabilities = append(m.Capabilities, string(dAtA[iNdEx:postIndex]))
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipNode(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				return ErrInvalidLengthNode
-			}
-			if (iNdEx + skippy) < 0 {
-				return ErrInvalidLengthNode
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.XXX_unrecognized = append(m.XXX_unrecognized, dAtA[iNdEx:iNdEx+skippy]...)
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *CPU) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowNode
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: CPU: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: CPU: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 1 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Ghz", wireType)
-			}
-			var v uint64
-			if (iNdEx + 8) > l {
-				return io.ErrUnexpectedEOF
-			}
-			v = uint64(encoding_binary.LittleEndian.Uint64(dAtA[iNdEx:]))
-			iNdEx += 8
-			m.Ghz = float64(math.Float64frombits(v))
-		default:
-			iNdEx = preIndex
-			skippy, err := skipNode(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				return ErrInvalidLengthNode
-			}
-			if (iNdEx + skippy) < 0 {
-				return ErrInvalidLengthNode
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.XXX_unrecognized = append(m.XXX_unrecognized, dAtA[iNdEx:iNdEx+skippy]...)
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *NIC) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowNode
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: NIC: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: NIC: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Mac", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowNode
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthNode
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return ErrInvalidLengthNode
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Mac = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Addresses", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowNode
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthNode
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return ErrInvalidLengthNode
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Addresses = append(m.Addresses, string(dAtA[iNdEx:postIndex]))
-			iNdEx = postIndex
-		case 3:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Speed", wireType)
-			}
-			m.Speed = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowNode
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.Speed |= uint32(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 4:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Name", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowNode
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthNode
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return ErrInvalidLengthNode
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Name = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
