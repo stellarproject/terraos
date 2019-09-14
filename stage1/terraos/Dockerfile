@@ -53,6 +53,7 @@ RUN apk update && apk add --no-cache \
 	rsync \
 	criu \
 	apparmor \
+	apparmor-profiles \
 	bonding \
 	vlan \
 	openssh-server-pam \

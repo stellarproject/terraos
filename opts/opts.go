@@ -258,7 +258,7 @@ func withMounts(mounts []*v1.Mount) oci.SpecOpts {
 			case "iscsi":
 				tpe = "ext4"
 				// discover
-				portal, iqn, err := parseISCSI(source)
+				portal, iqn, err := ParseISCSI(source)
 				if err != nil {
 					return err
 				}
@@ -285,7 +285,7 @@ func withMounts(mounts []*v1.Mount) oci.SpecOpts {
 	}
 }
 
-func parseISCSI(s string) (string, string, error) {
+func ParseISCSI(s string) (string, string, error) {
 	parts := strings.SplitN(s, "|", 2)
 	if len(parts) != 2 {
 		return "", "", errors.Errorf("invalid iscsi source format %s", s)
@@ -472,7 +472,7 @@ func WithISCSILogout(ctx context.Context, client *containerd.Client, c container
 	}
 	for _, m := range config.Mounts {
 		if m.Type == "iscsi" {
-			portal, iqn, err := parseISCSI(m.Source)
+			portal, iqn, err := ParseISCSI(m.Source)
 			if err != nil {
 				return err
 			}

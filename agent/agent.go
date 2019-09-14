@@ -68,6 +68,7 @@ import (
 	"github.com/stellarproject/terraos/config"
 	"github.com/stellarproject/terraos/opts"
 	"github.com/stellarproject/terraos/pkg/flux"
+	"github.com/stellarproject/terraos/pkg/iscsi"
 	"github.com/stellarproject/terraos/util"
 	"golang.org/x/sys/unix"
 )
@@ -809,6 +810,9 @@ func (a *Agent) start(ctx context.Context, container containerd.Container) error
 	if err != nil {
 		return errors.Wrap(err, "get restore descriptor")
 	}
+	if err := a.loginISCSI(ctx, config); err != nil {
+		return errors.Wrap(err, "login iscsi")
+	}
 	network, err := a.getNetwork(config.Networks)
 	if err != nil {
 		return errors.Wrap(err, "get network")
@@ -833,6 +837,28 @@ func (a *Agent) start(ctx context.Context, container containerd.Container) error
 			logrus.WithError(err).Error("delete container task")
 		}
 		return errors.Wrap(err, "start container process")
+	}
+	return nil
+}
+
+func (a *Agent) loginISCSI(ctx context.Context, config *v1.Container) error {
+	for _, m := range config.Mounts {
+		if m.Type == "iscsi" {
+			portal, iqn, err := opts.ParseISCSI(m.Source)
+			if err != nil {
+				return err
+			}
+			if err := iscsi.Discover(ctx, portal); err != nil {
+				return errors.Wrapf(err, "discover targets %s", portal)
+			}
+			target, err := iscsi.Login(ctx, portal, iqn)
+			if err != nil {
+				return errors.Wrapf(err, "unable to login %s -> %s", portal, iqn)
+			}
+			if err := target.Ready(5 * time.Second); err != nil {
+				return errors.Wrap(err, "target not ready")
+			}
+		}
 	}
 	return nil
 }
