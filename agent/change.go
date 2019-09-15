@@ -80,7 +80,9 @@ func pauseAndRun(ctx context.Context, container containerd.Container, fn func() 
 	if err := task.Pause(ctx); err != nil {
 		return err
 	}
-	defer task.Resume(ctx)
+	// have a resume context incase the original context gets canceled
+	rctx := relayContext(context.Background())
+	defer task.Resume(rctx)
 	return fn()
 }
 
