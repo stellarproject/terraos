@@ -59,6 +59,7 @@ RUN apk update && apk add --no-cache \
 	openssh-server-pam \
 	open-iscsi \
 	eudev \
+	sudo \
 	iptables
 
 RUN rm -rf /boot /lib/modules
