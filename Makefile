@@ -49,7 +49,7 @@ FORCE:
 
 # -------------------- local -------------------------
 local: orbit
-	@cd cmd/terra && CGO_ENABLED=0 go build -v -ldflags '${GO_LDFLAGS}' -o ../../build/terra
+	@cd cmd/terra && CGO_ENABLED=0 go build -v -ldflags '${GO_LDFLAGS}' -o ../../build/terra-opts
 
 install:
 	@install build/terra* /usr/local/sbin/
@@ -58,7 +58,7 @@ install:
 	@install build/orbit-syslog /usr/local/bin/
 	@install build/orbit-server /usr/local/bin/
 	@install build/orbit-network /usr/local/bin/
-	@install cmd/terra/terra /usr/local/sbin/terrab
+	@install cmd/terra/terra /usr/local/sbin/terra
 
 # -------------------- iso -------------------------
 
