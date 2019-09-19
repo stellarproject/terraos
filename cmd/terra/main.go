@@ -85,6 +85,7 @@ Terra OS management`
 	}
 	app.Commands = []cli.Command{
 		createCommand,
+		clusterCommand,
 		installCommand,
 		iscsiCommand,
 		pxeCommand,
