@@ -25,12 +25,17 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH
 # THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+set -e
+set -o pipefail
+
 terra_cluster_root="/terra"
 terra_default_ns="nameserver 1.1.1.1\nnameserver 1.0.0.1"
 terra_cluster_dirs="nodes .images networks"
 terra_node_dirs="interfaces fs/etc"
 
 # ----------------------- utility functions -----------------------------
+# TODO: source this from another file
+
 function _terra_reset() {
 	cd /
 	sudo rm -rf "$terra_cluster_root"
@@ -98,53 +103,60 @@ function create() {
 }
 
 function network_create () {
-	(
-		_terra_cwd
+	_terra_cwd
 
-		name="$1"
-		name=${name^^}
-		address="$2"
-		ntype="$3"
+	name="$1"
+	name=${name^^}
+	address="$2"
+	ntype="$3"
 
-		if [ -z "$ntype" ]
-		then
-			ntype="lan"
-		fi
+	if [ -z "$ntype" ]
+	then
+		ntype="lan"
+	fi
 
-		echo -e "creating network $name with $address of type $ntype\n"
-		mkdir "networks/$name"
-		echo $address > "networks/$name/address"
+	echo -e "creating network $name with $address of type $ntype\n"
+	mkdir "networks/$name"
+	echo $address > "networks/$name/address"
 
-		_terra_commit "networks/" "add new network $name"
-	)
+	_terra_commit "networks/" "add new network $name"
 }
 
 function node_create() {
+	_terra_cwd
+
+	name="$1"
+	mkdir "nodes/$name"
 	(
-		_terra_cwd
+		cd "nodes/$name"
 
-		name="$1"
-		mkdir "nodes/$name"
-		(
-			cd "nodes/$name"
-
-			for f in $terra_node_dirs
-			do
-				mkdir -p "$f"
-			done
-			echo "$name" >> "fs/etc/hostname"
-			_terra_create_hosts $name "fs/etc/hosts"
-		)
-		_t_symlink "resolv.conf" "nodes/$name/fs/etc/resolv.conf"
-		_terra_commit "nodes/$name" "add new node $name"
+		for f in $terra_node_dirs
+		do
+			mkdir -p "$f"
+		done
+		echo "$name" >> "fs/etc/hostname"
+		_terra_create_hosts $name "fs/etc/hosts"
 	)
+	_t_symlink "resolv.conf" "nodes/$name/fs/etc/resolv.conf"
+	_terra_commit "nodes/$name" "add new node $name"
+}
+
+function set_registry() {
+	_terra_cwd
+
+	name="$1"
+	echo "creating registry $name..."
+	mkdir $name
+	_t_symlink "$name" ".registry"
 }
 
 function main() {
-	if [ -z "$@" ]
+	if [ $# -eq 0 ]
 	then
 		echo "run with a subcommand"
+		exit 1
 	fi
+	"$@"
 }
 
 main "$@"

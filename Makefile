@@ -58,6 +58,7 @@ install:
 	@install build/orbit-syslog /usr/local/bin/
 	@install build/orbit-server /usr/local/bin/
 	@install build/orbit-network /usr/local/bin/
+	@install cmd/terra/terra /usr/local/sbin/terrab
 
 # -------------------- iso -------------------------
 
