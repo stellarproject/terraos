@@ -76,12 +76,6 @@ Terra OS management`
 			Name:  "debug",
 			Usage: "enable debug output in the logs",
 		},
-		cli.StringFlag{
-			Name:   "controller",
-			Usage:  "controller address",
-			Value:  "127.0.0.1",
-			EnvVar: "TERRA_CONTROLLER",
-		},
 	}
 	app.Before = func(clix *cli.Context) error {
 		if clix.GlobalBool("debug") {
