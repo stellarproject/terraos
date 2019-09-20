@@ -79,8 +79,7 @@ function create() {
 
 	_terra_cwd
 
-	if [ -f .git ]
-	then
+	if [ -f .git ]; then
 		echo "cluster already setup"
 		exit 0
 	fi
@@ -110,8 +109,7 @@ function network_create () {
 	address="$2"
 	ntype="$3"
 
-	if [ -z "$ntype" ]
-	then
+	if [ -z "$ntype" ]; then
 		ntype="lan"
 	fi
 
@@ -138,24 +136,40 @@ function node_create() {
 		_terra_create_hosts $name "fs/etc/hosts"
 	)
 	_t_symlink "resolv.conf" "nodes/$name/fs/etc/resolv.conf"
+
 	_terra_commit "add new node $name"
+}
+
+function add_interface() {
+	if [ ! -d "interfaces" ]; then
+		echo "not in node directory"
+		exit 1
+	fi
+	node=$(basename `pwd`)
+	echo "creating interface $1 for $node..."
+
+	mkdir "interfaces/$1"
+
+	_terra_commit "add interface $1 to $node"
 }
 
 function set_base_image() {
 	_terra_cwd
 
-	name=".registry/$1"
+	name="registry/$1"
 	touch $name
 	_t_symlink $name base
+
 	_terra_commit "set base image"
 }
 
 function set_kernel_image() {
 	_terra_cwd
 
-	name=".registry/$1"
+	name="registry/$1"
 	touch $name
 	_t_symlink $name kernel
+
 	_terra_commit "set kernel image"
 }
 
@@ -164,15 +178,14 @@ function set_registry() {
 
 	name="$1"
 	echo "creating registry $name..."
-	mkdir $name
-	_t_symlink "$name" ".registry"
+	mkdir -p ".data/$name"
+	_t_symlink ".data/$name" "registry"
 
 	_terra_commit "set global registry"
 }
 
 function main() {
-	if [ $# -eq 0 ]
-	then
+	if [ $# -eq 0 ]; then
 		echo "run with a subcommand"
 		exit 1
 	fi
