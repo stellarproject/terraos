@@ -56,9 +56,9 @@ var configCommand = cli.Command{
 		w := tabwriter.NewWriter(os.Stdout, 10, 1, 3, ' ', 0)
 		const tfmt = "%s\t%s\n"
 		fmt.Fprint(w, "ID\tPATH\n")
-		for id, c := range configs {
+		for _, c := range configs {
 			fmt.Fprintf(w, tfmt,
-				id,
+				c.ID,
 				c.Path,
 			)
 		}
@@ -117,9 +117,10 @@ var configAddCommand = cli.Command{
 		store := getCluster(clix)
 		ctx := cmd.CancelContext()
 		c := &v1.Config{
+			ID:       id,
 			Path:     path,
 			Contents: data,
 		}
-		return store.Configs().Save(ctx, id, c)
+		return store.Configs().Save(ctx, c)
 	},
 }

@@ -50,7 +50,7 @@ var machineCommand = cli.Command{
 	Action: func(clix *cli.Context) error {
 		store := getCluster(clix)
 		ctx := cmd.CancelContext()
-		cluster, err := store.Get(ctx)
+		machines, err := store.Machines().List(ctx)
 		if err != nil {
 			return err
 		}
@@ -58,7 +58,7 @@ var machineCommand = cli.Command{
 		w := tabwriter.NewWriter(os.Stdout, 10, 1, 3, ' ', 0)
 		const tfmt = "%s\t%d\t%s\t%s\n"
 		fmt.Fprint(w, "UUID\tCPUS\tMEMORY\tLABELS\n")
-		for _, m := range cluster.Machines {
+		for _, m := range machines {
 			fmt.Fprintf(w, tfmt,
 				m.UUID,
 				m.Cpus,
@@ -81,17 +81,15 @@ var machineRegisterCommand = cli.Command{
 		},
 	},
 	Action: func(clix *cli.Context) error {
-		store := getCluster(clix)
-		ctx := cmd.CancelContext()
-		cluster, err := store.Get(ctx)
-		if err != nil {
-			return err
-		}
-		cpu := sigar.CpuList{}
+		var (
+			store = getCluster(clix)
+			ctx   = cmd.CancelContext()
+			cpu   = sigar.CpuList{}
+			mem   = sigar.Mem{}
+		)
 		if err := cpu.Get(); err != nil {
 			return err
 		}
-		mem := sigar.Mem{}
 		if err := mem.Get(); err != nil {
 			return err
 		}
@@ -117,9 +115,6 @@ var machineRegisterCommand = cli.Command{
 				Mac:  i.HardwareAddr.String(),
 			})
 		}
-		if err := cluster.RegisterMachine(ctx, m); err != nil {
-			return err
-		}
-		return store.Commit(ctx, cluster)
+		return store.Machines().Register(ctx, m)
 	},
 }

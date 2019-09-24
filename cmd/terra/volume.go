@@ -55,10 +55,10 @@ var volumeCommand = cli.Command{
 		w := tabwriter.NewWriter(os.Stdout, 10, 1, 3, ' ', 0)
 		const tfmt = "%s\t%d\t%s\t%s\n"
 		fmt.Fprint(w, "ID\tLUN\tPATH\tLABEL\n")
-		for id, v := range volumes {
+		for _, v := range volumes {
 			for i, l := range v.Luns {
 				fmt.Fprintf(w, tfmt,
-					id,
+					v.ID,
 					i,
 					l.Path,
 					l.Label,
@@ -83,18 +83,19 @@ var volumeAddCommand = cli.Command{
 		store := getCluster(clix)
 		ctx := cmd.CancelContext()
 		id := clix.Args().First()
-		v := &v1.Volume{}
+		v := &v1.Volume{
+			ID: id,
+		}
 		for i, s := range clix.StringSlice("lun") {
 			v.Luns = append(v.Luns, parseLun(i, s))
 		}
-		return store.Volumes().Save(ctx, id, v)
+		return store.Volumes().Save(ctx, v)
 	},
 }
 
 func parseLun(i int, s string) *v1.Lun {
 	parts := strings.SplitN(s, ":", 2)
 	return &v1.Lun{
-		ID:    uint32(i),
 		Path:  parts[0],
 		Label: parts[1],
 	}

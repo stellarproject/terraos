@@ -88,11 +88,9 @@ Terra OS management`
 		return nil
 	}
 	app.Commands = []cli.Command{
-		clusterCommand,
 		machineCommand,
 		volumeCommand,
 		configCommand,
-		initCommand,
 	}
 	if err := app.Run(os.Args); err != nil {
 		fmt.Fprintln(os.Stderr, err)

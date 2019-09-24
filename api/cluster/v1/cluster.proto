@@ -7,18 +7,11 @@ import weak "gogoproto/gogo.proto";
 option go_package = "github.com/stellarproject/terraos/api/cluster/v1;v1";
 
 message Cluster {
-	// the current generation of the cluster
-	int64 generation = 1;
-	string sha256 = 2;
-	repeated Machine machines = 3;
-	repeated Node nodes = 4;
-	repeated Container containers = 5;
-	string registry = 6;
-	string version = 7;
-	string pxe_ip = 8;
-	string base_iqn = 9;
-	string tftp = 10;
-	repeated Volume volumes = 11;
+	string registry = 1;
+	string version = 2;
+	string pxe_ip = 3;
+	string base_iqn = 4;
+	string tftp = 5;
 }
 
 // Machine is a physical machine
@@ -38,7 +31,8 @@ message Netdev {
 
 // Value is a meta object mapping storage to an iqn
 message Volume {
-	repeated Lun luns = 1;
+	string id = 1 [(gogoproto.customname) = "ID"];
+	repeated Lun luns = 2;
 }
 
 message Lun {
@@ -56,8 +50,9 @@ message Node {
 }
 
 message Config {
-	string path = 1;
-	bytes contents = 2;
+	string id = 1 [(gogoproto.customname) = "ID"];
+	string path = 2;
+	bytes contents = 3;
 }
 
 message Address {

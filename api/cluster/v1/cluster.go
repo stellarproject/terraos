@@ -28,38 +28,9 @@
 package v1
 
 import (
-	"context"
 	"errors"
-
-	"github.com/google/uuid"
 )
 
 var (
 	ErrExists = errors.New("resource exists")
 )
-
-func (c *Cluster) RegisterMachine(ctx context.Context, machine *Machine) error {
-	machine.UUID = uuid.New().String()
-	c.Machines = append(c.Machines, machine)
-	return nil
-}
-
-func (c *Cluster) RegisterVolume(ctx context.Context, v *Volume) error {
-	for _, vv := range c.Volumes {
-		if v.ID == vv.ID {
-			return ErrExists
-		}
-	}
-	c.Volumes = append(c.Volumes, v)
-	return nil
-}
-
-func (c *Cluster) CreateNode(ctx context.Context, node *Node) error {
-	for _, n := range c.Nodes {
-		if n.Hostname == node.Hostname {
-			return ErrExists
-		}
-	}
-	c.Nodes = append(c.Nodes, node)
-	return nil
-}
