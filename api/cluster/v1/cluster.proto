@@ -57,6 +57,11 @@ message Node {
 	string machine_id = 5;
 }
 
+message Config {
+	string path = 1;
+	bytes contents = 2;
+}
+
 message Address {
 	string ip = 1;
 	string subnet = 2;

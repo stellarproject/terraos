@@ -32,10 +32,8 @@ import (
 	"os"
 
 	"github.com/containerd/containerd/content"
-	"github.com/getsentry/raven-go"
 	"github.com/sirupsen/logrus"
 	v1 "github.com/stellarproject/terraos/api/cluster/v1"
-	"github.com/stellarproject/terraos/cmd"
 	"github.com/stellarproject/terraos/pkg/image"
 	"github.com/stellarproject/terraos/version"
 	"github.com/urfave/cli"
@@ -93,6 +91,7 @@ Terra OS management`
 		clusterCommand,
 		machineCommand,
 		volumeCommand,
+		configCommand,
 		initCommand,
 	}
 	if err := app.Run(os.Args); err != nil {
@@ -101,22 +100,9 @@ Terra OS management`
 	}
 }
 
-var config *cmd.Terra
-
 func Before(clix *cli.Context) error {
-	t, err := cmd.LoadTerra()
-	if err != nil {
-		if !os.IsNotExist(err) {
-			return err
-		}
-	}
-	config = t
-	if t.Debug {
+	if clix.GlobalBool("debug") {
 		logrus.SetLevel(logrus.DebugLevel)
-	}
-	if t.SentryDSN != "" {
-		raven.SetDSN(t.SentryDSN)
-		raven.DefaultClient.SetRelease(version.Version)
 	}
 	return nil
 }

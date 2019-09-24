@@ -53,3 +53,28 @@ func (c *Cluster) RegisterVolume(ctx context.Context, v *Volume) error {
 	c.Volumes = append(c.Volumes, v)
 	return nil
 }
+
+func (c *Cluster) CreateNode(ctx context.Context, node *Node) error {
+	for _, n := range c.Nodes {
+		if n.Hostname == node.Hostname {
+			return ErrExists
+		}
+	}
+	c.Nodes = append(c.Nodes, node)
+	return nil
+}
+
+func (n *Node) AttachVolume(ctx context.Context, v *Volume) error {
+	for _, id := range n.VolumeIDs {
+		if id == v.ID {
+			return ErrExists
+		}
+	}
+	n.VolumeIDs = append(n.VolumeIDs, v.ID)
+	return nil
+}
+
+func (m *Machine) Deploy(ctx context.Context, n *Node) error {
+	n.MachineID = m.UUID
+	return nil
+}

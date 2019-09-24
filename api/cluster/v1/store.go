@@ -29,6 +29,8 @@ package v1
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/gomodule/redigo/redis"
@@ -37,7 +39,9 @@ import (
 
 // this package includes global redis keys and functions
 const (
-	ClusterKey = "terra.cluster"
+	ClusterKey   = "terra.cluster"
+	ConfigsKey   = "terra.config.*"
+	ConfigFmtKey = "terra.config.%s"
 )
 
 func New(address, auth string) *Store {
@@ -67,6 +71,63 @@ func (s *Store) Close() error {
 	return s.pool.Close()
 }
 
+func (s *Store) Configs() *ConfigStore {
+	return &ConfigStore{
+		s: s,
+	}
+}
+
+type ConfigStore struct {
+	s *Store
+}
+
+func (s *ConfigStore) List(ctx context.Context) (map[string]*Config, error) {
+	keys, err := redis.Strings(s.s.do(ctx, "KEYS", ConfigsKey))
+	if err != nil {
+		return nil, err
+	}
+	out := make(map[string]*Config, len(keys))
+	for _, key := range keys {
+		parts := strings.SplitN(key, ".", 3)
+		if len(parts) != 3 {
+			return nil, errors.New("invalid key type")
+		}
+		id := parts[2]
+		c, err := s.Get(ctx, id)
+		if err != nil {
+			return nil, err
+		}
+		out[id] = c
+	}
+	return out, nil
+}
+
+func (s *ConfigStore) Save(ctx context.Context, id string, c *Config) error {
+	key := fmt.Sprintf(ConfigFmtKey, id)
+	if _, err := s.s.do(ctx, "HMSET", key, "path", c.Path, "contents", c.Contents); err != nil {
+		return errors.Wrap(err, "set config values")
+	}
+	return nil
+}
+
+func (s *ConfigStore) Get(ctx context.Context, id string) (*Config, error) {
+	key := fmt.Sprintf(ConfigFmtKey, id)
+	values, err := redis.Values(s.s.do(ctx, "HGETALL", key))
+	if err != nil {
+		return nil, errors.Wrap(err, "get all config fields")
+	}
+	var c Config
+	for i := 0; i < len(values); i += 2 {
+		switch string(values[i].([]byte)) {
+		case "path":
+			c.Path = string(values[i+1].([]byte))
+		case "contents":
+			c.Contents = values[i+1].([]byte)
+		}
+	}
+	return &c, nil
+}
+
 func (s *Store) Get(ctx context.Context) (*Cluster, error) {
 	data, err := redis.Bytes(s.do(ctx, "GET", ClusterKey))
 	if err != nil {
@@ -80,6 +141,9 @@ func (s *Store) Get(ctx context.Context) (*Cluster, error) {
 }
 
 func (s *Store) Commit(ctx context.Context, c *Cluster) error {
+	// reset fields
+	c.Generation = 0
+	c.Sha256 = ""
 	data, err := proto.Marshal(c)
 	if err != nil {
 		return errors.Wrap(err, "marshal cluster")
@@ -90,7 +154,6 @@ func (s *Store) Commit(ctx context.Context, c *Cluster) error {
 			return errors.Wrap(err, "hash cluster")
 		}
 	*/
-
 	if _, err := s.do(ctx, "SET", ClusterKey, data); err != nil {
 		return errors.Wrap(err, "commit cluster")
 	}
