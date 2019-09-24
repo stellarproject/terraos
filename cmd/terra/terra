@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euxo pipefail
 
 # Copyright (c) 2019 Stellar Project
 
@@ -25,9 +26,6 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH
 # THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-set -e
-set -o pipefail
-
 terra_cluster_root="/terra"
 terra_default_ns="nameserver 1.1.1.1\nnameserver 1.0.0.1"
 terra_cluster_dirs="nodes .images networks"
@@ -36,7 +34,7 @@ terra_node_dirs="interfaces fs/etc"
 # ----------------------- utility functions -----------------------------
 # TODO: source this from another file
 
-function _terra_reset() {
+function _reset() {
 	cd /
 	sudo rm -rf "$terra_cluster_root"
 	sudo mkdir "$terra_cluster_root"
@@ -98,6 +96,9 @@ function create() {
 		touch "$f/.gitkeep"
 	done
 
+	echo "create config file..."
+	terra-opts config init
+
 	_terra_commit "init terra cluster"
 }
 
@@ -153,16 +154,6 @@ function add_interface() {
 	_terra_commit "add interface $1 to $node"
 }
 
-function set_base_image() {
-	_terra_cwd
-
-	name="registry/$1"
-	touch $name
-	_t_symlink $name base
-
-	_terra_commit "set base image"
-}
-
 function set_kernel_image() {
 	_terra_cwd
 
@@ -177,9 +168,7 @@ function set_registry() {
 	_terra_cwd
 
 	name="$1"
-	echo "creating registry $name..."
-	mkdir -p ".data/$name"
-	_t_symlink ".data/$name" "registry"
+	terra-opts config set registry $name
 
 	_terra_commit "set global registry"
 }

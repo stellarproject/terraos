@@ -44,7 +44,7 @@ const contentStorePath = "/content"
 
 func main() {
 	app := cli.NewApp()
-	app.Name = "terra"
+	app.Name = "terra-opts"
 	app.Version = version.Version
 	app.Usage = "Terra OS Management"
 	app.Description = `
@@ -85,6 +85,7 @@ Terra OS management`
 	}
 	app.Commands = []cli.Command{
 		createCommand,
+		configCommand,
 		installCommand,
 		iscsiCommand,
 		pxeCommand,
