@@ -24,7 +24,7 @@ message Cluster {
 message Machine {
 	string uuid = 1 [(gogoproto.customname) = "UUID"];
 	uint32 cpus = 2;
-	uint32 memory = 3;
+	uint64 memory = 3;
 	repeated string labels = 4;
 	repeated Netdev network_devices = 5;
 }

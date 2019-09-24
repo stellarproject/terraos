@@ -74,7 +74,7 @@ var machineRegisterCommand = cli.Command{
 		}
 		m := &v1.Machine{
 			Cpus:   uint32(len(cpu.List)),
-			Memory: uint32(mem.Total * 1024 * 1024),
+			Memory: mem.Total / 1024 / 1024,
 			Labels: clix.StringSlice("label"),
 		}
 		interfaces, err := net.Interfaces()
