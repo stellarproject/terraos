@@ -1,0 +1,80 @@
+syntax = "proto3";
+
+package io.stellarproject.cluster.v1;
+
+import weak "gogoproto/gogo.proto";
+
+option go_package = "github.com/stellarproject/terraos/api/cluster/v1;v1";
+
+message Cluster {
+	// the current generation of the cluster
+	int64 generation = 1;
+	string sha256 = 2;
+	repeated Machine machines = 3;
+	repeated Node nodes = 4;
+	repeated Container containers = 5;
+	string registry = 6;
+	string version = 7;
+	string pxe_ip = 8;
+	string base_iqn = 9;
+	string tftp = 10;
+}
+
+// Machine is a physical machine
+message Machine {
+	string uuid = 1 [(gogoproto.customname) = "UUID"];
+	uint32 cpus = 2;
+	uint32 memory = 3;
+	repeated string labels = 4;
+	repeated Netdev network_devices = 5;
+	repeated Disk disks = 6;
+}
+
+// Netdev is a network device
+message Netdev {
+	string mac = 1;
+	string name = 2;
+	uint32 speed = 3;
+}
+
+// Disk is a physical disk
+message Disk {
+	string uuid = 1;
+	uint32 size = 2;
+}
+
+// Value is a meta object mapping storage to an iqn
+message Volume {
+	string uuid = 1 [(gogoproto.customname) = "UUID"];
+	repeated Lun luns = 2;
+}
+
+message Lun {
+	uint32 id = 1 [(gogoproto.customname) = "ID"];
+	string path = 2;
+	string label = 3;
+}
+
+// Node is a meta object mapping physical resources to a hostname
+message Node {
+	string hostname = 1;
+	repeated string container_ids = 2;
+	repeated Interface interfaces = 3;
+	repeated string volume_ids = 4;
+	string machine_id = 5;
+}
+
+message Address {
+	string ip = 1;
+	string subnet = 2;
+}
+
+message Interface {
+	string name = 1;
+	Address address = 2;
+	repeated string slaves = 3;
+}
+
+message Container {
+	string id = 1 [(gogoproto.customname) = "ID"];
+}

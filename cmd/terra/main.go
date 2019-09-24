@@ -34,6 +34,7 @@ import (
 	"github.com/containerd/containerd/content"
 	"github.com/getsentry/raven-go"
 	"github.com/sirupsen/logrus"
+	v1 "github.com/stellarproject/terraos/api/cluster/v1"
 	"github.com/stellarproject/terraos/cmd"
 	"github.com/stellarproject/terraos/pkg/image"
 	"github.com/stellarproject/terraos/version"
@@ -44,7 +45,7 @@ const contentStorePath = "/content"
 
 func main() {
 	app := cli.NewApp()
-	app.Name = "terra-opts"
+	app.Name = "terra"
 	app.Version = version.Version
 	app.Usage = "Terra OS Management"
 	app.Description = `
@@ -76,6 +77,11 @@ Terra OS management`
 			Name:  "debug",
 			Usage: "enable debug output in the logs",
 		},
+		cli.StringFlag{
+			Name:  "cluster",
+			Usage: "cluster address",
+			Value: "127.0.0.1:6379",
+		},
 	}
 	app.Before = func(clix *cli.Context) error {
 		if clix.GlobalBool("debug") {
@@ -84,12 +90,8 @@ Terra OS management`
 		return nil
 	}
 	app.Commands = []cli.Command{
-		createCommand,
-		configCommand,
-		installCommand,
-		iscsiCommand,
-		pxeCommand,
-		updateCommand,
+		clusterCommand,
+		initCommand,
 	}
 	if err := app.Run(os.Args); err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -119,4 +121,8 @@ func Before(clix *cli.Context) error {
 
 func getStore() (content.Store, error) {
 	return image.NewContentStore(contentStorePath)
+}
+
+func getCluster(clix *cli.Context) *v1.Store {
+	return v1.New(clix.GlobalString("cluster"), "")
 }
