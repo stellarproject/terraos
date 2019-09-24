@@ -18,6 +18,7 @@ message Cluster {
 	string pxe_ip = 8;
 	string base_iqn = 9;
 	string tftp = 10;
+	repeated Volume volumes = 11;
 }
 
 // Machine is a physical machine
@@ -37,7 +38,7 @@ message Netdev {
 
 // Value is a meta object mapping storage to an iqn
 message Volume {
-	string uuid = 1 [(gogoproto.customname) = "UUID"];
+	string id = 1 [(gogoproto.customname) = "ID"];
 	repeated Lun luns = 2;
 }
 

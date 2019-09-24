@@ -29,23 +29,20 @@ package main
 
 import (
 	"fmt"
-	"net"
 	"os"
 	"strings"
 	"text/tabwriter"
 
-	sigar "github.com/cloudfoundry/gosigar"
-	"github.com/docker/go-units"
 	v1 "github.com/stellarproject/terraos/api/cluster/v1"
 	"github.com/stellarproject/terraos/cmd"
 	"github.com/urfave/cli"
 )
 
-var machineCommand = cli.Command{
-	Name:  "machine",
-	Usage: "manage machines",
+var volumeCommand = cli.Command{
+	Name:  "volume",
+	Usage: "manage volumes",
 	Subcommands: []cli.Command{
-		machineRegisterCommand,
+		volumeRegisterCommand,
 	},
 	Action: func(clix *cli.Context) error {
 		store := getCluster(clix)
@@ -57,26 +54,28 @@ var machineCommand = cli.Command{
 
 		w := tabwriter.NewWriter(os.Stdout, 10, 1, 3, ' ', 0)
 		const tfmt = "%s\t%d\t%s\t%s\n"
-		fmt.Fprint(w, "UUID\tCPUS\tMEMORY\tLABELS\n")
-		for _, m := range cluster.Machines {
-			fmt.Fprintf(w, tfmt,
-				m.UUID,
-				m.Cpus,
-				units.HumanSize(float64(m.Memory*1024*1024)),
-				strings.Join(m.Labels, ","),
-			)
+		fmt.Fprint(w, "ID\tLUN\tPATH\tLABEL\n")
+		for _, v := range cluster.Volumes {
+			for _, l := range v.Luns {
+				fmt.Fprintf(w, tfmt,
+					v.ID,
+					l.ID,
+					l.Path,
+					l.Label,
+				)
+			}
 		}
 		return w.Flush()
 	},
 }
 
-var machineRegisterCommand = cli.Command{
+var volumeRegisterCommand = cli.Command{
 	Name:  "register",
-	Usage: "register the current machine",
+	Usage: "register the current volume",
 	Flags: []cli.Flag{
 		cli.StringSliceFlag{
-			Name:  "label",
-			Usage: "machine labels",
+			Name:  "lun",
+			Usage: "lun info",
 			Value: &cli.StringSlice{},
 		},
 	},
@@ -87,39 +86,24 @@ var machineRegisterCommand = cli.Command{
 		if err != nil {
 			return err
 		}
-		cpu := sigar.CpuList{}
-		if err := cpu.Get(); err != nil {
-			return err
+		v := &v1.Volume{
+			ID: clix.Args().First(),
 		}
-		mem := sigar.Mem{}
-		if err := mem.Get(); err != nil {
-			return err
+		for i, s := range clix.StringSlice("lun") {
+			v.Luns = append(v.Luns, parseLun(i, s))
 		}
-		m := &v1.Machine{
-			Cpus:   uint32(len(cpu.List)),
-			Memory: mem.Total / 1024 / 1024,
-			Labels: clix.StringSlice("label"),
-		}
-		interfaces, err := net.Interfaces()
-		if err != nil {
-			return err
-		}
-		const skipFlags = net.FlagPointToPoint | net.FlagLoopback
-		for _, i := range interfaces {
-			if i.Flags&skipFlags != 0 {
-				continue
-			}
-			if i.Name == "docker0" || strings.Contains(i.Name, "virbr0") {
-				continue
-			}
-			m.NetworkDevices = append(m.NetworkDevices, &v1.Netdev{
-				Name: i.Name,
-				Mac:  i.HardwareAddr.String(),
-			})
-		}
-		if err := cluster.RegisterMachine(ctx, m); err != nil {
+		if err := cluster.RegisterVolume(ctx, v); err != nil {
 			return err
 		}
 		return store.Commit(ctx, cluster)
 	},
+}
+
+func parseLun(i int, s string) *v1.Lun {
+	parts := strings.SplitN(s, ":", 2)
+	return &v1.Lun{
+		ID:    uint32(i),
+		Path:  parts[0],
+		Label: parts[1],
+	}
 }

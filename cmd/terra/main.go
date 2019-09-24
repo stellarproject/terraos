@@ -92,6 +92,7 @@ Terra OS management`
 	app.Commands = []cli.Command{
 		clusterCommand,
 		machineCommand,
+		volumeCommand,
 		initCommand,
 	}
 	if err := app.Run(os.Args); err != nil {

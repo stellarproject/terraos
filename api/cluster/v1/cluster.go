@@ -43,3 +43,13 @@ func (c *Cluster) RegisterMachine(ctx context.Context, machine *Machine) error {
 	c.Machines = append(c.Machines, machine)
 	return nil
 }
+
+func (c *Cluster) RegisterVolume(ctx context.Context, v *Volume) error {
+	for _, vv := range c.Volumes {
+		if v.ID == vv.ID {
+			return ErrExists
+		}
+	}
+	c.Volumes = append(c.Volumes, v)
+	return nil
+}
