@@ -27,20 +27,12 @@ message Machine {
 	uint32 memory = 3;
 	repeated string labels = 4;
 	repeated Netdev network_devices = 5;
-	repeated Disk disks = 6;
 }
 
 // Netdev is a network device
 message Netdev {
 	string mac = 1;
 	string name = 2;
-	uint32 speed = 3;
-}
-
-// Disk is a physical disk
-message Disk {
-	string uuid = 1;
-	uint32 size = 2;
 }
 
 // Value is a meta object mapping storage to an iqn

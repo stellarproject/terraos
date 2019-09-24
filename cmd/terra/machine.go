@@ -28,13 +28,72 @@
 package main
 
 import (
+	"net"
+
+	sigar "github.com/cloudfoundry/gosigar"
+	v1 "github.com/stellarproject/terraos/api/cluster/v1"
+	"github.com/stellarproject/terraos/cmd"
 	"github.com/urfave/cli"
 )
 
 var machineCommand = cli.Command{
 	Name:  "machine",
 	Usage: "manage machines",
+	Subcommands: []cli.Command{
+		machineRegisterCommand,
+	},
 	Action: func(clix *cli.Context) error {
 		return nil
+	},
+}
+
+var machineRegisterCommand = cli.Command{
+	Name:  "register",
+	Usage: "register the current machine",
+	Flags: []cli.Flag{
+		cli.StringSliceFlag{
+			Name:  "label",
+			Usage: "machine labels",
+			Value: &cli.StringSlice{},
+		},
+	},
+	Action: func(clix *cli.Context) error {
+		store := getCluster(clix)
+		ctx := cmd.CancelContext()
+		cluster, err := store.Get(ctx)
+		if err != nil {
+			return err
+		}
+		cpu := sigar.CpuList{}
+		if err := cpu.Get(); err != nil {
+			return err
+		}
+		mem := sigar.Mem{}
+		if err := mem.Get(); err != nil {
+			return err
+		}
+		m := &v1.Machine{
+			Cpus:   uint32(len(cpu.List)),
+			Memory: uint32(mem.Total * 1024 * 1024),
+			Labels: clix.StringSlice("label"),
+		}
+		interfaces, err := net.Interfaces()
+		if err != nil {
+			return err
+		}
+		const skipFlags = net.FlagPointToPoint | net.FlagLoopback
+		for _, i := range interfaces {
+			if i.Flags&skipFlags != 0 {
+				continue
+			}
+			m.NetworkDevices = append(m.NetworkDevices, &v1.Netdev{
+				Name: i.Name,
+				Mac:  i.HardwareAddr.String(),
+			})
+		}
+		if err := cluster.RegisterMachine(ctx, m); err != nil {
+			return err
+		}
+		return store.Commit(ctx, cluster)
 	},
 }
