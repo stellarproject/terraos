@@ -38,14 +38,12 @@ message Netdev {
 
 // Value is a meta object mapping storage to an iqn
 message Volume {
-	string id = 1 [(gogoproto.customname) = "ID"];
-	repeated Lun luns = 2;
+	repeated Lun luns = 1;
 }
 
 message Lun {
-	uint32 id = 1 [(gogoproto.customname) = "ID"];
-	string path = 2;
-	string label = 3;
+	string path = 1;
+	string label = 2;
 }
 
 // Node is a meta object mapping physical resources to a hostname

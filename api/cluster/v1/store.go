@@ -42,6 +42,8 @@ const (
 	ClusterKey   = "terra.cluster"
 	ConfigsKey   = "terra.config.*"
 	ConfigFmtKey = "terra.config.%s"
+	VolumesKey   = "terra.volumes.*"
+	VolumeFmtKey = "terra.volumes.%s"
 )
 
 func New(address, auth string) *Store {
@@ -73,6 +75,12 @@ func (s *Store) Close() error {
 
 func (s *Store) Configs() *ConfigStore {
 	return &ConfigStore{
+		s: s,
+	}
+}
+
+func (s *Store) Volumes() *VolumeStore {
+	return &VolumeStore{
 		s: s,
 	}
 }
@@ -126,6 +134,69 @@ func (s *ConfigStore) Get(ctx context.Context, id string) (*Config, error) {
 		}
 	}
 	return &c, nil
+}
+
+type VolumeStore struct {
+	s *Store
+}
+
+func (s *VolumeStore) Save(ctx context.Context, id string, v *Volume) error {
+	key := fmt.Sprintf(VolumeFmtKey, id)
+	args := []interface{}{
+		key,
+	}
+	for i, l := range v.Luns {
+		args = append(args,
+			fmt.Sprintf("lun[%d].path", i), l.Path,
+			fmt.Sprintf("lun[%d].label", i), l.Label,
+		)
+	}
+	if _, err := s.s.do(ctx, "HMSET", args...); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *VolumeStore) List(ctx context.Context) (map[string]*Volume, error) {
+	keys, err := redis.Strings(s.s.do(ctx, "KEYS", VolumesKey))
+	if err != nil {
+		return nil, err
+	}
+	out := make(map[string]*Volume, len(keys))
+	for _, key := range keys {
+		parts := strings.SplitN(key, ".", 3)
+		if len(parts) != 3 {
+			return nil, errors.New("invalid key type")
+		}
+		id := parts[2]
+		c, err := s.Get(ctx, id)
+		if err != nil {
+			return nil, err
+		}
+		out[id] = c
+	}
+	return out, nil
+}
+
+func (s *VolumeStore) Get(ctx context.Context, id string) (*Volume, error) {
+	key := fmt.Sprintf(VolumeFmtKey, id)
+	values, err := redis.StringMap(s.s.do(ctx, "HGETALL", key))
+	if err != nil {
+		return nil, err
+	}
+	var v Volume
+	for i := 0; i <= 8; i++ {
+		path, ok := values[fmt.Sprintf("lun[%d].path", i)]
+		if !ok {
+			break
+		}
+		label := values[fmt.Sprintf("lun[%d].label", i)]
+		v.Luns = append(v.Luns, &Lun{
+			Path:  path,
+			Label: label,
+		})
+	}
+	return &v, nil
 }
 
 func (s *Store) Get(ctx context.Context) (*Cluster, error) {

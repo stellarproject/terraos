@@ -42,12 +42,12 @@ var volumeCommand = cli.Command{
 	Name:  "volume",
 	Usage: "manage volumes",
 	Subcommands: []cli.Command{
-		volumeRegisterCommand,
+		volumeAddCommand,
 	},
 	Action: func(clix *cli.Context) error {
 		store := getCluster(clix)
 		ctx := cmd.CancelContext()
-		cluster, err := store.Get(ctx)
+		volumes, err := store.Volumes().List(ctx)
 		if err != nil {
 			return err
 		}
@@ -55,11 +55,11 @@ var volumeCommand = cli.Command{
 		w := tabwriter.NewWriter(os.Stdout, 10, 1, 3, ' ', 0)
 		const tfmt = "%s\t%d\t%s\t%s\n"
 		fmt.Fprint(w, "ID\tLUN\tPATH\tLABEL\n")
-		for _, v := range cluster.Volumes {
-			for _, l := range v.Luns {
+		for id, v := range volumes {
+			for i, l := range v.Luns {
 				fmt.Fprintf(w, tfmt,
-					v.ID,
-					l.ID,
+					id,
+					i,
 					l.Path,
 					l.Label,
 				)
@@ -69,9 +69,9 @@ var volumeCommand = cli.Command{
 	},
 }
 
-var volumeRegisterCommand = cli.Command{
-	Name:  "register",
-	Usage: "register the current volume",
+var volumeAddCommand = cli.Command{
+	Name:  "add",
+	Usage: "add a volume",
 	Flags: []cli.Flag{
 		cli.StringSliceFlag{
 			Name:  "lun",
@@ -82,20 +82,12 @@ var volumeRegisterCommand = cli.Command{
 	Action: func(clix *cli.Context) error {
 		store := getCluster(clix)
 		ctx := cmd.CancelContext()
-		cluster, err := store.Get(ctx)
-		if err != nil {
-			return err
-		}
-		v := &v1.Volume{
-			ID: clix.Args().First(),
-		}
+		id := clix.Args().First()
+		v := &v1.Volume{}
 		for i, s := range clix.StringSlice("lun") {
 			v.Luns = append(v.Luns, parseLun(i, s))
 		}
-		if err := cluster.RegisterVolume(ctx, v); err != nil {
-			return err
-		}
-		return store.Commit(ctx, cluster)
+		return store.Volumes().Save(ctx, id, v)
 	},
 }
 
