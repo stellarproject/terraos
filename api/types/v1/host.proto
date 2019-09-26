@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package io.stellarproject.types.v1;
+
+import weak "gogoproto/gogo.proto";
+
+option go_package = "github.com/stellarproject/terraos/api/types/v1;v1";
+
+message Host {
+	string name = 1;
+	string addresss = 2;
+	uint32 cpus = 3;
+	uint64 memory = 4;
+	string version = 5;
+}

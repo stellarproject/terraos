@@ -1,0 +1,139 @@
+syntax = "proto3";
+
+package io.stellarproject.orbit.v2;
+
+import weak "gogoproto/gogo.proto";
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/any.proto";
+
+option go_package = "github.com/stellarproject/terraos/api/orbit/v2;v2";
+
+service Orbit {
+	rpc Deploy(DeployRequest) returns (DeployResponse);
+	rpc Remove(RemoveRequest) returns (google.protobuf.Empty);
+	rpc State(google.protobuf.Empty) returns (StateResponse);
+}
+
+message DeployRequest {
+	Container container = 1;
+}
+
+message DeployResponse {
+	ContainerInfo container = 1;
+}
+
+message RemoveRequest {
+	string id = 1 [(gogoproto.customname) = "ID"];
+}
+
+message StateResponse {
+	uint32 cpus = 1;
+	uint64 memory = 2;
+	repeated ContainerInfo containers = 3;
+}
+
+enum ContainerType {
+	option (gogoproto.goproto_enum_prefix) = false;
+	option (gogoproto.enum_customname) = "ContainerType";
+
+	LINUX = 0 [(gogoproto.enumvalue_customname) = "Linux"];
+	VM = 2 [(gogoproto.enumvalue_customname) = "VM"];
+}
+
+message ContainerInfo {
+	string id = 1 [(gogoproto.customname) = "ID"];
+	string image = 2;
+	string status = 3;
+	uint64 cpu = 4;
+	double memory_usage = 5;
+	double memory_limit = 6;
+	uint64 pid_usage = 7;
+	uint64 pid_limit = 8;
+	Container config = 9;
+	repeated Snapshot snapshots = 10;
+	string address = 11;
+}
+
+message Snapshot {
+	string id = 1 [(gogoproto.customname) = "ID"];
+	google.protobuf.Timestamp created = 2 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
+	string previous = 3;
+	int64 fs_size = 4;
+}
+
+message HostNetwork {
+
+}
+
+message CNIIPAM {
+	string type = 1;
+	string Subnet = 2;
+	string gateway = 3;
+	string subnet_range = 4;
+}
+
+message CNINetwork {
+	string type = 1;
+	string name = 2;
+	CNIIPAM ipam =3 [(gogoproto.customname) = "IPAM"];
+	string master = 4;
+	string bridge = 5;
+}
+
+message Security {
+	bool privileged = 1;
+	repeated string capabilities = 2;
+	repeated string masked_paths = 3;
+}
+
+message Container {
+	string id = 1 [(gogoproto.customname) = "ID"];
+	string image = 2;
+	repeated google.protobuf.Any networks = 3;
+	Process process = 4;
+	repeated Resource resources = 5;
+	System system = 6;
+	GPUs gpus = 7;
+	bool readonly = 8;
+	Security security = 9;
+}
+
+enum ResourceType {
+	option (gogoproto.goproto_enum_prefix) = false;
+	option (gogoproto.enum_customname) = "ResourceType";
+
+	VOLUME = 0 [(gogoproto.enumvalue_customname) = "VolumeType"];
+	CONFIG = 1 [(gogoproto.enumvalue_customname) = "ConfigType"];
+}
+
+message Resource {
+	string id = 1 [(gogoproto.customname) = "ID"];
+	ResourceType type = 2;
+	string path = 3;
+	map<string, string> annotations = 4;
+}
+
+message GPUs {
+	repeated int64 devices = 1;
+	repeated string capabilities = 2;
+}
+
+message System {
+	double cpus = 1;
+	int64 memory = 2;
+	int64 score = 3;
+	uint64 no_file = 4;
+}
+
+message Process {
+	User user = 1;
+	repeated string args = 2;
+	repeated string env = 3;
+	bool pty = 4;
+}
+
+message User {
+	uint32 uid = 1;
+	uint32 gid = 2;
+}
