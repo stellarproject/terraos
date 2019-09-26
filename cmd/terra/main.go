@@ -73,9 +73,14 @@ Terra OS management`
 			Usage: "enable debug output in the logs",
 		},
 		cli.StringFlag{
-			Name:  "cluster",
-			Usage: "cluster address",
+			Name:  "redis",
+			Usage: "redis address",
 			Value: "127.0.0.1:6379",
+		},
+		cli.StringFlag{
+			Name:  "address",
+			Usage: "grpc address",
+			Value: "127.0.0.1:9000",
 		},
 	}
 	app.Before = func(clix *cli.Context) error {

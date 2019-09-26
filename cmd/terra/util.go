@@ -84,7 +84,7 @@ func getStore() (content.Store, error) {
 }
 
 func getCluster(clix *cli.Context) *server.Store {
-	return server.NewStore(clix.GlobalString("cluster"), "")
+	return server.NewStore(clix.GlobalString("redis"), "")
 }
 
 func tmpContentStore() (content.Store, func() error, error) {
