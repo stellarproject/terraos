@@ -81,7 +81,10 @@ Terra OS management`
 			Usage: "repository for terra images",
 			Value: "docker.io/stellarproject",
 		},
-
+		cli.BoolFlag{
+			Name:  "http",
+			Usage: "fetch over http",
+		},
 		/*
 			cli.StringFlag{
 				Name:  "redis",
@@ -104,6 +107,7 @@ Terra OS management`
 	}
 	app.Commands = []cli.Command{
 		installCommand,
+		pxeCommand,
 		// machineCommand,
 		// volumeCommand,
 		// configCommand,

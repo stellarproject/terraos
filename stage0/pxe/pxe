@@ -13,13 +13,34 @@ rescue_shell() {
     exec /bin/sh
 }
 
+_setup_fstab() {
+	echo "" > "$1"
+}
+
+_setup_nameservers() {
+	echo "" > "$2"
+	IFS=","
+	for ns in "$1"; do
+		echo "nameserver $ns" >> "$2"
+	done
+}
+
+_setup_hosts() {
+	echo "127.0.0.1       localhost $1" > "$2"
+	echo "::1             localhost ip6-localhost ip6-loopback" >> "$2"
+	echo "ff02::1         ip6-allnodes" >> "$2"
+	echo "ff02::2         ip6-allrouters" >> "$2"
+}
+
 local_mount_root()
 {
 	local_top
 	local_device_setup "${ROOT}" "root file system"
 	ROOT="${DEV}"
-	DISK_LABEL="${disk_label}"
+	DISK_LABEL=${disk_label}
 	VERSION=${version}
+	HOSTNAME=${terra_hostname}
+	NAMESERVERS=${nameservers}
 	if [ -z "${DISK_LABEL}" ]; then
 		DISK_LABEL="os"
 	fi
@@ -42,4 +63,14 @@ local_mount_root()
 	checkfs ${ROOT} root "${FSTYPE}"
 
 	mount -t ${FSTYPE} ${ROOTFLAGS} ${ROOT} ${rootmnt} || rescue_shell
+
+	_setup_fstab ${rootmnt}/etc/fstab
+	# setup hostname
+	echo "$HOSTNAME" > ${rootmnt}}/etc/hostname
+	if [ -z "$NAMESERVERS" ]; then
+		true
+	else
+		_setup_nameservers $NAMESERVERS ${rootmnt}/etc/resolv.conf
+	fi
+	_setup_hosts $HOSTNAME ${rootmnt}/etc/hosts
 }

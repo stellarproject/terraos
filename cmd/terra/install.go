@@ -45,10 +45,6 @@ var installCommand = cli.Command{
 	Name:  "install",
 	Usage: "install terra onto a physical disk",
 	Flags: []cli.Flag{
-		cli.BoolFlag{
-			Name:  "http",
-			Usage: "fetch image over http",
-		},
 		cli.StringFlag{
 			Name:  "os",
 			Usage: "os device (include parition)",
@@ -101,7 +97,7 @@ var installCommand = cli.Command{
 		if err != nil {
 			return errors.Wrap(err, "new content store")
 		}
-		desc, err := image.Fetch(ctx, clix.Bool("http"), store, getTerraImage(clix, ver))
+		desc, err := image.Fetch(ctx, clix.GlobalBool("http"), store, getTerraImage(clix, ver))
 		if err != nil {
 			return errors.Wrap(err, "fetch image")
 		}
@@ -157,4 +153,8 @@ func (d *dev) mount(dest string) (func() error, error) {
 
 func getTerraImage(clix *cli.Context, version string) string {
 	return filepath.Join(clix.GlobalString("repository"), fmt.Sprintf("%s:%s", terraImage, version))
+}
+
+func getPXEImage(clix *cli.Context, version string) string {
+	return filepath.Join(clix.GlobalString("repository"), fmt.Sprintf("%s:%s", pxeImage, version))
 }

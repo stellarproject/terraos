@@ -28,15 +28,12 @@
 package main
 
 import (
-	"bufio"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"strconv"
 	"strings"
 
 	"github.com/containerd/containerd/content"
-	"github.com/pkg/errors"
 	"github.com/stellarproject/terraos/pkg/image"
 	"github.com/stellarproject/terraos/server"
 	"github.com/urfave/cli"
@@ -51,18 +48,6 @@ func removePartition(device string) string {
 		partition = "p" + partition
 	}
 	return strings.TrimSuffix(device, partition)
-}
-
-func checkYes(msg string, scanner *bufio.Scanner) error {
-	fmt.Fprint(os.Stderr, msg)
-	fmt.Fprintln(os.Stderr, " [y/n]")
-	if !scanner.Scan() {
-		return errors.New("no input")
-	}
-	if strings.ToLower(scanner.Text()) == "y" {
-		return nil
-	}
-	return errors.New("user aborted")
 }
 
 func getStore() (content.Store, error) {
