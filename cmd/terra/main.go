@@ -31,10 +31,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/containerd/containerd/content"
 	"github.com/sirupsen/logrus"
-	v1 "github.com/stellarproject/terraos/api/cluster/v1"
-	"github.com/stellarproject/terraos/pkg/image"
 	"github.com/stellarproject/terraos/version"
 	"github.com/urfave/cli"
 )
@@ -91,6 +88,7 @@ Terra OS management`
 		machineCommand,
 		volumeCommand,
 		configCommand,
+		unpackCommand,
 	}
 	if err := app.Run(os.Args); err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -103,12 +101,4 @@ func Before(clix *cli.Context) error {
 		logrus.SetLevel(logrus.DebugLevel)
 	}
 	return nil
-}
-
-func getStore() (content.Store, error) {
-	return image.NewContentStore(contentStorePath)
-}
-
-func getCluster(clix *cli.Context) *v1.Store {
-	return v1.New(clix.GlobalString("cluster"), "")
 }
