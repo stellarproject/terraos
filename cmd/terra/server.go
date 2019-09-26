@@ -25,50 +25,23 @@
 	THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package util
+package main
 
 import (
-	tv1 "github.com/stellarproject/terraos/api/terra/v1"
-	v1 "github.com/stellarproject/terraos/api/v1/orbit"
-	"google.golang.org/grpc"
+	"github.com/stellarproject/terraos/server"
+	"github.com/urfave/cli"
 )
 
-type LocalAgent struct {
-	v1.AgentClient
-	conn *grpc.ClientConn
-}
-
-func (a *LocalAgent) Close() error {
-	return a.conn.Close()
-}
-
-func Agent(address string) (*LocalAgent, error) {
-	conn, err := grpc.Dial(address, grpc.WithInsecure())
-	if err != nil {
-		return nil, err
-	}
-	return &LocalAgent{
-		AgentClient: v1.NewAgentClient(conn),
-		conn:        conn,
-	}, nil
-}
-
-type LocalTerra struct {
-	tv1.TerraClient
-	conn *grpc.ClientConn
-}
-
-func (l *LocalTerra) Close() error {
-	return l.conn.Close()
-}
-
-func Terra(address string) (*LocalTerra, error) {
-	conn, err := grpc.Dial(address, grpc.WithInsecure())
-	if err != nil {
-		return nil, err
-	}
-	return &LocalTerra{
-		TerraClient: tv1.NewTerraClient(conn),
-		conn:        conn,
-	}, nil
+var serverCommand = cli.Command{
+	Name:  "server",
+	Usage: "run the terra server",
+	Action: func(clix *cli.Context) error {
+		store := getCluster(clix)
+		server, err := server.New(store)
+		if err != nil {
+			return err
+		}
+		server = server
+		return nil
+	},
 }

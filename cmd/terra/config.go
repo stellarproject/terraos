@@ -28,14 +28,6 @@
 package main
 
 import (
-	"fmt"
-	"io/ioutil"
-	"os"
-	"text/tabwriter"
-
-	"github.com/pkg/errors"
-	v1 "github.com/stellarproject/terraos/api/cluster/v1"
-	"github.com/stellarproject/terraos/cmd"
 	"github.com/urfave/cli"
 )
 
@@ -47,40 +39,47 @@ var configCommand = cli.Command{
 		configGetCommand,
 	},
 	Action: func(clix *cli.Context) error {
-		store := getCluster(clix)
-		ctx := cmd.CancelContext()
-		configs, err := store.Configs().List(ctx)
-		if err != nil {
-			return err
-		}
-		w := tabwriter.NewWriter(os.Stdout, 10, 1, 3, ' ', 0)
-		const tfmt = "%s\t%s\n"
-		fmt.Fprint(w, "ID\tPATH\n")
-		for _, c := range configs {
-			fmt.Fprintf(w, tfmt,
-				c.ID,
-				c.Path,
-			)
-		}
-		return w.Flush()
+		return nil
+		/*
+			store := getCluster(clix)
+			ctx := cmd.CancelContext()
+			configs, err := store.Configs().List(ctx)
+			if err != nil {
+				return err
+			}
+			w := tabwriter.NewWriter(os.Stdout, 10, 1, 3, ' ', 0)
+			const tfmt = "%s\t%s\n"
+			fmt.Fprint(w, "ID\tPATH\n")
+			for _, c := range configs {
+				fmt.Fprintf(w, tfmt,
+					c.ID,
+					c.Path,
+				)
+			}
+			return w.Flush()
+		*/
 	},
 }
+
 var configGetCommand = cli.Command{
 	Name:  "get",
 	Usage: "get a config",
 	Action: func(clix *cli.Context) error {
-		id := clix.Args().First()
-		if id == "" {
-			return errors.New("no config id")
-		}
-		store := getCluster(clix)
-		ctx := cmd.CancelContext()
-		c, err := store.Configs().Get(ctx, id)
-		if err != nil {
+		return nil
+		/*
+			id := clix.Args().First()
+			if id == "" {
+				return errors.New("no config id")
+			}
+			store := getCluster(clix)
+			ctx := cmd.CancelContext()
+			c, err := store.Configs().Get(ctx, id)
+			if err != nil {
+				return err
+			}
+			_, err = os.Stdout.Write(c.Contents)
 			return err
-		}
-		_, err = os.Stdout.Write(c.Contents)
-		return err
+		*/
 	},
 }
 var configAddCommand = cli.Command{
@@ -93,34 +92,37 @@ var configAddCommand = cli.Command{
 		},
 	},
 	Action: func(clix *cli.Context) error {
-		id := clix.Args().First()
-		if id == "" {
-			return errors.New("no config id")
-		}
-		path := clix.Args().Get(1)
-		if path == "" {
-			return errors.New("no config path")
-		}
-		var (
-			data []byte
-			err  error
-		)
-		rd := clix.Args().Get(2)
-		if rd != "" {
-			data = []byte(rd)
-		}
-		if clix.Bool("stdin") {
-			if data, err = ioutil.ReadAll(os.Stdin); err != nil {
-				return errors.Wrap(err, "reading stdin")
+		return nil
+		/*
+			id := clix.Args().First()
+			if id == "" {
+				return errors.New("no config id")
 			}
-		}
-		store := getCluster(clix)
-		ctx := cmd.CancelContext()
-		c := &v1.Config{
-			ID:       id,
-			Path:     path,
-			Contents: data,
-		}
-		return store.Configs().Save(ctx, c)
+			path := clix.Args().Get(1)
+			if path == "" {
+				return errors.New("no config path")
+			}
+			var (
+				data []byte
+				err  error
+			)
+			rd := clix.Args().Get(2)
+			if rd != "" {
+				data = []byte(rd)
+			}
+			if clix.Bool("stdin") {
+				if data, err = ioutil.ReadAll(os.Stdin); err != nil {
+					return errors.Wrap(err, "reading stdin")
+				}
+			}
+			store := getCluster(clix)
+			ctx := cmd.CancelContext()
+			c := &v1.Config{
+				ID:       id,
+				Path:     path,
+				Contents: data,
+			}
+			return store.Configs().Save(ctx, c)
+		*/
 	},
 }

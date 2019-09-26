@@ -28,6 +28,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"net"
 	"os"
@@ -36,8 +37,11 @@ import (
 
 	sigar "github.com/cloudfoundry/gosigar"
 	"github.com/docker/go-units"
-	v1 "github.com/stellarproject/terraos/api/cluster/v1"
+	"github.com/gogo/protobuf/types"
+	v1 "github.com/stellarproject/terraos/api/terra/v1"
+	tv1 "github.com/stellarproject/terraos/api/types/v1"
 	"github.com/stellarproject/terraos/cmd"
+	"github.com/stellarproject/terraos/util"
 	"github.com/urfave/cli"
 )
 
@@ -48,22 +52,25 @@ var machineCommand = cli.Command{
 		machineRegisterCommand,
 	},
 	Action: func(clix *cli.Context) error {
-		store := getCluster(clix)
 		ctx := cmd.CancelContext()
-		machines, err := store.Machines().List(ctx)
+		client, err := util.Terra(clix.GlobalString("address"))
+		if err != nil {
+			return err
+		}
+		defer client.Close()
+		resp, err := client.Machines(ctx, &types.Empty{})
 		if err != nil {
 			return err
 		}
 
 		w := tabwriter.NewWriter(os.Stdout, 10, 1, 3, ' ', 0)
-		const tfmt = "%s\t%d\t%s\t%s\n"
-		fmt.Fprint(w, "UUID\tCPUS\tMEMORY\tLABELS\n")
-		for _, m := range machines {
+		const tfmt = "%s\t%d\t%s\n"
+		fmt.Fprint(w, "UUID\tCPUS\tMEMORY\n")
+		for _, m := range resp.Machines {
 			fmt.Fprintf(w, tfmt,
 				m.UUID,
 				m.Cpus,
 				units.HumanSize(float64(m.Memory*1024*1024)),
-				strings.Join(m.Labels, ","),
 			)
 		}
 		return w.Flush()
@@ -73,30 +80,27 @@ var machineCommand = cli.Command{
 var machineRegisterCommand = cli.Command{
 	Name:  "register",
 	Usage: "register the current machine",
-	Flags: []cli.Flag{
-		cli.StringSliceFlag{
-			Name:  "label",
-			Usage: "machine labels",
-			Value: &cli.StringSlice{},
-		},
-	},
 	Action: func(clix *cli.Context) error {
 		var (
-			store = getCluster(clix)
-			ctx   = cmd.CancelContext()
-			cpu   = sigar.CpuList{}
-			mem   = sigar.Mem{}
+			ctx = cmd.CancelContext()
+			cpu = sigar.CpuList{}
+			mem = sigar.Mem{}
 		)
+		client, err := util.Terra(clix.GlobalString("address"))
+		if err != nil {
+			return err
+		}
+		defer client.Close()
+
 		if err := cpu.Get(); err != nil {
 			return err
 		}
 		if err := mem.Get(); err != nil {
 			return err
 		}
-		m := &v1.Machine{
+		m := &v1.RegisterRequest{
 			Cpus:   uint32(len(cpu.List)),
 			Memory: mem.Total / 1024 / 1024,
-			Labels: clix.StringSlice("label"),
 		}
 		interfaces, err := net.Interfaces()
 		if err != nil {
@@ -110,11 +114,17 @@ var machineRegisterCommand = cli.Command{
 			if i.Name == "docker0" || strings.Contains(i.Name, "virbr0") {
 				continue
 			}
-			m.NetworkDevices = append(m.NetworkDevices, &v1.Netdev{
+			m.NetworkDevices = append(m.NetworkDevices, &tv1.Netdev{
 				Name: i.Name,
 				Mac:  i.HardwareAddr.String(),
 			})
 		}
-		return store.Machines().Register(ctx, m)
+		resp, err := client.Register(ctx, m)
+		if err != nil {
+			return err
+		}
+		enc := json.NewEncoder(os.Stdout)
+		enc.SetIndent("", " ")
+		return enc.Encode(resp.Machine)
 	},
 }

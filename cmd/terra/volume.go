@@ -28,13 +28,9 @@
 package main
 
 import (
-	"fmt"
-	"os"
 	"strings"
-	"text/tabwriter"
 
 	v1 "github.com/stellarproject/terraos/api/cluster/v1"
-	"github.com/stellarproject/terraos/cmd"
 	"github.com/urfave/cli"
 )
 
@@ -45,27 +41,31 @@ var volumeCommand = cli.Command{
 		volumeAddCommand,
 	},
 	Action: func(clix *cli.Context) error {
-		store := getCluster(clix)
-		ctx := cmd.CancelContext()
-		volumes, err := store.Volumes().List(ctx)
-		if err != nil {
-			return err
-		}
+		return nil
 
-		w := tabwriter.NewWriter(os.Stdout, 10, 1, 3, ' ', 0)
-		const tfmt = "%s\t%d\t%s\t%s\n"
-		fmt.Fprint(w, "ID\tLUN\tPATH\tLABEL\n")
-		for _, v := range volumes {
-			for i, l := range v.Luns {
-				fmt.Fprintf(w, tfmt,
-					v.ID,
-					i,
-					l.Path,
-					l.Label,
-				)
+		/*
+			store := getCluster(clix)
+			ctx := cmd.CancelContext()
+			volumes, err := store.Volumes().List(ctx)
+			if err != nil {
+				return err
 			}
-		}
-		return w.Flush()
+
+			w := tabwriter.NewWriter(os.Stdout, 10, 1, 3, ' ', 0)
+			const tfmt = "%s\t%d\t%s\t%s\n"
+			fmt.Fprint(w, "ID\tLUN\tPATH\tLABEL\n")
+			for _, v := range volumes {
+				for i, l := range v.Luns {
+					fmt.Fprintf(w, tfmt,
+						v.ID,
+						i,
+						l.Path,
+						l.Label,
+					)
+				}
+			}
+			return w.Flush()
+		*/
 	},
 }
 
@@ -80,16 +80,19 @@ var volumeAddCommand = cli.Command{
 		},
 	},
 	Action: func(clix *cli.Context) error {
-		store := getCluster(clix)
-		ctx := cmd.CancelContext()
-		id := clix.Args().First()
-		v := &v1.Volume{
-			ID: id,
-		}
-		for i, s := range clix.StringSlice("lun") {
-			v.Luns = append(v.Luns, parseLun(i, s))
-		}
-		return store.Volumes().Save(ctx, v)
+		return nil
+		/*
+			store := getCluster(clix)
+			ctx := cmd.CancelContext()
+			id := clix.Args().First()
+			v := &v1.Volume{
+				ID: id,
+			}
+			for i, s := range clix.StringSlice("lun") {
+				v.Luns = append(v.Luns, parseLun(i, s))
+			}
+			return store.Volumes().Save(ctx, v)
+		*/
 	},
 }
 

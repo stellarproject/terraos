@@ -37,8 +37,8 @@ import (
 
 	"github.com/containerd/containerd/content"
 	"github.com/pkg/errors"
-	v1 "github.com/stellarproject/terraos/api/cluster/v1"
 	"github.com/stellarproject/terraos/pkg/image"
+	"github.com/stellarproject/terraos/server"
 	"github.com/urfave/cli"
 )
 
@@ -83,8 +83,8 @@ func getStore() (content.Store, error) {
 	return image.NewContentStore(contentStorePath)
 }
 
-func getCluster(clix *cli.Context) *v1.Store {
-	return v1.New(clix.GlobalString("cluster"), "")
+func getCluster(clix *cli.Context) *server.Store {
+	return server.NewStore(clix.GlobalString("cluster"), "")
 }
 
 func tmpContentStore() (content.Store, func() error, error) {

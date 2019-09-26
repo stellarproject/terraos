@@ -14,21 +14,6 @@ message Cluster {
 	string tftp = 5;
 }
 
-// Machine is a physical machine
-message Machine {
-	string uuid = 1 [(gogoproto.customname) = "UUID"];
-	uint32 cpus = 2;
-	uint64 memory = 3;
-	repeated string labels = 4;
-	repeated Netdev network_devices = 5;
-}
-
-// Netdev is a network device
-message Netdev {
-	string mac = 1;
-	string name = 2;
-}
-
 // Value is a meta object mapping storage to an iqn
 message Volume {
 	string id = 1 [(gogoproto.customname) = "ID"];

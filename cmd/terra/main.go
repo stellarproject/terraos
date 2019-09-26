@@ -89,6 +89,7 @@ Terra OS management`
 		volumeCommand,
 		configCommand,
 		unpackCommand,
+		serverCommand,
 	}
 	if err := app.Run(os.Args); err != nil {
 		fmt.Fprintln(os.Stderr, err)

@@ -25,7 +25,7 @@
 	THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package v1
+package server
 
 import (
 	"context"
@@ -34,8 +34,8 @@ import (
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/gomodule/redigo/redis"
-	"github.com/google/uuid"
 	"github.com/pkg/errors"
+	v1 "github.com/stellarproject/terraos/api/types/v1"
 )
 
 // this package includes global redis keys and functions
@@ -48,7 +48,7 @@ const (
 	MachinesKey   = "terra.machines.*"
 )
 
-func New(address, auth string) *Store {
+func NewStore(address, auth string) *Store {
 	pool := redis.NewPool(func() (redis.Conn, error) {
 		conn, err := redis.Dial("tcp", address)
 		if err != nil {
@@ -97,12 +97,12 @@ type MachineStore struct {
 	s *Store
 }
 
-func (s *MachineStore) List(ctx context.Context) ([]*Machine, error) {
+func (s *MachineStore) List(ctx context.Context) ([]*v1.Machine, error) {
 	keys, err := redis.Strings(s.s.do(ctx, "KEYS", MachinesKey))
 	if err != nil {
 		return nil, err
 	}
-	var out []*Machine
+	var out []*v1.Machine
 	for _, key := range keys {
 		parts := strings.SplitN(key, ".", 3)
 		if len(parts) != 3 {
@@ -118,23 +118,18 @@ func (s *MachineStore) List(ctx context.Context) ([]*Machine, error) {
 	return out, nil
 }
 
-func (s *MachineStore) Register(ctx context.Context, c *Machine) error {
-	c.UUID = uuid.New().String()
-	return s.Save(ctx, c)
-}
-
-func (s *MachineStore) Save(ctx context.Context, c *Machine) error {
+func (s *MachineStore) Save(ctx context.Context, c *v1.Machine) error {
 	key := fmt.Sprintf(MachineFmtKey, c.UUID)
 	return s.s.setProto(ctx, key, c)
 }
 
-func (s *MachineStore) Get(ctx context.Context, id string) (*Machine, error) {
+func (s *MachineStore) Get(ctx context.Context, id string) (*v1.Machine, error) {
 	key := fmt.Sprintf(MachineFmtKey, id)
 	data, err := redis.Bytes(s.s.do(ctx, "GET", key))
 	if err != nil {
 		return nil, errors.Wrap(err, "get machine")
 	}
-	var m Machine
+	var m v1.Machine
 	if err := proto.Unmarshal(data, &m); err != nil {
 		return nil, err
 	}
@@ -145,6 +140,7 @@ type ConfigStore struct {
 	s *Store
 }
 
+/*
 func (s *ConfigStore) List(ctx context.Context) ([]*Config, error) {
 	keys, err := redis.Strings(s.s.do(ctx, "KEYS", ConfigsKey))
 	if err != nil {
@@ -183,11 +179,13 @@ func (s *ConfigStore) Get(ctx context.Context, id string) (*Config, error) {
 	}
 	return &c, nil
 }
+*/
 
 type VolumeStore struct {
 	s *Store
 }
 
+/*
 func (s *VolumeStore) Save(ctx context.Context, v *Volume) error {
 	key := fmt.Sprintf(VolumeFmtKey, v.ID)
 	return s.s.setProto(ctx, key, v)
@@ -226,6 +224,7 @@ func (s *VolumeStore) Get(ctx context.Context, id string) (*Volume, error) {
 	}
 	return &v, nil
 }
+*/
 
 func (s *Store) do(ctx context.Context, action string, args ...interface{}) (interface{}, error) {
 	conn, err := s.pool.GetContext(ctx)

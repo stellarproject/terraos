@@ -25,50 +25,50 @@
 	THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package util
+package server
 
 import (
-	tv1 "github.com/stellarproject/terraos/api/terra/v1"
-	v1 "github.com/stellarproject/terraos/api/v1/orbit"
-	"google.golang.org/grpc"
+	"context"
+
+	"github.com/gogo/protobuf/types"
+	"github.com/google/uuid"
+	v1 "github.com/stellarproject/terraos/api/terra/v1"
+	v1types "github.com/stellarproject/terraos/api/types/v1"
 )
 
-type LocalAgent struct {
-	v1.AgentClient
-	conn *grpc.ClientConn
-}
-
-func (a *LocalAgent) Close() error {
-	return a.conn.Close()
-}
-
-func Agent(address string) (*LocalAgent, error) {
-	conn, err := grpc.Dial(address, grpc.WithInsecure())
-	if err != nil {
-		return nil, err
-	}
-	return &LocalAgent{
-		AgentClient: v1.NewAgentClient(conn),
-		conn:        conn,
+func New(store *Store) (*Server, error) {
+	return &Server{
+		store: store,
 	}, nil
 }
 
-type LocalTerra struct {
-	tv1.TerraClient
-	conn *grpc.ClientConn
+type Server struct {
+	store *Store
 }
 
-func (l *LocalTerra) Close() error {
-	return l.conn.Close()
+func (s *Server) Register(ctx context.Context, r *v1.RegisterRequest) (*v1.RegisterResponse, error) {
+	m := &v1types.Machine{
+		UUID:           uuid.New().String(),
+		Cpus:           r.Cpus,
+		Memory:         r.Memory,
+		NetworkDevices: r.NetworkDevices,
+	}
+	if err := s.store.Machines().Save(ctx, m); err != nil {
+		return nil, err
+	}
+	return &v1.RegisterResponse{
+		Machine: m,
+	}, nil
 }
 
-func Terra(address string) (*LocalTerra, error) {
-	conn, err := grpc.Dial(address, grpc.WithInsecure())
+func (s *Server) Machines(ctx context.Context, _ *types.Empty) (*v1.MachinesResponse, error) {
+	machines, err := s.store.Machines().List(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return &LocalTerra{
-		TerraClient: tv1.NewTerraClient(conn),
-		conn:        conn,
-	}, nil
+	var resp v1.MachinesResponse
+	for _, m := range machines {
+		resp.Machines = append(resp.Machines, m)
+	}
+	return &resp, nil
 }
