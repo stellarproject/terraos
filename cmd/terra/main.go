@@ -36,7 +36,11 @@ import (
 	"github.com/urfave/cli"
 )
 
-const contentStorePath = "/content"
+const (
+	contentStorePath = "/content"
+	terraImage       = "terraos"
+	pxeImage         = "pxe"
+)
 
 func main() {
 	app := cli.NewApp()
@@ -73,15 +77,24 @@ Terra OS management`
 			Usage: "enable debug output in the logs",
 		},
 		cli.StringFlag{
-			Name:  "redis",
-			Usage: "redis address",
-			Value: "127.0.0.1:6379",
+			Name:  "repository,r",
+			Usage: "repository for terra images",
+			Value: "docker.io/stellarproject",
 		},
-		cli.StringFlag{
-			Name:  "address",
-			Usage: "grpc address",
-			Value: "127.0.0.1:9000",
-		},
+
+		/*
+			cli.StringFlag{
+				Name:  "redis",
+				Usage: "redis address",
+				Value: "127.0.0.1:6379",
+			},
+			cli.StringFlag{
+				Name:  "address",
+				Usage: "grpc address",
+				Value: "127.0.0.1:9000",
+			},
+		*/
+
 	}
 	app.Before = func(clix *cli.Context) error {
 		if clix.GlobalBool("debug") {
@@ -90,11 +103,12 @@ Terra OS management`
 		return nil
 	}
 	app.Commands = []cli.Command{
-		machineCommand,
-		volumeCommand,
-		configCommand,
-		unpackCommand,
-		serverCommand,
+		installCommand,
+		// machineCommand,
+		// volumeCommand,
+		// configCommand,
+		// unpackCommand,
+		// serverCommand,
 	}
 	if err := app.Run(os.Args); err != nil {
 		fmt.Fprintln(os.Stderr, err)

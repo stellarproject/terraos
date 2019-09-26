@@ -53,20 +53,6 @@ func removePartition(device string) string {
 	return strings.TrimSuffix(device, partition)
 }
 
-func getDevices(clix *cli.Context) (map[string]string, error) {
-	var (
-		out = make(map[string]string)
-	)
-	for _, d := range clix.StringSlice("device") {
-		parts := strings.Split(d, ":")
-		if len(parts) != 2 {
-			return nil, errors.Errorf("device %s not valid format", d)
-		}
-		out[parts[0]] = parts[1]
-	}
-	return out, nil
-}
-
 func checkYes(msg string, scanner *bufio.Scanner) error {
 	fmt.Fprint(os.Stderr, msg)
 	fmt.Fprintln(os.Stderr, " [y/n]")
