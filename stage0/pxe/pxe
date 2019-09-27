@@ -18,11 +18,15 @@ _setup_fstab() {
 }
 
 _setup_nameservers() {
-	echo "" > "$2"
-	IFS=","
-	for ns in "$1"; do
-		echo "nameserver $ns" >> "$2"
-	done
+	if [ -z "$NAMESERVERS" ]; then
+		true
+	else
+		echo "" > "$2"
+		IFS=","
+		for ns in "$1"; do
+			echo "nameserver $ns" >> "$2"
+		done
+	fi
 }
 
 _setup_hosts() {
@@ -37,13 +41,11 @@ local_mount_root()
 	local_top
 	local_device_setup "${ROOT}" "root file system"
 	ROOT="${DEV}"
-	DISK_LABEL=${disk_label}
+	DISK_LABEL="os"
+
 	VERSION=${version}
-	HOSTNAME=${terra_hostname}
+	HOSTNAME=${hostname}
 	NAMESERVERS=${nameservers}
-	if [ -z "${DISK_LABEL}" ]; then
-		DISK_LABEL="os"
-	fi
 
 	# find the disk with the terra label
 	if [ -z "${ROOT}" ]; then
@@ -64,13 +66,8 @@ local_mount_root()
 
 	mount -t ${FSTYPE} ${ROOTFLAGS} ${ROOT} ${rootmnt} || rescue_shell
 
+	echo "$HOSTNAME" > ${rootmnt}/etc/hostname
 	_setup_fstab ${rootmnt}/etc/fstab
-	# setup hostname
-	echo "$HOSTNAME" > ${rootmnt}}/etc/hostname
-	if [ -z "$NAMESERVERS" ]; then
-		true
-	else
-		_setup_nameservers $NAMESERVERS ${rootmnt}/etc/resolv.conf
-	fi
 	_setup_hosts $HOSTNAME ${rootmnt}/etc/hosts
+	_setup_nameservers $NAMESERVERS ${rootmnt}/etc/resolv.conf
 }
