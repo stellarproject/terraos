@@ -85,7 +85,6 @@ RUN cp -r bios/core/pxelinux.0 \
 WORKDIR /
 
 ADD terra /etc/initramfs-tools/scripts/terra
-ADD pxe /etc/initramfs-tools/scripts/pxe
 ADD modules /etc/initramfs-tools/modules
 RUN touch /etc/iscsi/iscsi.initramfs
 ADD default /tftp/pxelinux.cfg/default
