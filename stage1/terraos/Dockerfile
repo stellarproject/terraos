@@ -59,6 +59,14 @@ RUN apk update && apk add --no-cache \
 	openssh-server-pam \
 	open-iscsi \
 	eudev \
+	sudo \
+	nfs-utils \
+	libvirt-daemon \
+	qemu-img \
+	qemu-system-x86_64 \
+	dbus \
+	polkit \
+	virt-manager \
 	iptables
 
 RUN rm -rf /boot /lib/modules
@@ -71,13 +79,17 @@ RUN rm /etc/fstab
 
 # add the default terra user
 RUN adduser -s /bin/bash -D -g terra -k /dev/null terra && \
-	chown -R terra:terra /home/terra
+	chown -R terra:terra /home/terra && \
+	addgroup terra libvirt
 
 ADD hosts /etc/
 ADD hostname /etc/
+ADD interfaces /etc/networking/
 ADD resolv.conf /etc/
 ADD sshd_config /etc/ssh/
 ADD motd /etc/
+RUN mkdir -p /etc/polkit-1/localauthority/50-local.d
+ADD libvirt.pkla /etc/polkit-1/localauthority/50-local.d/50-libvirt-ssh-remote-access-policy.pkla
 
 COPY --from=terra / /
 COPY --from=node_exporter / /
@@ -91,6 +103,8 @@ RUN rc-update add cgroups sysinit && \
 	rc-update add nodeexporter default && \
 	rc-update add dhcp default && \
 	rc-update add udev default && \
+	rc-update add dbus default && \
+	rc-update add libvirtd default && \
 	rc-update add orbit default
 
 CMD ["/sbin/init"]

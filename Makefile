@@ -25,9 +25,9 @@
 
 PACKAGES=$(shell go list ./... | grep -v /vendor/)
 REVISION=$(shell git rev-parse HEAD)
-VERSION=v16
+VERSION=v17-dev
 GO_LDFLAGS=-s -w -X github.com/stellarproject/terraos/version.Version=$(VERSION) -X github.com/stellarproject/terraos/version.Revision=$(REVISION)
-KERNEL=5.2.14
+KERNEL=5.2.15
 REPO=$(shell cat REPO || echo "stellarproject")
 WIREGUARD=0.0.20190905
 VAB_ARGS=""
@@ -58,6 +58,7 @@ install:
 	@install build/orbit-syslog /usr/local/bin/
 	@install build/orbit-server /usr/local/bin/
 	@install build/orbit-network /usr/local/bin/
+	@install cmd/terra/terra /usr/local/sbin/terra-opts
 
 # -------------------- iso -------------------------
 

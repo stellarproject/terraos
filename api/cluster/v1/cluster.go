@@ -25,10 +25,12 @@
 	THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package cmd
+package v1
 
-const (
-	ConfigPath     = "/cluster/terra.toml"
-	DefaultRuntime = "io.containerd.runc.v2"
-	Port           = 9000
+import (
+	"errors"
+)
+
+var (
+	ErrExists = errors.New("resource exists")
 )

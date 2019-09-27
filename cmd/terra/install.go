@@ -28,97 +28,89 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
 	"os"
 	"path/filepath"
-	"strconv"
-	"strings"
 
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 	"github.com/stellarproject/terraos/cmd"
 	"github.com/stellarproject/terraos/pkg/image"
-	"github.com/stellarproject/terraos/pkg/syslinux"
+	"github.com/stellarproject/terraos/pkg/mkfs"
+	"github.com/stellarproject/terraos/version"
 	"github.com/urfave/cli"
+	"golang.org/x/sys/unix"
 )
 
 var installCommand = cli.Command{
 	Name:  "install",
 	Usage: "install terra onto a physical disk",
 	Flags: []cli.Flag{
-		cli.BoolFlag{
-			Name:  "http",
-			Usage: "fetch image over http",
+		cli.StringFlag{
+			Name:  "os",
+			Usage: "os device (include parition)",
 		},
-		cli.StringSliceFlag{
-			Name:  "device",
-			Usage: "device for volume LABEL:dev",
-			Value: &cli.StringSlice{},
+		cli.StringFlag{
+			Name:  "data",
+			Usage: "data device (include parition)",
+		},
+		cli.StringFlag{
+			Name:  "version",
+			Usage: "terraos version",
+			Value: version.Version,
 		},
 	},
 	Action: func(clix *cli.Context) error {
-		node, err := cmd.LoadNode(clix.Args().First())
-		if err != nil {
-			return errors.Wrap(err, "load node")
-		}
-		devices, err := getDevices(clix)
-		if err != nil {
-			return errors.Wrap(err, "get devices")
-		}
-
 		var (
 			ctx     = cmd.CancelContext()
-			scanner = bufio.NewScanner(os.Stdin)
+			ver     = clix.String("version")
+			osLun   = clix.String("os")
+			dataLun = clix.String("data")
 		)
+		if ver == "" {
+			return errors.New("no terraos version specified")
+		}
+		if osLun == "" {
+			return errors.New("no os device specified")
+		}
 
 		// handle running on a provisioning machine vs in the iso
 		storePath := filepath.Join("/tmp", "contentstore")
 		if _, err := os.Stat(contentStorePath); err == nil {
 			storePath = contentStorePath
 		}
+		devs := []dev{
+			{
+				label:  "os",
+				device: osLun,
+				path:   "/",
+			},
+		}
+		if dataLun != "" {
+			devs = append(devs, dev{
+				label:  "data",
+				device: dataLun,
+				path:   "/var/lib",
+			})
+		}
 
 		store, err := image.NewContentStore(storePath)
 		if err != nil {
 			return errors.Wrap(err, "new content store")
 		}
-		desc, err := image.Fetch(ctx, clix.Bool("http"), store, node.Image.Name)
+		desc, err := image.Fetch(ctx, clix.GlobalBool("http"), store, getTerraImage(clix, ver))
 		if err != nil {
 			return errors.Wrap(err, "fetch image")
 		}
-
 		dest := "/tmp/install"
 		if err := os.MkdirAll(dest, 0755); err != nil {
 			return errors.Wrapf(err, "mkdir for install")
 		}
-		var isISCSI bool
-		for _, v := range node.Volumes {
-			if !isISCSI {
-				isISCSI = v.IsISCSI()
-			}
-			dev, ok := devices[v.Label]
-			if !ok {
-				if !v.IsISCSI() {
-					return errors.Errorf("device for label %s does not exist", v.Label)
-				}
-				// mount the iscsi target if we have one
-				if err := checkYes("login to iscsi device?", scanner); err != nil {
-					return err
-				}
-				logrus.Info("mounting iscsi target")
-				if dev, err = v.Login(ctx, node.Pxe.IscsiTarget); err != nil {
-					return errors.Wrap(err, "login iscsi")
-				}
-				defer v.Logout(ctx, node.Pxe.IscsiTarget)
-				if err := checkYes(fmt.Sprintf("install terra to %s?", dev), scanner); err != nil {
-					return err
-				}
-			}
-			if err := v.Format(dev); err != nil {
-				return errors.Wrap(err, "format volume")
+		for _, d := range devs {
+			if err := d.mkfs(); err != nil {
+				return errors.Wrapf(err, "format device %s", d)
 			}
 			// mount the entire diskmount group before subsystems
-			closer, err := v.Mount(dev, dest)
+			closer, err := d.mount(dest)
 			if err != nil {
 				return err
 			}
@@ -128,63 +120,41 @@ var installCommand = cli.Command{
 		if err := image.Unpack(ctx, store, desc, dest); err != nil {
 			return errors.Wrap(err, "unpack image")
 		}
-		if isISCSI {
-			// for iscsi, there is no need to setup a boot device
-			return nil
-		}
-		for _, v := range node.Volumes {
-			dev, ok := devices[v.Label]
-			if ok && v.Boot {
-				logrus.Info("installing bootloader")
-				path := dest
-				if err := syslinux.Copy(path); err != nil {
-					return errors.Wrap(err, "copy syslinux from live cd")
-				}
-				if err := syslinux.InstallMBR(removePartition(dev), "/boot/syslinux/mbr.bin"); err != nil {
-					return errors.Wrap(err, "install mbr")
-				}
-				if err := syslinux.ExtlinuxInstall(filepath.Join(path, "boot", "syslinux")); err != nil {
-					return errors.Wrap(err, "install extlinux")
-				}
-			}
-		}
 		return nil
 	},
 }
 
-func removePartition(device string) string {
-	partition := string(device[len(device)-1])
-	if _, err := strconv.Atoi(partition); err != nil {
-		return device
-	}
-	if strings.Contains(device, "nvme") {
-		partition = "p" + partition
-	}
-	return strings.TrimSuffix(device, partition)
+type dev struct {
+	label  string
+	device string
+	path   string
 }
 
-func getDevices(clix *cli.Context) (map[string]string, error) {
-	var (
-		out = make(map[string]string)
-	)
-	for _, d := range clix.StringSlice("device") {
-		parts := strings.Split(d, ":")
-		if len(parts) != 2 {
-			return nil, errors.Errorf("device %s not valid format", d)
-		}
-		out[parts[0]] = parts[1]
-	}
-	return out, nil
+func (d *dev) String() string {
+	return fmt.Sprintf("%s:%s", d.label, d.device)
 }
 
-func checkYes(msg string, scanner *bufio.Scanner) error {
-	fmt.Fprint(os.Stderr, msg)
-	fmt.Fprintln(os.Stderr, " [y/n]")
-	if !scanner.Scan() {
-		return errors.New("no input")
+func (d *dev) mkfs() error {
+	return mkfs.Mkfs("ext4", d.label, d.device)
+}
+
+func (d *dev) mount(dest string) (func() error, error) {
+	p := filepath.Join(dest, d.path)
+	if err := os.MkdirAll(p, 0755); err != nil {
+		return nil, errors.Wrapf(err, "mkdir %s", p)
 	}
-	if strings.ToLower(scanner.Text()) == "y" {
-		return nil
+	if err := unix.Mount(d.device, p, "ext4", 0, ""); err != nil {
+		return nil, errors.Wrapf(err, "mount %s to %s", d.label, p)
 	}
-	return errors.New("user aborted")
+	return func() error {
+		return unix.Unmount(p, 0)
+	}, nil
+}
+
+func getTerraImage(clix *cli.Context, version string) string {
+	return filepath.Join(clix.GlobalString("repository"), fmt.Sprintf("%s:%s", terraImage, version))
+}
+
+func getPXEImage(clix *cli.Context, version string) string {
+	return filepath.Join(clix.GlobalString("repository"), fmt.Sprintf("%s:%s", pxeImage, version))
 }

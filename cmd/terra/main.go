@@ -31,16 +31,16 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/containerd/containerd/content"
-	"github.com/getsentry/raven-go"
 	"github.com/sirupsen/logrus"
-	"github.com/stellarproject/terraos/cmd"
-	"github.com/stellarproject/terraos/pkg/image"
 	"github.com/stellarproject/terraos/version"
 	"github.com/urfave/cli"
 )
 
-const contentStorePath = "/content"
+const (
+	contentStorePath = "/content"
+	terraImage       = "terraos"
+	pxeImage         = "pxe"
+)
 
 func main() {
 	app := cli.NewApp()
@@ -77,11 +77,27 @@ Terra OS management`
 			Usage: "enable debug output in the logs",
 		},
 		cli.StringFlag{
-			Name:   "controller",
-			Usage:  "controller address",
-			Value:  "127.0.0.1",
-			EnvVar: "TERRA_CONTROLLER",
+			Name:  "repository,r",
+			Usage: "repository for terra images",
+			Value: "docker.io/stellarproject",
 		},
+		cli.BoolFlag{
+			Name:  "http",
+			Usage: "fetch over http",
+		},
+		/*
+			cli.StringFlag{
+				Name:  "redis",
+				Usage: "redis address",
+				Value: "127.0.0.1:6379",
+			},
+			cli.StringFlag{
+				Name:  "address",
+				Usage: "grpc address",
+				Value: "127.0.0.1:9000",
+			},
+		*/
+
 	}
 	app.Before = func(clix *cli.Context) error {
 		if clix.GlobalBool("debug") {
@@ -90,11 +106,13 @@ Terra OS management`
 		return nil
 	}
 	app.Commands = []cli.Command{
-		createCommand,
 		installCommand,
-		iscsiCommand,
 		pxeCommand,
-		updateCommand,
+		// machineCommand,
+		// volumeCommand,
+		// configCommand,
+		// unpackCommand,
+		// serverCommand,
 	}
 	if err := app.Run(os.Args); err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -102,26 +120,9 @@ Terra OS management`
 	}
 }
 
-var config *cmd.Terra
-
 func Before(clix *cli.Context) error {
-	t, err := cmd.LoadTerra()
-	if err != nil {
-		if !os.IsNotExist(err) {
-			return err
-		}
-	}
-	config = t
-	if t.Debug {
+	if clix.GlobalBool("debug") {
 		logrus.SetLevel(logrus.DebugLevel)
 	}
-	if t.SentryDSN != "" {
-		raven.SetDSN(t.SentryDSN)
-		raven.DefaultClient.SetRelease(version.Version)
-	}
 	return nil
-}
-
-func getStore() (content.Store, error) {
-	return image.NewContentStore(contentStorePath)
 }

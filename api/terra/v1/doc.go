@@ -25,10 +25,4 @@
 	THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package cmd
-
-const (
-	ConfigPath     = "/cluster/terra.toml"
-	DefaultRuntime = "io.containerd.runc.v2"
-	Port           = 9000
-)
+package v1

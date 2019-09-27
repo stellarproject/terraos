@@ -7,17 +7,34 @@ esac
 echo "Network interfaces loaded: "
 echo `ls /sys/class/net`
 
+setip() {
+	ip link set $2 up
+	ip addr add $1 dev $2
+	ip route add default via $3
+}
+
 for x in $cmdline; do
     case $x in
     bondslaves=*)
-            bondslaves="${x#bondslaves=}"
-            ;;
+		bondslaves="${x#bondslaves=}"
+		;;
+	network=*)
+		network="${x#network=}"
+		;;
+	gateway=*)
+		gateway="${x#gateway=}"
+		;;
+	iface=*)
+		iface="${x#iface=}"
+		;;
     esac
 done
 
 if [ -z "$bondslaves" ]; then
 	echo "Removing bond"
 	ip link del bond0
+	echo "Setting network $network on $iface with gateway $gateway"
+	setip $network $iface $gateway
 else
 	echo "Setting up bond0: '$bondslaves'"
 	ip link del bond0
@@ -28,5 +45,6 @@ else
 		echo "+$x" > /sys/class/net/bond0/bonding/slaves
 	done
 	modprobe af_packet
-	ipconfig -c dhcp -d bond0
+	setip $network bond0 $gateway
+	# ipconfig -c dhcp -d bond0
 fi

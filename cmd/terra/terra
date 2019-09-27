@@ -1,0 +1,184 @@
+#!/bin/bash
+set -euxo pipefail
+
+# Copyright (c) 2019 Stellar Project
+
+# Permission is hereby granted, free of charge, to any person
+# obtaining a copy of this software and associated documentation
+# files (the "Software"), to deal in the Software without
+# restriction, including without limitation the rights to use, copy,
+# modify, merge, publish, distribute, sublicense, and/or sell copies
+# of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be
+# included in all copies or substantial portions of the Software.
+
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+# EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+# IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+# HOLDERS BE LIABLE FOR ANY CLAIM,
+# DAMAGES OR OTHER LIABILITY,
+# WHETHER IN AN ACTION OF CONTRACT,
+# TORT OR OTHERWISE,
+# ARISING FROM, OUT OF OR IN CONNECTION WITH
+# THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+terra_cluster_root="/terra"
+terra_default_ns="nameserver 1.1.1.1\nnameserver 1.0.0.1"
+terra_cluster_dirs="nodes .images networks"
+terra_node_dirs="interfaces fs/etc"
+
+# ----------------------- utility functions -----------------------------
+# TODO: source this from another file
+
+function _reset() {
+	cd /
+	sudo rm -rf "$terra_cluster_root"
+	sudo mkdir "$terra_cluster_root"
+	sudo chown -R "$USER:$USER" "$terra_cluster_root"
+}
+
+function _terra_cwd() {
+	cd "$terra_cluster_root"
+}
+
+function _terra_current_revision() {
+	git rev-parse HEAD
+}
+
+function _t_symlink() {
+	ln -s "$terra_cluster_root/$1" "$terra_cluster_root/$2"
+}
+
+function _terra_commit() {
+	git add -A
+	git commit -m "$1"
+	printf "cluster now at revision: \e[1m%s\n" "$(_terra_current_revision)"
+}
+
+function _terra_create_hosts() {
+	echo "creating hosts file..."
+
+	echo "127.0.0.1       localhost $1" > "$2"
+	echo "::1             localhost ip6-localhost ip6-loopback" >> "$2"
+	echo "ff02::1         ip6-allnodes" >> "$2"
+	echo "ff02::2         ip6-allrouters" >> "$2"
+}
+
+# --------------------------------- main functions -------------------------------
+
+function create() {
+	echo "creating terra cluster..."
+
+	mkdir -p "$terra_cluster_root"
+
+	_terra_cwd
+
+	if [ -f .git ]; then
+		echo "cluster already setup"
+		exit 0
+	fi
+
+	echo "creating default resolv.conf"
+	echo -e $terra_default_ns > resolv.conf
+
+	echo "init git repository"
+	git init
+
+	echo "setup directory structure..."
+	for f in $terra_cluster_dirs
+	do
+		echo -e "\tcreating $f..."
+		mkdir -p "$f"
+		touch "$f/.gitkeep"
+	done
+
+	echo "create config file..."
+	terra-opts config init
+
+	_terra_commit "init terra cluster"
+}
+
+function network_create () {
+	_terra_cwd
+
+	name="$1"
+	name=${name^^}
+	address="$2"
+	ntype="$3"
+
+	if [ -z "$ntype" ]; then
+		ntype="lan"
+	fi
+
+	echo -e "creating network $name with $address of type $ntype\n"
+	mkdir "networks/$name"
+	echo $address > "networks/$name/address"
+
+	_terra_commit "add new network $name"
+}
+
+function node_create() {
+	_terra_cwd
+
+	name="$1"
+	mkdir "nodes/$name"
+	(
+		cd "nodes/$name"
+
+		for f in $terra_node_dirs
+		do
+			mkdir -p "$f"
+		done
+		echo "$name" >> "fs/etc/hostname"
+		_terra_create_hosts $name "fs/etc/hosts"
+	)
+	_t_symlink "resolv.conf" "nodes/$name/fs/etc/resolv.conf"
+
+	_terra_commit "add new node $name"
+}
+
+function add_interface() {
+	if [ ! -d "interfaces" ]; then
+		echo "not in node directory"
+		exit 1
+	fi
+	node=$(basename `pwd`)
+	echo "creating interface $1 for $node..."
+
+	mkdir "interfaces/$1"
+
+	_terra_commit "add interface $1 to $node"
+}
+
+function set_kernel_image() {
+	_terra_cwd
+
+	name="registry/$1"
+	touch $name
+	_t_symlink $name kernel
+
+	_terra_commit "set kernel image"
+}
+
+function set_registry() {
+	_terra_cwd
+
+	name="$1"
+	terra-opts config set registry $name
+
+	_terra_commit "set global registry"
+}
+
+function main() {
+	if [ $# -eq 0 ]; then
+		echo "run with a subcommand"
+		exit 1
+	fi
+	"$@"
+}
+
+main "$@"

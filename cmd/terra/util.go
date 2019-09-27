@@ -25,10 +25,50 @@
 	THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package cmd
+package main
 
-const (
-	ConfigPath     = "/cluster/terra.toml"
-	DefaultRuntime = "io.containerd.runc.v2"
-	Port           = 9000
+import (
+	"io/ioutil"
+	"os"
+	"strconv"
+	"strings"
+
+	"github.com/containerd/containerd/content"
+	"github.com/stellarproject/terraos/pkg/image"
+	"github.com/stellarproject/terraos/server"
+	"github.com/urfave/cli"
 )
+
+func removePartition(device string) string {
+	partition := string(device[len(device)-1])
+	if _, err := strconv.Atoi(partition); err != nil {
+		return device
+	}
+	if strings.Contains(device, "nvme") {
+		partition = "p" + partition
+	}
+	return strings.TrimSuffix(device, partition)
+}
+
+func getStore() (content.Store, error) {
+	return image.NewContentStore(contentStorePath)
+}
+
+func getCluster(clix *cli.Context) *server.Store {
+	return server.NewStore(clix.GlobalString("redis"), "")
+}
+
+func tmpContentStore() (content.Store, func() error, error) {
+	dir, err := ioutil.TempDir("/tmp", "content-")
+	if err != nil {
+		return nil, nil, err
+	}
+	s, err := image.NewContentStore(dir)
+	if err != nil {
+		os.RemoveAll(dir)
+		return nil, nil, err
+	}
+	return s, func() error {
+		return os.RemoveAll(dir)
+	}, nil
+}

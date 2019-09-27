@@ -28,6 +28,7 @@
 package util
 
 import (
+	tv1 "github.com/stellarproject/terraos/api/terra/v1"
 	v1 "github.com/stellarproject/terraos/api/v1/orbit"
 	"google.golang.org/grpc"
 )
@@ -48,6 +49,26 @@ func Agent(address string) (*LocalAgent, error) {
 	}
 	return &LocalAgent{
 		AgentClient: v1.NewAgentClient(conn),
+		conn:        conn,
+	}, nil
+}
+
+type LocalTerra struct {
+	tv1.TerraClient
+	conn *grpc.ClientConn
+}
+
+func (l *LocalTerra) Close() error {
+	return l.conn.Close()
+}
+
+func Terra(address string) (*LocalTerra, error) {
+	conn, err := grpc.Dial(address, grpc.WithInsecure())
+	if err != nil {
+		return nil, err
+	}
+	return &LocalTerra{
+		TerraClient: tv1.NewTerraClient(conn),
 		conn:        conn,
 	}, nil
 }

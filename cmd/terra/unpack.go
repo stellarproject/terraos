@@ -25,10 +25,50 @@
 	THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package cmd
+package main
 
-const (
-	ConfigPath     = "/cluster/terra.toml"
-	DefaultRuntime = "io.containerd.runc.v2"
-	Port           = 9000
+import (
+	"github.com/pkg/errors"
+	"github.com/stellarproject/terraos/cmd"
+	"github.com/stellarproject/terraos/pkg/image"
+	"github.com/urfave/cli"
 )
+
+var unpackCommand = cli.Command{
+	Name:      "unpack",
+	Usage:     "unpack an image into a location",
+	ArgsUsage: "[image] [dest]",
+	Flags: []cli.Flag{
+		cli.BoolFlag{
+			Name:  "http",
+			Usage: "fetch image over http",
+		},
+	},
+	Action: func(clix *cli.Context) error {
+		var (
+			name = clix.Args().First()
+			dest = clix.Args().Get(1)
+			ctx  = cmd.CancelContext()
+		)
+		if name == "" {
+			return errors.New("no image specified")
+		}
+		if dest == "" {
+			return errors.New("no destination specified")
+		}
+
+		store, closer, err := tmpContentStore()
+		if err != nil {
+			return errors.Wrap(err, "unable to create content store")
+		}
+		defer closer()
+		desc, err := image.Fetch(ctx, clix.Bool("http"), store, name)
+		if err != nil {
+			return errors.Wrap(err, "fetch image")
+		}
+		if err := image.Unpack(ctx, store, desc, dest); err != nil {
+			return errors.Wrap(err, "unpack image")
+		}
+		return nil
+	},
+}
