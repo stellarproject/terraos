@@ -108,10 +108,10 @@ Terra OS management`
 	app.Commands = []cli.Command{
 		installCommand,
 		pxeCommand,
+		unpackCommand,
 		// machineCommand,
 		// volumeCommand,
 		// configCommand,
-		// unpackCommand,
 		// serverCommand,
 	}
 	if err := app.Run(os.Args); err != nil {
