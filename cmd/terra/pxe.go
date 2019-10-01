@@ -54,7 +54,7 @@ var pxeCommand = cli.Command{
 	Usage: "manage the pxe setup for terra",
 	Subcommands: []cli.Command{
 		pxeInstallCommand,
-		pxeSaveCommand,
+		pxeConfigCommand,
 	},
 }
 
@@ -115,7 +115,7 @@ var pxeInstallCommand = cli.Command{
 	},
 }
 
-var pxeSaveCommand = cli.Command{
+var pxeConfigCommand = cli.Command{
 	Name:      "config",
 	Usage:     "configure a node's pxe config",
 	ArgsUsage: "[hostname]",
