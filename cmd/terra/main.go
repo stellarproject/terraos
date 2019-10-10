@@ -85,19 +85,6 @@ Terra OS management`
 			Name:  "http",
 			Usage: "fetch over http",
 		},
-		/*
-			cli.StringFlag{
-				Name:  "redis",
-				Usage: "redis address",
-				Value: "127.0.0.1:6379",
-			},
-			cli.StringFlag{
-				Name:  "address",
-				Usage: "grpc address",
-				Value: "127.0.0.1:9000",
-			},
-		*/
-
 	}
 	app.Before = func(clix *cli.Context) error {
 		if clix.GlobalBool("debug") {
@@ -109,10 +96,6 @@ Terra OS management`
 		installCommand,
 		pxeCommand,
 		unpackCommand,
-		// machineCommand,
-		// volumeCommand,
-		// configCommand,
-		// serverCommand,
 	}
 	if err := app.Run(os.Args); err != nil {
 		fmt.Fprintln(os.Stderr, err)
