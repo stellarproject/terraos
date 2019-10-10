@@ -34,9 +34,9 @@ VAB_ARGS=""
 
 ARGS=--arg KERNEL_VERSION=${KERNEL} --arg VERSION=${VERSION} --arg REPO=${REPO} --arg WIREGUARD=${WIREGUARD}
 
-release: stage0 stage1 iso
+release: init stage1 iso
 
-stage0: pxe binaries live boot
+init: pxe binaries live boot
 
 stage1: defaults terraos
 
@@ -70,16 +70,16 @@ iso: clean
 live:
 	@vab build ${VAB_ARGS} --push -c stage1/live -d stage1/live --ref ${REPO}/live:${VERSION} ${ARGS}
 
-# -------------------- stage0 -------------------------
+# -------------------- init -------------------------
 
 kernel: FORCE
-	vab build ${VAB_ARGS} -c stage0/kernel -d stage0/kernel --push --ref ${REPO}/kernel:${KERNEL} ${ARGS}
+	vab build ${VAB_ARGS} -c kernel -d kernel --push --ref ${REPO}/kernel:${KERNEL} ${ARGS}
 
 pxe: FORCE
-	vab build ${VAB_ARGS} --push -c stage0/pxe -d stage0/pxe --ref ${REPO}/pxe:${VERSION}  ${ARGS}
+	vab build ${VAB_ARGS} --push -c pxe -d pxe --ref ${REPO}/pxe:${VERSION}  ${ARGS}
 
 boot: FORCE
-	@vab build ${VAB_ARGS} --push -c stage0/boot -d stage0/boot --ref ${REPO}/boot:${VERSION}  ${ARGS}
+	@vab build ${VAB_ARGS} --push -c boot -d boot --ref ${REPO}/boot:${VERSION}  ${ARGS}
 
 # -------------------- stage1 -------------------------
 
