@@ -67,6 +67,7 @@ RUN apk update && apk add --no-cache \
 	dbus \
 	polkit \
 	virt-manager \
+	zfs \
 	iptables
 
 RUN rm -rf /boot /lib/modules

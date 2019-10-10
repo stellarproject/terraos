@@ -67,7 +67,7 @@ iso: clean
 	@cd iso && vab build --local --http ${ARGS}
 	@mv iso/terra.iso build/
 
-live:
+live: FORCE
 	@vab build ${VAB_ARGS} --push -c live -d live --ref ${REPO}/live:${VERSION} ${ARGS}
 
 # -------------------- init -------------------------

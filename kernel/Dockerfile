@@ -27,7 +27,7 @@ FROM ubuntu:19.04 as builder
 ARG KERNEL_VERSION
 ARG WIREGUARD
 
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
 	build-essential \
 	bc \
 	devscripts \
@@ -42,9 +42,8 @@ RUN apt-get update && apt-get install -y \
 	kmod \
 	libssl-dev \
 	git \
+	rsync \
 	libmnl-dev \
-	btrfs-progs \
-	btrfs-tools \
 	libssl-dev \
 	make
 

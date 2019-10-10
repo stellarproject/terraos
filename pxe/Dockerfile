@@ -38,7 +38,7 @@ FROM ubuntu:18.10 as pxe
 
 ARG KERNEL_VERSION
 
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
 	syslinux \
 	curl \
 	ca-certificates \
@@ -47,7 +47,8 @@ RUN apt-get update && apt-get install -y \
 	open-iscsi \
 	isc-dhcp-common \
 	isc-dhcp-client \
-	initramfs-tools
+	initramfs-tools \
+	zfs-initramfs
 
 RUN --mount=type=bind,from=kernel,target=/tmp dpkg -i \
 	/tmp/linux-headers-$KERNEL_VERSION-terra_$KERNEL_VERSION-terra-1_amd64.deb \

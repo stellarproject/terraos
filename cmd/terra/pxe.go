@@ -210,6 +210,7 @@ func (p *pxe) Write(w io.Writer, version string) error {
 	args := []string{
 		"ip=none",
 		"boot=terra",
+		fmt.Sprintf("hostname=%s", p.hostname),
 		fmt.Sprintf("network=%s", p.network),
 		fmt.Sprintf("gateway=%s", p.gateway),
 		fmt.Sprintf("nameservers=%s", strings.Join(p.nameservers, ",")),
