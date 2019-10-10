@@ -130,7 +130,6 @@ func main() {
 			ID:           clix.GlobalString("id"),
 			Iface:        clix.GlobalString("iface"),
 			State:        clix.GlobalString("state"),
-			ClusterDir:   "/cluster",
 			Interval:     clix.GlobalDuration("interval"),
 			PlainRemotes: clix.GlobalStringSlice("plain-remote"),
 			Logger:       clix.GlobalString("logger"),

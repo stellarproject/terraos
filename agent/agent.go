@@ -102,13 +102,6 @@ func New(ctx context.Context, c *Config, client *containerd.Client) (*Agent, err
 	for _, r := range c.PlainRemotes {
 		plainRemotes[r] = true
 	}
-	for _, p := range []string{
-		filepath.Join(c.ClusterDir, "configs"),
-	} {
-		if err := os.MkdirAll(p, 0755); err != nil {
-			return nil, errors.Wrapf(err, "mkdir %s", p)
-		}
-	}
 	a := &Agent{
 		config: c,
 		client: client,
