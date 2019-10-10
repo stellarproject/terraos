@@ -34,11 +34,11 @@ VAB_ARGS=""
 
 ARGS=--arg KERNEL_VERSION=${KERNEL} --arg VERSION=${VERSION} --arg REPO=${REPO} --arg WIREGUARD=${WIREGUARD}
 
-release: init stage1 iso
+release: init os iso
 
 init: pxe binaries live boot
 
-stage1: defaults terraos
+os: defaults terraos
 
 all: local
 
@@ -68,7 +68,7 @@ iso: clean
 	@mv iso/terra.iso build/
 
 live:
-	@vab build ${VAB_ARGS} --push -c stage1/live -d stage1/live --ref ${REPO}/live:${VERSION} ${ARGS}
+	@vab build ${VAB_ARGS} --push -c live -d live --ref ${REPO}/live:${VERSION} ${ARGS}
 
 # -------------------- init -------------------------
 
@@ -81,39 +81,39 @@ pxe: FORCE
 boot: FORCE
 	@vab build ${VAB_ARGS} --push -c boot -d boot --ref ${REPO}/boot:${VERSION}  ${ARGS}
 
-# -------------------- stage1 -------------------------
+# -------------------- os -------------------------
 
 containerd:
-	vab build ${VAB_ARGS} -p -c stage1/defaults/containerd -d stage1/defaults/containerd --ref ${REPO}/containerd:${VERSION} ${ARGS}
+	vab build ${VAB_ARGS} -p -c apps/containerd -d apps/containerd --ref ${REPO}/containerd:${VERSION} ${ARGS}
 
 defaults: containerd wireguard orbit-release nodeexporter cni FORCE
 
 criu:
-	vab build ${VAB_ARGS} -p -d stage1/defaults/criu -c stage1/defaults/criu --ref ${REPO}/criu:${VERSION} ${ARGS}
+	vab build ${VAB_ARGS} -p -d apps/criu -c apps/criu --ref ${REPO}/criu:${VERSION} ${ARGS}
 
 cni: FORCE
-	vab build ${VAB_ARGS} -p -c stage1/defaults/cni -d stage1/defaults/cni --ref ${REPO}/cni:${VERSION} ${ARGS}
+	vab build ${VAB_ARGS} -p -c apps/cni -d apps/cni --ref ${REPO}/cni:${VERSION} ${ARGS}
 
 nodeexporter:
-	vab build ${VAB_ARGS} -p -c stage1/defaults/node_exporter -d stage1/defaults/node_exporter --ref ${REPO}/node_exporter:${VERSION} ${ARGS}
+	vab build ${VAB_ARGS} -p -c apps/node_exporter -d apps/node_exporter --ref ${REPO}/node_exporter:${VERSION} ${ARGS}
 
 gvisor:
-	vab build ${VAB_ARGS} -p -d stage1/defaults/gvisor -c stage1/defaults/gvisor --ref ${REPO}/gvisor:${VERSION} ${ARGS}
+	vab build ${VAB_ARGS} -p -d apps/gvisor -c apps/gvisor --ref ${REPO}/gvisor:${VERSION} ${ARGS}
 
 diod:
-	vab build ${VAB_ARGS} -p -d stage1/extras/diod -c stage1/extras/diod --ref ${REPO}/diod:${VERSION} ${ARGS}
+	vab build ${VAB_ARGS} -p -d apps/diod -c apps/diod --ref ${REPO}/diod:${VERSION} ${ARGS}
 
 wireguard:
-	vab build ${VAB_ARGS} -p -d stage1/defaults/wireguard -c stage1/defaults/wireguard --ref ${REPO}/wireguard:${VERSION} ${ARGS}
+	vab build ${VAB_ARGS} -p -d apps/wireguard -c apps/wireguard --ref ${REPO}/wireguard:${VERSION} ${ARGS}
 
 extras: buildkit diod FORCE
-	vab build ${VAB_ARGS} -p -d stage1/extras/docker -c stage1/extras/docker --ref ${REPO}/docker:${VERSION} ${ARGS}
+	vab build ${VAB_ARGS} -p -d apps/docker -c apps/docker --ref ${REPO}/docker:${VERSION} ${ARGS}
 
 buildkit: FORCE
-	vab build ${VAB_ARGS} -p -c stage1/extras/buildkit -d stage1/extras/buildkit --ref ${REPO}/buildkit:${VERSION} ${ARGS}
+	vab build ${VAB_ARGS} -p -c apps/buildkit -d apps/buildkit --ref ${REPO}/buildkit:${VERSION} ${ARGS}
 
 terraos: FORCE
-	vab build ${VAB_ARGS} -c stage1/terraos -d stage1/terraos --push --ref ${REPO}/terraos:${VERSION} ${ARGS}
+	vab build ${VAB_ARGS} -c os -d os --push --ref ${REPO}/terraos:${VERSION} ${ARGS}
 
 binaries:
 	vab build ${VAB_ARGS} --push -d cmd --ref ${REPO}/terracmd:${VERSION} ${ARGS}
