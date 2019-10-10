@@ -38,12 +38,6 @@ var unpackCommand = cli.Command{
 	Name:      "unpack",
 	Usage:     "unpack an image into a location",
 	ArgsUsage: "[image] [dest]",
-	Flags: []cli.Flag{
-		cli.BoolFlag{
-			Name:  "http",
-			Usage: "fetch image over http",
-		},
-	},
 	Action: func(clix *cli.Context) error {
 		var (
 			name = clix.Args().First()
@@ -62,7 +56,7 @@ var unpackCommand = cli.Command{
 			return errors.Wrap(err, "unable to create content store")
 		}
 		defer closer()
-		desc, err := image.Fetch(ctx, clix.Bool("http"), store, name)
+		desc, err := image.Fetch(ctx, clix.GlobalBool("http"), store, name)
 		if err != nil {
 			return errors.Wrap(err, "fetch image")
 		}

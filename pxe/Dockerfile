@@ -41,6 +41,8 @@ ARG KERNEL_VERSION
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
 	syslinux \
 	curl \
+	git \
+	make \
 	ca-certificates \
 	xz-utils \
 	syslinux-utils \
@@ -48,12 +50,41 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
 	isc-dhcp-common \
 	isc-dhcp-client \
 	initramfs-tools \
-	zfs-initramfs
+	zfs-initramfs \
+	build-essential \
+	autoconf \
+	automake \
+	libtool \
+	gawk \
+	alien \
+	zlib1g-dev \
+	uuid-dev \
+	libattr1-dev \
+	libblkid-dev \
+	libselinux-dev \
+	libudev-dev \
+	libacl1-dev \
+	libaio-dev \
+	libdevmapper-dev \
+	libssl-dev \
+	libelf-dev
+
+RUN rm -r /lib/modules && mkdir /lib/modules
 
 RUN --mount=type=bind,from=kernel,target=/tmp dpkg -i \
 	/tmp/linux-headers-$KERNEL_VERSION-terra_$KERNEL_VERSION-terra-1_amd64.deb \
 	/tmp/linux-libc-dev_$KERNEL_VERSION-terra-1_amd64.deb \
 	/tmp/linux-image-$KERNEL_VERSION-terra_$KERNEL_VERSION-terra-1_amd64.deb
+
+# install zfs module
+RUN git clone https://github.com/zfsonlinux/zfs
+WORKDIR /zfs
+RUN ./autogen.sh && \
+	./configure && \
+	./scripts/make_gitrev.sh && \
+	cd module && \
+	make -s -j "$(getconf _NPROCESSORS_ONLN)" && \
+	make install
 
 RUN curl -sSL https://mirrors.edge.kernel.org/pub/linux/utils/boot/syslinux/syslinux-6.03.tar.xz -o /tmp/syslinux.tar.xz && \
 	tar xf /tmp/syslinux.tar.xz -C /
