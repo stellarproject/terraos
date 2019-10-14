@@ -1,0 +1,11 @@
+id = "alpine"
+image = "docker.io/library/alpine:latest"
+
+args = ["sleep", "365d"]
+
+[[networks]]
+	type = "host"
+
+[resources]
+	cpu = 1.5
+	memory = 64
