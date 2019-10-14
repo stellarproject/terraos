@@ -88,7 +88,6 @@ func main() {
 		getCommand,
 		killCommand,
 		listCommand,
-		logsCommand,
 		migrateCommand,
 		pushCommand,
 		restoreCommand,
