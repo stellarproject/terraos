@@ -37,7 +37,7 @@ RUN apk update && \
 	git \
 	make
 
-ENV COMMIT a6a0c8b6e36415a151d93d096c1c0af9e0bd7977
+ENV COMMIT acdcf13d5eaf0dfe0eaeabe7194a82535549bc2b
 RUN git clone https://github.com/containerd/containerd /go/src/github.com/containerd/containerd
 WORKDIR /go/src/github.com/containerd/containerd
 RUN git checkout $COMMIT

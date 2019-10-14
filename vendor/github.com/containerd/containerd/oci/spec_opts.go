@@ -1006,6 +1006,21 @@ func WithParentCgroupDevices(_ context.Context, _ Client, _ *containers.Containe
 	return nil
 }
 
+// WithAllDevicesAllowed permits READ WRITE MKNOD on all devices nodes for the container
+func WithAllDevicesAllowed(_ context.Context, _ Client, _ *containers.Container, s *Spec) error {
+	setLinux(s)
+	if s.Linux.Resources == nil {
+		s.Linux.Resources = &specs.LinuxResources{}
+	}
+	s.Linux.Resources.Devices = []specs.LinuxDeviceCgroup{
+		{
+			Allow:  true,
+			Access: rwm,
+		},
+	}
+	return nil
+}
+
 // WithDefaultUnixDevices adds the default devices for unix such as /dev/null, /dev/random to
 // the container's resource cgroup spec
 func WithDefaultUnixDevices(_ context.Context, _ Client, _ *containers.Container, s *Spec) error {
@@ -1100,7 +1115,6 @@ func WithDefaultUnixDevices(_ context.Context, _ Client, _ *containers.Container
 }
 
 // WithPrivileged sets up options for a privileged container
-// TODO(justincormack) device handling
 var WithPrivileged = Compose(
 	WithAllCapabilities,
 	WithMaskedPaths(nil),
@@ -1220,5 +1234,30 @@ func WithEnvFile(path string) SpecOpts {
 			vars = append(vars, sc.Text())
 		}
 		return WithEnv(vars)(nil, nil, nil, s)
+	}
+}
+
+// ErrNoShmMount is returned when there is no /dev/shm mount specified in the config
+// and an Opts was trying to set a configuration value on the mount.
+var ErrNoShmMount = errors.New("no /dev/shm mount specified")
+
+// WithDevShmSize sets the size of the /dev/shm mount for the container.
+//
+// The size value is specified in kb, kilobytes.
+func WithDevShmSize(kb int64) SpecOpts {
+	return func(ctx context.Context, _ Client, c *containers.Container, s *Spec) error {
+		for _, m := range s.Mounts {
+			if m.Source == "shm" && m.Type == "tmpfs" {
+				for i, o := range m.Options {
+					if strings.HasPrefix(o, "size=") {
+						m.Options[i] = fmt.Sprintf("size=%dk", kb)
+						return nil
+					}
+				}
+				m.Options = append(m.Options, fmt.Sprintf("size=%dk", kb))
+				return nil
+			}
+		}
+		return ErrNoShmMount
 	}
 }
