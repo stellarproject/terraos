@@ -36,7 +36,7 @@ ARGS=--arg KERNEL_VERSION=${KERNEL} --arg VERSION=${VERSION} --arg REPO=${REPO} 
 
 release: init os iso
 
-init: pxe binaries live boot
+init: pxe binaries live
 
 os: defaults terraos
 
@@ -77,9 +77,6 @@ kernel: FORCE
 
 pxe: FORCE
 	vab build ${VAB_ARGS} --push -c pxe -d pxe --ref ${REPO}/pxe:${VERSION}  ${ARGS}
-
-boot: FORCE
-	@vab build ${VAB_ARGS} --push -c boot -d boot --ref ${REPO}/boot:${VERSION}  ${ARGS}
 
 # -------------------- os -------------------------
 
