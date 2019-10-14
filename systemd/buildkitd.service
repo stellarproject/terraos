@@ -1,0 +1,10 @@
+[Unit]
+Description=buildkit
+After=containerd.service network.target
+
+[Service]
+ExecStart=/usr/local/bin/buildkitd --containerd-worker=true --oci-worker=false --addr tcp://127.0.0.1:9500
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
