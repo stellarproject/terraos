@@ -46,6 +46,7 @@ RUN apk update && \
 	iptables \
 	gparted \
 	sgdisk \
+	zfs \
 	syslinux
 
 COPY --from=terra / /
