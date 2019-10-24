@@ -162,8 +162,12 @@ var pxeConfigCommand = cli.Command{
 		},
 	},
 	Action: func(clix *cli.Context) error {
+		hostname := clix.Args().First()
+		if hostname == "" {
+			return errors.New("hostname must be provided")
+		}
 		p := &pxe{
-			hostname:    clix.Args().First(),
+			hostname:    hostname,
 			mac:         clix.String("mac"),
 			network:     clix.String("ip"),
 			gateway:     clix.String("gateway"),

@@ -85,7 +85,7 @@ RUN adduser -s /bin/bash -D -g terra -k /dev/null terra && \
 
 ADD hosts /etc/
 ADD hostname /etc/
-ADD interfaces /etc/networking/
+ADD interfaces /etc/network/
 ADD resolv.conf /etc/
 ADD sshd_config /etc/ssh/
 ADD motd /etc/
