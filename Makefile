@@ -34,6 +34,8 @@ VAB_ARGS=""
 
 ARGS=--arg KERNEL_VERSION=${KERNEL} --arg VERSION=${VERSION} --arg REPO=${REPO} --arg WIREGUARD=${WIREGUARD}
 
+cloud: pxe binaries os
+
 release: init os iso
 
 init: pxe binaries live

@@ -42,7 +42,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/containerd/cgroups"
+	cgroups "github.com/containerd/cgroups/stats/v1"
 	"github.com/containerd/containerd"
 	tasks "github.com/containerd/containerd/api/services/tasks/v1"
 	"github.com/containerd/containerd/cio"

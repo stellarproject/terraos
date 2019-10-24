@@ -94,7 +94,6 @@ RUN update-initramfs -u
 RUN mv /boot/vmlinuz-$KERNEL_VERSION-terra /boot/vmlinuz && \
 	mv /boot/initrd.img-$KERNEL_VERSION-terra /boot/initrd.img
 
-#
 # ------------------ iso build --------------------------- #
 FROM ubuntu:18.10 as iso
 
