@@ -89,6 +89,7 @@ ADD interfaces /etc/network/
 ADD resolv.conf /etc/
 ADD sshd_config /etc/ssh/
 ADD motd /etc/
+ADD sudoers /etc/
 RUN mkdir -p /etc/polkit-1/localauthority/50-local.d
 ADD libvirt.pkla /etc/polkit-1/localauthority/50-local.d/50-libvirt-ssh-remote-access-policy.pkla
 
