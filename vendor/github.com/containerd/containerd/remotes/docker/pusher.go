@@ -80,7 +80,7 @@ func (p dockerPusher) Push(ctx context.Context, desc ocispec.Descriptor) (conten
 	}
 
 	req := p.request(host, http.MethodHead, existCheck...)
-	req.header.Set("Accept", strings.Join([]string{desc.MediaType, `*`}, ", "))
+	req.header.Set("Accept", strings.Join([]string{desc.MediaType, `*/*`}, ", "))
 
 	log.G(ctx).WithField("url", req.String()).Debugf("checking and pushing to")
 
@@ -339,9 +339,9 @@ func (pw *pushWriter) Commit(ctx context.Context, size int64, expected digest.Di
 	}
 
 	// 201 is specified return status, some registries return
-	// 200 or 204.
+	// 200, 202 or 204.
 	switch resp.StatusCode {
-	case http.StatusOK, http.StatusCreated, http.StatusNoContent:
+	case http.StatusOK, http.StatusCreated, http.StatusNoContent, http.StatusAccepted:
 	default:
 		return errors.Errorf("unexpected status: %s", resp.Status)
 	}

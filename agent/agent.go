@@ -42,7 +42,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/containerd/cgroups"
+	cgroups "github.com/containerd/cgroups/stats/v1"
 	"github.com/containerd/containerd"
 	tasks "github.com/containerd/containerd/api/services/tasks/v1"
 	"github.com/containerd/containerd/cio"
@@ -101,13 +101,6 @@ func New(ctx context.Context, c *Config, client *containerd.Client) (*Agent, err
 	}
 	for _, r := range c.PlainRemotes {
 		plainRemotes[r] = true
-	}
-	for _, p := range []string{
-		filepath.Join(c.ClusterDir, "configs"),
-	} {
-		if err := os.MkdirAll(p, 0755); err != nil {
-			return nil, errors.Wrapf(err, "mkdir %s", p)
-		}
 	}
 	a := &Agent{
 		config: c,

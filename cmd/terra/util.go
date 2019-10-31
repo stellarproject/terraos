@@ -35,8 +35,6 @@ import (
 
 	"github.com/containerd/containerd/content"
 	"github.com/stellarproject/terraos/pkg/image"
-	"github.com/stellarproject/terraos/server"
-	"github.com/urfave/cli"
 )
 
 func removePartition(device string) string {
@@ -52,10 +50,6 @@ func removePartition(device string) string {
 
 func getStore() (content.Store, error) {
 	return image.NewContentStore(contentStorePath)
-}
-
-func getCluster(clix *cli.Context) *server.Store {
-	return server.NewStore(clix.GlobalString("redis"), "")
 }
 
 func tmpContentStore() (content.Store, func() error, error) {

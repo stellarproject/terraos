@@ -25,12 +25,74 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH
 # THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+ARG KERNEL_VERSION
 ARG VERSION
 ARG REPO
 
 # ------------------ imports ------------------------------ #
 FROM $REPO/terracmd:$VERSION as terra
-FROM $REPO/boot:$VERSION as boot
+FROM $REPO/kernel:$KERNEL_VERSION as kernel
+FROM $REPO/live:$VERSION as live
+
+# ------------------ boot ------------------------------ #
+
+FROM ubuntu:18.10 as boot
+
+ARG KERNEL_VERSION
+
+RUN apt-get update && apt-get install -y \
+	syslinux \
+	curl \
+	ca-certificates \
+	xz-utils \
+	squashfs-tools \
+	syslinux-utils \
+	open-iscsi \
+	isc-dhcp-common \
+	isc-dhcp-client \
+	initramfs-tools
+
+RUN --mount=type=bind,from=kernel,target=/tmp dpkg -i \
+	/tmp/linux-headers-$KERNEL_VERSION-terra_$KERNEL_VERSION-terra-1_amd64.deb \
+	/tmp/linux-libc-dev_$KERNEL_VERSION-terra-1_amd64.deb \
+	/tmp/linux-image-$KERNEL_VERSION-terra_$KERNEL_VERSION-terra-1_amd64.deb
+
+RUN curl -sSL https://mirrors.edge.kernel.org/pub/linux/utils/boot/syslinux/syslinux-6.03.tar.xz -o /tmp/syslinux.tar.xz && \
+	tar xf /tmp/syslinux.tar.xz -C /
+
+RUN mkdir -p /boot/syslinux
+
+WORKDIR /syslinux-6.03
+
+RUN cp -r bios/core/isolinux.bin \
+	bios/mbr/mbr.bin \
+	bios/com32/elflink/ldlinux/ldlinux.c32 \
+	bios/com32/menu/vesamenu.c32  \
+	bios/com32/menu/menu.c32 \
+	bios/com32/chain/chain.c32 \
+	bios/com32/libutil/libutil.c32 \
+	bios/com32/lib/libcom32.c32 \
+	bios/com32/modules/sanboot.c32 /boot/syslinux/
+
+WORKDIR /
+
+COPY --from=live / /rootfs
+
+RUN mkdir -p /rootfs/proc /rootfs/sys /rootfs/run && \
+	mksquashfs /rootfs live.sq
+
+ADD live /etc/initramfs-tools/scripts/live
+ADD modules /etc/initramfs-tools/modules
+RUN touch /etc/iscsi/iscsi.initramfs
+ADD squashhook /etc/initramfs-tools/hooks/squash
+RUN chmod +x /etc/initramfs-tools/hooks/squash
+ADD syslinux.cfg /boot/syslinux/syslinux.cfg
+ADD splash.png /boot/syslinux/splash.png
+
+RUN update-initramfs -u
+
+RUN mv /boot/vmlinuz-$KERNEL_VERSION-terra /boot/vmlinuz && \
+	mv /boot/initrd.img-$KERNEL_VERSION-terra /boot/initrd.img
 
 # ------------------ iso build --------------------------- #
 FROM ubuntu:18.10 as iso
@@ -46,7 +108,7 @@ RUN apt-get update && apt-get install -y \
 	xorriso \
 	syslinux-utils
 
-COPY --from=boot / /
+COPY --from=boot /boot/ /boot/
 
 RUN mkisofs -o /terra.iso \
    -b syslinux/isolinux.bin -c syslinux/boot.cat \

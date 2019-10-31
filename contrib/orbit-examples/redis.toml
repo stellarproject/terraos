@@ -2,10 +2,7 @@ id = "redis-01"
 image = "docker.io/library/redis:4.0-alpine"
 
 [[networks]]
-	type = "macvlan"
-	name = "ob0"
-	[networks.ipam]
-		type = "dhcp"
+	type = "host"
 
 [resources]
 	cpu = 1.5

@@ -25,20 +25,22 @@
 
 PACKAGES=$(shell go list ./... | grep -v /vendor/)
 REVISION=$(shell git rev-parse HEAD)
-VERSION=v17
+VERSION=v18-dev
 GO_LDFLAGS=-s -w -X github.com/stellarproject/terraos/version.Version=$(VERSION) -X github.com/stellarproject/terraos/version.Revision=$(REVISION)
-KERNEL=5.2.15
+KERNEL=5.3.8
 REPO=$(shell cat REPO || echo "stellarproject")
-WIREGUARD=0.0.20190905
+WIREGUARD=0.0.20190913
 VAB_ARGS=""
 
 ARGS=--arg KERNEL_VERSION=${KERNEL} --arg VERSION=${VERSION} --arg REPO=${REPO} --arg WIREGUARD=${WIREGUARD}
 
-release: stage0 stage1 iso
+cloud: pxe binaries os
 
-stage0: pxe binaries live boot
+release: init os iso
 
-stage1: defaults terraos
+init: pxe binaries live
+
+os: defaults terraos
 
 all: local
 
@@ -67,53 +69,50 @@ iso: clean
 	@cd iso && vab build --local --http ${ARGS}
 	@mv iso/terra.iso build/
 
-live:
-	@vab build ${VAB_ARGS} --push -c stage1/live -d stage1/live --ref ${REPO}/live:${VERSION} ${ARGS}
+live: FORCE
+	@vab build ${VAB_ARGS} --push -c live -d live --ref ${REPO}/live:${VERSION} ${ARGS}
 
-# -------------------- stage0 -------------------------
+# -------------------- init -------------------------
 
 kernel: FORCE
-	vab build ${VAB_ARGS} -c stage0/kernel -d stage0/kernel --push --ref ${REPO}/kernel:${KERNEL} ${ARGS}
+	vab build ${VAB_ARGS} -c kernel -d kernel --push --ref ${REPO}/kernel:${KERNEL} ${ARGS}
 
 pxe: FORCE
-	vab build ${VAB_ARGS} --push -c stage0/pxe -d stage0/pxe --ref ${REPO}/pxe:${VERSION}  ${ARGS}
+	vab build ${VAB_ARGS} --push -c pxe -d pxe --ref ${REPO}/pxe:${VERSION}  ${ARGS}
 
-boot: FORCE
-	@vab build ${VAB_ARGS} --push -c stage0/boot -d stage0/boot --ref ${REPO}/boot:${VERSION}  ${ARGS}
-
-# -------------------- stage1 -------------------------
+# -------------------- os -------------------------
 
 containerd:
-	vab build ${VAB_ARGS} -p -c stage1/defaults/containerd -d stage1/defaults/containerd --ref ${REPO}/containerd:${VERSION} ${ARGS}
+	vab build ${VAB_ARGS} -p -c apps/containerd -d apps/containerd --ref ${REPO}/containerd:${VERSION} ${ARGS}
 
 defaults: containerd wireguard orbit-release nodeexporter cni FORCE
 
 criu:
-	vab build ${VAB_ARGS} -p -d stage1/defaults/criu -c stage1/defaults/criu --ref ${REPO}/criu:${VERSION} ${ARGS}
+	vab build ${VAB_ARGS} -p -d apps/criu -c apps/criu --ref ${REPO}/criu:${VERSION} ${ARGS}
 
 cni: FORCE
-	vab build ${VAB_ARGS} -p -c stage1/defaults/cni -d stage1/defaults/cni --ref ${REPO}/cni:${VERSION} ${ARGS}
+	vab build ${VAB_ARGS} -p -c apps/cni -d apps/cni --ref ${REPO}/cni:${VERSION} ${ARGS}
 
 nodeexporter:
-	vab build ${VAB_ARGS} -p -c stage1/defaults/node_exporter -d stage1/defaults/node_exporter --ref ${REPO}/node_exporter:${VERSION} ${ARGS}
+	vab build ${VAB_ARGS} -p -c apps/node_exporter -d apps/node_exporter --ref ${REPO}/node_exporter:${VERSION} ${ARGS}
 
 gvisor:
-	vab build ${VAB_ARGS} -p -d stage1/defaults/gvisor -c stage1/defaults/gvisor --ref ${REPO}/gvisor:${VERSION} ${ARGS}
+	vab build ${VAB_ARGS} -p -d apps/gvisor -c apps/gvisor --ref ${REPO}/gvisor:${VERSION} ${ARGS}
 
 diod:
-	vab build ${VAB_ARGS} -p -d stage1/extras/diod -c stage1/extras/diod --ref ${REPO}/diod:${VERSION} ${ARGS}
+	vab build ${VAB_ARGS} -p -d apps/diod -c apps/diod --ref ${REPO}/diod:${VERSION} ${ARGS}
 
 wireguard:
-	vab build ${VAB_ARGS} -p -d stage1/defaults/wireguard -c stage1/defaults/wireguard --ref ${REPO}/wireguard:${VERSION} ${ARGS}
+	vab build ${VAB_ARGS} -p -d apps/wireguard -c apps/wireguard --ref ${REPO}/wireguard:${VERSION} ${ARGS}
 
 extras: buildkit diod FORCE
-	vab build ${VAB_ARGS} -p -d stage1/extras/docker -c stage1/extras/docker --ref ${REPO}/docker:${VERSION} ${ARGS}
+	vab build ${VAB_ARGS} -p -d apps/docker -c apps/docker --ref ${REPO}/docker:${VERSION} ${ARGS}
 
 buildkit: FORCE
-	vab build ${VAB_ARGS} -p -c stage1/extras/buildkit -d stage1/extras/buildkit --ref ${REPO}/buildkit:${VERSION} ${ARGS}
+	vab build ${VAB_ARGS} -p -c apps/buildkit -d apps/buildkit --ref ${REPO}/buildkit:${VERSION} ${ARGS}
 
 terraos: FORCE
-	vab build ${VAB_ARGS} -c stage1/terraos -d stage1/terraos --push --ref ${REPO}/terraos:${VERSION} ${ARGS}
+	vab build ${VAB_ARGS} -c os -d os --push --ref ${REPO}/terraos:${VERSION} ${ARGS}
 
 binaries:
 	vab build ${VAB_ARGS} --push -d cmd --ref ${REPO}/terracmd:${VERSION} ${ARGS}

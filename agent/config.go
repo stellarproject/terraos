@@ -45,7 +45,6 @@ type Config struct {
 	Iface        string        `toml:"iface"`
 	PlainRemotes []string      `toml:"plain_remotes"`
 	Interval     time.Duration `toml:"interval"`
-	ClusterDir   string        `toml:"cluster_dir"`
 	Logger       string        `toml:"logger"`
 
 	ip    string
@@ -65,8 +64,7 @@ func (c *Config) IP() (string, error) {
 
 func (c *Config) Paths(id string) opts.Paths {
 	return opts.Paths{
-		State:   filepath.Join(c.State, id),
-		Cluster: c.ClusterDir,
+		State: filepath.Join(c.State, id),
 	}
 }
 
