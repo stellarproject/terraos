@@ -13,10 +13,6 @@ rescue_shell() {
     exec /bin/sh
 }
 
-_setup_fstab() {
-	echo "" > "$1"
-}
-
 _setup_nameservers() {
 	if [ -z "$NAMESERVERS" ]; then
 		true
@@ -67,7 +63,6 @@ local_mount_root()
 	mount -t ${FSTYPE} ${ROOTFLAGS} ${ROOT} ${rootmnt} || rescue_shell
 
 	echo "$HOSTNAME" > ${rootmnt}/etc/hostname
-	_setup_fstab ${rootmnt}/etc/fstab
 	_setup_hosts $HOSTNAME ${rootmnt}/etc/hosts
 	_setup_nameservers $NAMESERVERS ${rootmnt}/etc/resolv.conf
 }

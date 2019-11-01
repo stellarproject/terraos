@@ -168,7 +168,7 @@ var pxeConfigCommand = cli.Command{
 		}
 		p := &pxe{
 			hostname:    hostname,
-			mac:         clix.String("mac"),
+			mac:         strings.ToLower(clix.String("mac")),
 			network:     clix.String("ip"),
 			gateway:     clix.String("gateway"),
 			nameservers: clix.StringSlice("nameserver"),
