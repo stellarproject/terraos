@@ -107,7 +107,6 @@ RUN rc-update add cgroups sysinit && \
 	rc-update add dhcp default && \
 	rc-update add udev default && \
 	rc-update add dbus default && \
-	rc-update add libvirtd default && \
 	rc-update add orbit default
 
 CMD ["/sbin/init"]
