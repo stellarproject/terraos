@@ -1,6 +1,6 @@
 # Terra OS
 
-![terra](stage0/pxe/splash.png)
+![terra](pxe/splash.png)
 
 Modern, minimal operating system (we've heard that before) optimized for containers within the Stellar Project.
 
